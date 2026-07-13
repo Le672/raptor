@@ -1,0 +1,12 @@
+name = "raptor"
+compatibility_date = "2026-01-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "yukino-portal"
+database_id = "e069f104-f55e-441f-9907-0106e2100df7"
+
+# JWT_SECRET 必须通过 secret 配置，不要写在 [vars] 中（会被打包明文暴露）：
+#   wrangler pages secret put JWT_SECRET --project-name raptor
+# 本地开发时把同样的值写到 .dev.vars（已被 .gitignore 忽略）。
