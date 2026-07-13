@@ -107,7 +107,17 @@ function Base64Tool() {
   const output = useMemo(() => {
     if (!input.trim()) return "";
     try {
-      return mode === "encode" ? btoa(input) : atob(input);
+      if (mode === "encode") {
+        // 用 UTF-8 编码后再 Base64，支持中文/emoji 等多字节字符
+        const bytes = new TextEncoder().encode(input);
+        let binary = "";
+        bytes.forEach((b) => (binary += String.fromCharCode(b)));
+        return btoa(binary);
+      }
+      // 解码：先 atob 得到字节串，再按 UTF-8 解码
+      const binary = atob(input.trim());
+      const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     } catch {
       return "输入无效，请检查内容";
     }
