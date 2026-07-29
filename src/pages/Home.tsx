@@ -60,7 +60,7 @@ const blogStats = [
 export default function Home() {
   useDocumentMeta(
     "首页",
-    "Yukino 的个人博客首页，展示近况、文章预览，以及邮件、工具、资源等子域入口。",
+    "Yukino 的个人博客，记录开发日常、折腾笔记和一些值得留下来的东西。",
   );
 
   return (
@@ -146,10 +146,10 @@ export default function Home() {
                 Latest Writing
               </p>
               <h2 className="mt-3 font-display text-4xl text-stone-900 sm:text-5xl">
-                一个更像博客聚合页的首页
+                近期文章
               </h2>
               <p className="mt-4 text-sm leading-8 text-stone-600 sm:text-base">
-                参考站点的重点不在炫技，而在信息排布足够清晰：先看到作者和更新，再继续浏览文章、标签和边栏内容。这里也沿着这个方向做了重排。
+                一些随手记下来的开发笔记和日常碎片，想到什么写什么。
               </p>
             </div>
 
@@ -177,7 +177,7 @@ export default function Home() {
                   Blog Structure
                 </p>
                 <h2 className="mt-3 font-display text-4xl text-stone-900">
-                  博客之外的小部件
+                  其他角落
                 </h2>
               </div>
               <Link
@@ -189,7 +189,7 @@ export default function Home() {
             </div>
 
             <p className="mt-4 max-w-2xl text-sm leading-8 text-stone-600">
-              这些入口更像侧栏里的独立功能块，存在感要有，但视觉上不应该盖过文章本身。首页仍然优先让人读到更新内容。
+              博客之外，顺手维护的几个小站点：工具、资源、收藏，还有一些有的没的。
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -204,17 +204,17 @@ export default function Home() {
               Deployment Note
             </p>
             <h2 className="mt-3 font-display text-4xl text-stone-900">
-              无服务器也能保持这种博客感
+              关于这个站
             </h2>
             <div className="mt-5 grid gap-3 text-sm leading-7 text-stone-600">
               <div className="rounded-[22px] bg-stone-50 px-4 py-4">
-                根域名保留博客首页和文章预览，风格统一也更好维护。
+                静态构建，托管在 Cloudflare Pages。
               </div>
               <div className="rounded-[22px] bg-stone-50 px-4 py-4">
-                `mail`、`dev`、`box` 等子域只做明确用途，不打断阅读节奏。
+                代码和内容都在 GitHub，push 即部署。
               </div>
               <div className="rounded-[22px] bg-stone-50 px-4 py-4">
-                整站静态构建后直接部署到 Cloudflare Pages，足够轻，也方便以后继续写。
+                慢慢写，慢慢长。
               </div>
             </div>
           </div>

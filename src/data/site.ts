@@ -21,9 +21,8 @@ export type PostPreview = {
 export const siteProfile = {
   name: "Yukino",
   domain: "yukino.bond",
-  tagline: "一个持续更新的个人博客，写日常、记折腾，也顺手安放邮件、工具与收藏。",
-  intro:
-    "这里更像一页长期维护的博客首页：有最近写下的东西，也有一些慢慢生长出来的子站与角落，适合安静地阅读和随手逛逛。",
+  tagline: "写代码，也写字。",
+  intro: "记录开发日常、折腾笔记，和一些值得留下来的东西。",
   email: "Raptor@yukino.bond",
 };
 
@@ -166,9 +165,9 @@ export const postPreviews: PostPreview[] = [
 ];
 
 export const principlePoints = [
-  "首页先展示文章、近况与氛围，再自然地带出其他子域入口。",
-  "站点保持轻量静态结构，方便长期写作、更新与归档。",
-  "子域名不是主角，而是博客之外延伸出来的实用角落。",
+  "最近在写什么",
+  "顺手做了什么",
+  "哪里能找到我",
 ];
 
 export const contactLinks = [
