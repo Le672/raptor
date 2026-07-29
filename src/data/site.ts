@@ -131,6 +131,14 @@ export const domainLinks: DomainLink[] = [
     status: "online",
     category: "experimental",
   },
+  {
+    title: "新闻",
+    hostname: "news.yukino.bond",
+    href: "https://news.yukino.bond",
+    description: "聚合科技资讯与开发圈动态，随手刷刷。",
+    status: "online",
+    category: "experimental",
+  },
 ];
 
 export const postPreviews: PostPreview[] = [

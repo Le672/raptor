@@ -15,6 +15,7 @@ import Home from "@/pages/Home";
 import Lab from "@/pages/Lab";
 import Links from "@/pages/Links";
 import Login from "@/pages/Login";
+import News from "@/pages/News";
 import Notes from "@/pages/Notes";
 import NotFound from "@/pages/NotFound";
 import Register from "@/pages/Register";
@@ -35,6 +36,7 @@ const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
   lab: "/lab",
   status: "/status",
   games: "/games",
+  news: "/news",
   www: "/",
 };
 
@@ -75,6 +77,7 @@ export default function App() {
           <Route path="/rss" element={<RSS />} />
           <Route path="/status" element={<Status />} />
           <Route path="/games" element={<Games />} />
+          <Route path="/news" element={<News />} />
           <Route path="/uses" element={<Uses />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

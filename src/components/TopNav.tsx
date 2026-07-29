@@ -10,6 +10,7 @@ const navItems = [
   { label: "首页", to: "/" },
   { label: "笔记", to: "/notes" },
   { label: "游戏", to: "/games" },
+  { label: "新闻", to: "/news" },
   { label: "邮箱", href: "https://mail.yukino.bond" },
   { label: "开发", to: "/dev" },
   { label: "资源", to: "/box" },

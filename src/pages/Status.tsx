@@ -101,6 +101,13 @@ const services = [
     uptime: "99.9%",
     url: "https://status.yukino.bond",
   },
+  {
+    name: "news.yukino.bond",
+    description: "新闻聚合",
+    status: "operational" as const,
+    uptime: "99.9%",
+    url: "https://news.yukino.bond",
+  },
 ];
 
 const statusConfig = {
