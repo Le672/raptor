@@ -4,6 +4,20 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const changelog = [
   {
+    date: "2026-07-29",
+    version: "v0.7.0",
+    type: "feature",
+    title: "新闻聚合页、自动部署与文案润色",
+    changes: [
+      "新增 news.yukino.bond 新闻聚合页，聚合 IT之家、36氪、Hacker News、The Verge 四个源，支持按源筛选、刷新、部分失败提示",
+      "新增 Pages Function /api/news，服务端抓取并解析 RSS 转 JSON，解决跨域，10 分钟缓存",
+      "配置 GitHub Actions：push 到 master 自动构建并部署到 Cloudflare Pages，免手动 wrangler",
+      "README 新增简体中文版 README.zh-CN.md，顶部加语言切换链接，保留英文版不替换",
+      "润色主页文案：去掉 AI 元叙述，tagline、intro、三个 section 标题与段落改为博客作者口吻",
+      "本地仓库与 GitHub 同步：以远程为准 reset，安装 Git 与 Node.js 环境",
+    ],
+  },
+  {
     date: "2026-07-13",
     version: "v0.6.0",
     type: "fix",
