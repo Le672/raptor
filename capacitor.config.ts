@@ -7,14 +7,10 @@ const config: CapacitorConfig = {
   // 允许原生壳内向 yukino.bond 发起 API 请求
   server: {
     androidScheme: "https",
-    iosScheme: "capacitor",
     cleartext: false,
   },
   android: {
     allowMixedContent: false,
-  },
-  ios: {
-    contentInset: "always",
   },
 };
 

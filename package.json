@@ -13,9 +13,8 @@
     "preview": "vite preview",
     "check": "tsc -b --noEmit",
     "test": "vitest run",
-    "cap:sync": "npm run build && npx cap sync android ios",
+    "cap:sync": "npm run build && npx cap sync android",
     "cap:android": "npm run build && npx cap sync android && npx cap open android",
-    "cap:ios": "npm run build && npx cap sync ios && npx cap open ios",
     "electron:dev": "npm run build && electron electron/main.cjs",
     "electron:build": "npm run build && electron-builder --config electron-builder.json"
   },
@@ -23,7 +22,6 @@
     "@capacitor/android": "^6.2.1",
     "@capacitor/cli": "^6.2.1",
     "@capacitor/core": "^6.2.1",
-    "@capacitor/ios": "^6.2.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.511.0",
     "react": "^18.3.1",

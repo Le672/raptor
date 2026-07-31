@@ -20,8 +20,6 @@ release
 android/app/build
 android/.gradle
 android/local.properties
-ios/App/Pods
-ios/App/output
 
 # Editor directories and files
 .vscode/*
