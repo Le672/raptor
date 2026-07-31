@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { AppShell } from "@/components/AppShell";
 import AboutMe from "@/pages/AboutMe";
 import AdminBox from "@/pages/AdminBox";
@@ -22,6 +22,7 @@ import Register from "@/pages/Register";
 import RSS from "@/pages/RSS";
 import Status from "@/pages/Status";
 import Uses from "@/pages/Uses";
+import { isElectronApp } from "@/lib/runtime";
 
 const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
   dev: "/dev",
@@ -58,9 +59,12 @@ function SubdomainRouter() {
   return null;
 }
 
+// Electron 以 file:// 加载，BrowserRouter 无法处理刷新/深链，改用 HashRouter
+const Router = isElectronApp() ? HashRouter : BrowserRouter;
+
 export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <SubdomainRouter />
       <Routes>
         <Route element={<AppShell />}>
@@ -87,6 +91,6 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }

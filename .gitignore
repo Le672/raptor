@@ -14,6 +14,15 @@ dist-ssr
 .dev.vars
 .cf-config
 
+# Electron / Capacitor 构建产物
+release
+.electron-cache
+android/app/build
+android/.gradle
+android/local.properties
+ios/App/Pods
+ios/App/output
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

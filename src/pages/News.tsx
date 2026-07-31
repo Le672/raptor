@@ -2,6 +2,7 @@ import { ArrowLeft, ExternalLink, Loader2, Newspaper, RefreshCw } from "lucide-r
 import { useEffect, useMemo, useState } from "react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { getApiBase } from "@/lib/runtime";
 
 interface NewsItem {
   title: string;
@@ -47,7 +48,7 @@ export default function News() {
   const load = () => {
     setLoading(true);
     setError(null);
-    fetch("/api/news")
+    fetch(`${getApiBase()}/news`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<NewsResponse>;

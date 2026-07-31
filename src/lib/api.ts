@@ -1,4 +1,6 @@
-const BASE = "/api";
+import { getApiBase } from "@/lib/runtime";
+
+const BASE = getApiBase();
 
 function getHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
