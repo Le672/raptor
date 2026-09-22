@@ -6,10 +6,18 @@ import { Link } from "react-router-dom";
  * On subdomains (dev.yukino.bond, blog.yukino.bond, etc.), uses a full URL anchor.
  * On www/main domain, uses React Router client-side navigation.
  */
-export function HomeLink({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+export function HomeLink({
+  children,
+  className,
+  ...props
+}: {
+  children: React.ReactNode;
+  className?: string;
+} & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+  const hostname =
+    typeof window !== "undefined" ? window.location.hostname : "";
   const parts = hostname.split(".");
-  const isSubdomain = parts.length >= 3 && parts[0] !== "www";
+  const isSubdomain = hostname.endsWith(".yukino.bond") && parts[0] !== "www";
 
   if (isSubdomain) {
     return (
@@ -25,3 +33,4 @@ export function HomeLink({ children, className, ...props }: { children: React.Re
     </Link>
   );
 }
+

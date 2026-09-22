@@ -10,13 +10,21 @@ export function AppShell() {
 
   useEffect(() => {
     closeMobileMenu();
+    window.scrollTo(0, 0);
   }, [closeMobileMenu, location.pathname]);
 
   return (
-    <div className="min-h-screen bg-transparent text-stone-800" style={{ backgroundImage: "url('https://t.alcy.cc/pc')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
-      <div className="page-glow" />
+    <div className="site-shell">
+      <a className="skip-link" href="#main-content">
+        跳转到正文
+      </a>
       <TopNav />
-      <main key={location.pathname} className="relative">
+      <main
+        id="main-content"
+        key={location.pathname}
+        className="relative"
+        tabIndex={-1}
+      >
         <Outlet />
       </main>
       <Footer />
