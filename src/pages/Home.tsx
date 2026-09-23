@@ -1,225 +1,200 @@
 import {
+  ArrowUpRight,
   ArrowRight,
-  Boxes,
-  Cloud,
+  Code2,
+  FolderOpen,
+  Gamepad2,
   Mail,
-  PencilLine,
-  ScrollText,
-  Wrench,
+  Github,
+  Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { DomainCard } from "@/components/DomainCard";
-import { PostCard } from "@/components/PostCard";
-import {
-  domainLinks,
-  postPreviews,
-  principlePoints,
-  siteProfile,
-} from "@/data/site";
+import { postPreviews, siteProfile } from "@/data/site";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
-
-const featuredDomains = domainLinks.slice(0, 8);
-const featuredPosts = postPreviews.slice(0, 4);
-
-const quickActions = [
+const corners = [
   {
-    icon: Mail,
-    title: "邮件主入口",
-    detail: "mail.yukino.bond",
+    icon: Code2,
+    title: "开发工具",
+    en: "TOOLBOX",
+    text: "让重复的事情，简单一点。",
+    to: "/dev",
   },
   {
-    icon: Wrench,
-    title: "开发工具箱",
-    detail: "dev.yukino.bond",
+    icon: FolderOpen,
+    title: "资源收藏",
+    en: "COLLECTION",
+    text: "收好那些下次还会用到的东西。",
+    to: "/box",
   },
   {
-    icon: Boxes,
-    title: "资源归档站",
-    detail: "box.yukino.bond",
-  },
-];
-
-const blogStats = [
-  {
-    icon: ScrollText,
-    label: "文章",
-    value: `${postPreviews.length.toString().padStart(2, "0")} 篇`,
-  },
-  {
-    icon: Boxes,
-    label: "子站",
-    value: `${domainLinks.length.toString().padStart(2, "0")} 个`,
-  },
-  {
-    icon: PencilLine,
-    label: "状态",
-    value: "持续更新",
+    icon: Gamepad2,
+    title: "摸鱼片刻",
+    en: "PLAYGROUND",
+    text: "偶尔停下来，玩一局也不错。",
+    to: "/games",
   },
 ];
-
 export default function Home() {
   useDocumentMeta(
     "首页",
-    "Yukino 的个人博客，记录开发日常、折腾笔记和一些值得留下来的东西。",
+    "Yukino 的个人空间，记录开发日常、折腾笔记和一些值得留下来的东西。",
   );
-
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-8 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8 lg:py-10">
-      <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-        <section className="glass-panel rounded-[28px] p-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-3 py-1 text-xs uppercase tracking-[0.24em] text-stone-600 backdrop-blur-xl">
-            <Cloud className="size-3.5" />
-            Cloudflare Pages
-          </div>
-          <p className="mt-5 text-xs uppercase tracking-[0.3em] text-stone-500">
-            {siteProfile.domain}
+    <div className="home-page">
+      <section className="home-hero" aria-labelledby="hero-title">
+        <div className="hero-copy">
+          <p className="eyebrow">
+            <span className="status-dot" /> A LITTLE SPACE ON THE INTERNET
           </p>
-          <h1 className="mt-3 font-display text-5xl leading-none text-stone-900">
-            Yukino
+          <h1 id="hero-title">
+            你好，我是{" "}
+            <span>
+              Yukino<span className="hero-period">.</span>
+            </span>
           </h1>
-          <p className="mt-4 text-sm leading-7 text-stone-700">{siteProfile.tagline}</p>
-          <p className="mt-3 text-sm leading-7 text-stone-600">{siteProfile.intro}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              className="inline-flex items-center gap-2 rounded-full bg-stone-900 px-4 py-2 text-sm text-white transition hover:-translate-y-0.5"
-              to="/notes"
-            >
-              浏览文章
-              <ArrowRight className="size-4" />
+          <p className="hero-tagline">{siteProfile.tagline}</p>
+          <p className="hero-description">
+            {siteProfile.intro}
+            <br />
+            这里是我的数字花园，也是慢慢生长的生活切片。
+          </p>
+          <div className="hero-actions">
+            <Link className="primary-link" to="/notes">
+              读读我的笔记 <ArrowRight size={17} />
             </Link>
-            <Link
-              className="rounded-full border border-white/40 bg-white/30 px-4 py-2 text-sm text-stone-700 backdrop-blur-xl transition hover:border-white/60 hover:text-stone-900"
-              to="/about-me"
-            >
-              关于我
+            <Link className="text-link" to="/about-me">
+              认识一下 <ArrowUpRight size={17} />
             </Link>
           </div>
-        </section>
-
-        <section className="glass-panel rounded-[28px] p-6">
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">概览</p>
-          <div className="mt-5 grid gap-3">
-            {blogStats.map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between rounded-[20px] bg-stone-50 px-4 py-3"
-              >
-                <div className="inline-flex items-center gap-3 text-stone-700">
-                  <item.icon className="size-4" />
-                  <span className="text-sm">{item.label}</span>
-                </div>
-                <span className="text-sm text-stone-500">{item.value}</span>
-              </div>
-            ))}
+          <div className="hero-social">
+            <a href="https://github.com/Le672" target="_blank" rel="noreferrer">
+              <Github size={16} /> GitHub <ArrowUpRight size={12} />
+            </a>
+            <a href={`mailto:${siteProfile.email}`}>
+              <Mail size={16} /> 打个招呼 <ArrowUpRight size={12} />
+            </a>
           </div>
-        </section>
-
-        <section className="glass-panel rounded-[28px] p-6">
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">常用入口</p>
-          <div className="mt-5 space-y-3">
-            {quickActions.map((action) => (
-              <a
-                key={action.title}
-                className="flex items-center gap-4 rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 transition hover:border-stone-300 hover:bg-white"
-                href={`https://${action.detail}`}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <div className="inline-flex size-10 items-center justify-center rounded-2xl bg-white text-stone-700 shadow-sm">
-                  <action.icon className="size-4.5" />
-                </div>
-                <div>
-                  <p className="text-sm text-stone-900">{action.title}</p>
-                  <p className="text-xs text-stone-500">{action.detail}</p>
-                </div>
-              </a>
-            ))}
+        </div>
+        <div className="hero-art" aria-hidden="true">
+          <div className="art-top">
+            <span>YUKINO / PERSONAL JOURNAL</span>
+            <Sparkles size={18} />
           </div>
-        </section>
-      </aside>
-
-      <div className="space-y-8">
-        <section className="glass-panel rounded-[32px] p-7 sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
-                Latest Writing
-              </p>
-              <h2 className="mt-3 font-display text-4xl text-stone-900 sm:text-5xl">
-                近期文章
-              </h2>
-              <p className="mt-4 text-sm leading-8 text-stone-600 sm:text-base">
-                一些随手记下来的开发笔记和日常碎片，想到什么写什么。
-              </p>
-            </div>
-
-            <div className="grid gap-2 text-sm text-stone-600">
-              {principlePoints.map((item) => (
-                <div key={item} className="rounded-full bg-stone-100 px-4 py-2">
-                  {item}
-                </div>
-              ))}
-            </div>
+          <div className="art-orbit orbit-one" />
+          <div className="art-orbit orbit-two" />
+          <div className="art-sun" />
+          <span className="art-kanji">雪</span>
+          <div className="art-hill hill-back" />
+          <div className="art-hill hill-front" />
+          <div className="art-caption">
+            <span>日々のかけら</span>
+            <span>
+              把平凡的日子，
+              <br />
+              慢慢写成故事。
+            </span>
           </div>
-        </section>
-
-        <section className="grid gap-5">
-          {featuredPosts.map((post) => (
-            <PostCard key={post.title} post={post} />
-          ))}
-        </section>
-
-        <section className="grid gap-5">
-          <div className="glass-panel rounded-[28px] p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-stone-500">
-                  Blog Structure
-                </p>
-                <h2 className="mt-3 font-display text-4xl text-stone-900">
-                  其他角落
-                </h2>
-              </div>
-              <Link
-                className="rounded-full border border-white/40 bg-white/30 px-4 py-2 text-sm text-stone-700 backdrop-blur-xl transition hover:border-white/60 hover:text-stone-900"
-                to="/about-me"
-              >
-                查看全部
-              </Link>
-            </div>
-
-            <p className="mt-4 max-w-2xl text-sm leading-8 text-stone-600">
-              博客之外，顺手维护的几个小站点：工具、资源、收藏，还有一些有的没的。
-            </p>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {featuredDomains.map((domain) => (
-                <DomainCard key={domain.hostname} domain={domain} />
-              ))}
-            </div>
+          <div className="art-bottom">
+            <span>CODE · NOTES · LIFE</span>
+            <span>01 — ∞</span>
           </div>
-
-          <div className="glass-panel rounded-[28px] p-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-stone-500">
-              Deployment Note
-            </p>
-            <h2 className="mt-3 font-display text-4xl text-stone-900">
-              关于这个站
-            </h2>
-            <div className="mt-5 grid gap-3 text-sm leading-7 text-stone-600">
-              <div className="rounded-[22px] bg-stone-50 px-4 py-4">
-                静态构建，托管在 Cloudflare Pages。
-              </div>
-              <div className="rounded-[22px] bg-stone-50 px-4 py-4">
-                代码和内容都在 GitHub，push 即部署。
-              </div>
-              <div className="rounded-[22px] bg-stone-50 px-4 py-4">
-                慢慢写，慢慢长。
-              </div>
-            </div>
-          </div>
-        </section>
+        </div>
+      </section>
+      <div className="home-divider">
+        <span>保持好奇，持续折腾。</span>
+        <span>一点代码 / 一些记录 / 很多可能</span>
       </div>
+      <section className="home-writing" aria-labelledby="writing-title">
+        <div className="section-top">
+          <div>
+            <p className="eyebrow">THE JOURNAL</p>
+            <h2 id="writing-title">
+              最近写下的<span> / Notes</span>
+            </h2>
+          </div>
+          <Link className="text-link" to="/notes">
+            全部笔记 <ArrowUpRight size={17} />
+          </Link>
+        </div>
+        <div className="writing-layout">
+          <div className="writing-list">
+            {postPreviews.map((post, index) => (
+              <Link className="writing-row" to={post.href} key={post.title}>
+                <span className="writing-number">0{index + 1}</span>
+                <div>
+                  <div className="writing-meta">
+                    <span>{post.tag}</span>
+                    <time dateTime={post.date}>
+                      {post.date.replace(/-/g, ".")}
+                    </time>
+                  </div>
+                  <h3>{post.title}</h3>
+                  <p>{post.summary}</p>
+                </div>
+                <ArrowUpRight className="writing-arrow" size={21} />
+              </Link>
+            ))}
+          </div>
+          <aside className="margin-note">
+            <span className="eyebrow">A NOTE TO SELF</span>
+            <span className="note-asterisk" aria-hidden="true">
+              ✳
+            </span>
+            <h3>
+              不必等到完美，
+              <br />
+              才开始记录。
+            </h3>
+            <p>
+              有些是解决问题的过程，
+              <br />
+              有些只是突然冒出的想法。
+              <br />
+              先留下来，以后再慢慢回看。
+            </p>
+            <div className="note-signature">Yukino</div>
+            <Link className="text-link" to="/changelog">
+              看看小站的变化 <ArrowUpRight size={16} />
+            </Link>
+          </aside>
+        </div>
+      </section>
+      <section className="home-corners" aria-labelledby="corners-title">
+        <div className="section-top">
+          <div>
+            <p className="eyebrow">BEYOND THE WORDS</p>
+            <h2 id="corners-title">
+              其他小角落<span> / Explore</span>
+            </h2>
+          </div>
+          <Link className="text-link" to="/links">
+            更多入口 <ArrowUpRight size={17} />
+          </Link>
+        </div>
+        <div className="corner-grid">
+          {corners.map((item) => (
+            <Link to={item.to} key={item.to} className="corner-card">
+              <div className="corner-top">
+                <item.icon size={23} strokeWidth={1.5} />
+                <ArrowUpRight size={18} />
+              </div>
+              <span className="eyebrow">{item.en}</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <section className="hello-strip">
+        <div>
+          <span className="eyebrow">NICE TO MEET YOU</span>
+          <h2>很高兴，在这里遇见你。</h2>
+          <p>如果有想交流的事，欢迎给我写封邮件。</p>
+        </div>
+        <a className="text-link" href={`mailto:${siteProfile.email}`}>
+          聊一聊 <ArrowUpRight size={22} />
+        </a>
+      </section>
     </div>
   );
 }
