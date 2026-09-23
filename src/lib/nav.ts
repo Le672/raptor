@@ -7,7 +7,7 @@ export function getHomeUrl(): string {
   const hostname = window.location.hostname;
   const parts = hostname.split(".");
   // If on a subdomain (e.g., dev.yukino.bond, blog.yukino.bond)
-  if (parts.length >= 3 && parts[0] !== "www") {
+  if (hostname.endsWith(".yukino.bond") && parts[0] !== "www") {
     return `https://www.yukino.bond/`;
   }
   return "/";
@@ -19,7 +19,7 @@ export function getHomeUrl(): string {
 export function getAdminUrl(): string {
   const hostname = window.location.hostname;
   const parts = hostname.split(".");
-  if (parts.length >= 3 && parts[0] !== "www") {
+  if (hostname.endsWith(".yukino.bond") && parts[0] !== "www") {
     return `https://www.yukino.bond/admin`;
   }
   return "/admin";
