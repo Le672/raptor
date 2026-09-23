@@ -1,9 +1,11 @@
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Calendar, Clock, Tag } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const blogPosts = [
   {
+    slug: "personal-domain",
     title: "把个人域名整理成可持续维护的入口站",
     date: "2026-06-18",
     readTime: "8 分钟",
@@ -34,6 +36,7 @@ const blogPosts = [
 持续完善各个子域的功能，让每个子域都有独立的价值。`,
   },
   {
+    slug: "developer-tools",
     title: "常用开发工具应该怎样拆到 dev.yukino.bond",
     date: "2026-06-12",
     readTime: "6 分钟",
@@ -62,12 +65,12 @@ const blogPosts = [
 所有工具都是纯前端实现，使用 React 的 useMemo 和 useCallback 优化性能。不需要后端服务，数据不会离开浏览器。`,
   },
   {
+    slug: "resource-box",
     title: "为什么资源站更适合叫 box 而不是 download",
     date: "2026-06-06",
     readTime: "4 分钟",
     tag: "随笔",
-    summary:
-      "更中性，也更适合后续从资源下载扩展到索引、清单、镜像和文档入口。",
+    summary: "更中性，也更适合后续从资源下载扩展到索引、清单、镜像和文档入口。",
     content: `## 命名的考量
 
 "download" 这个子域名字太具体了，它暗示这个站点只能用来下载文件。但实际上，我希望这个子域能承载更多类型的内容。
@@ -85,6 +88,7 @@ const blogPosts = [
 随着内容的积累，box 可以继续细分为更多子页面，但子域名称不需要改变。这就是选择抽象命名的好处。`,
   },
   {
+    slug: "personal-pages",
     title: "个人站里那些值得长期保留的页面",
     date: "2026-05-29",
     readTime: "5 分钟",
@@ -114,16 +118,22 @@ const blogPosts = [
 ];
 
 export default function Blog() {
-  useDocumentMeta("博客", "完整文章站点，记录开发心得、随笔和折腾日志。");
+  const [params] = useSearchParams();
+  const selected = params.get("post");
+  const posts = selected
+    ? blogPosts.filter((post) => post.slug === selected)
+    : blogPosts;
+  useDocumentMeta(
+    posts.length === 1 ? posts[0].title : "博客",
+    "开发心得、随笔和折腾日志。",
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
       {/* Header */}
       <div>
         <div className="flex items-center gap-3">
-          <HomeLink
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/30 px-3 py-1.5 text-xs text-stone-600 backdrop-blur-xl transition hover:border-white/60 hover:text-stone-900"
-          >
+          <HomeLink className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/30 px-3 py-1.5 text-xs text-stone-600 backdrop-blur-xl transition hover:border-white/60 hover:text-stone-900">
             <ArrowLeft className="size-3.5" />
             返回主页
           </HomeLink>
@@ -132,16 +142,24 @@ export default function Blog() {
           </span>
         </div>
         <h1 className="mt-4 font-display text-4xl text-stone-900 sm:text-5xl">
-          博客正文
+          {selected ? "阅读笔记" : "博客正文"}
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-7 text-stone-600">
           完整文章站点，适合放开发记录、长文和折腾日志。
         </p>
       </div>
 
+      <Link to="/notes" className="text-link">
+        ← 返回全部笔记
+      </Link>
       {/* Blog Posts */}
       <div className="grid gap-8">
-        {blogPosts.map((post, index) => (
+        {posts.length === 0 && (
+          <p>
+            没有找到这篇笔记。<Link to="/notes">返回笔记列表 →</Link>
+          </p>
+        )}
+        {posts.map((post, index) => (
           <article
             key={`${post.title}-${post.date}`}
             className="glass-panel rounded-[32px] p-6 sm:p-8"
@@ -172,44 +190,39 @@ export default function Blog() {
             </p>
 
             <div className="mt-6 border-t border-white/20 pt-6">
-              <div className="prose-sm prose-stone max-w-none">
-                {post.content.split("\n").map((line, i) => {
-                  if (line.startsWith("## ")) {
+              <div className="article-body">
+                {post.content.split("\n\n").map((block, i) => {
+                  const inline = (text: string) =>
+                    text
+                      .split(/(\*\*.*?\*\*)/g)
+                      .map((part, j) =>
+                        part.startsWith("**") ? (
+                          <strong key={j}>{part.slice(2, -2)}</strong>
+                        ) : (
+                          part
+                        ),
+                      );
+                  if (block.startsWith("## "))
+                    return <h3 key={i}>{block.slice(3)}</h3>;
+                  if (block.split("\n").every((line) => line.startsWith("- ")))
                     return (
-                      <h3
-                        key={i}
-                        className="mt-6 mb-3 font-display text-xl text-stone-900"
-                      >
-                        {line.replace("## ", "")}
-                      </h3>
+                      <ul key={i}>
+                        {block.split("\n").map((line, j) => (
+                          <li key={j}>{inline(line.slice(2))}</li>
+                        ))}
+                      </ul>
                     );
-                  }
-                  if (line.startsWith("- ")) {
+                  if (/^\d+\./.test(block))
                     return (
-                      <li
-                        key={i}
-                        className="ml-4 text-sm leading-7 text-stone-600"
-                      >
-                        {line.replace("- ", "")}
-                      </li>
+                      <ol key={i}>
+                        {block.split("\n").map((line, j) => (
+                          <li key={j}>
+                            {inline(line.replace(/^\d+\.\s*/, ""))}
+                          </li>
+                        ))}
+                      </ol>
                     );
-                  }
-                  if (line.trim() === "") return <br key={i} />;
-                  if (/^\d+\./.test(line)) {
-                    return (
-                      <li
-                        key={i}
-                        className="ml-4 text-sm leading-7 text-stone-600"
-                      >
-                        {line.replace(/^\d+\.\s*/, "")}
-                      </li>
-                    );
-                  }
-                  return (
-                    <p key={i} className="text-sm leading-7 text-stone-600">
-                      {line}
-                    </p>
-                  );
+                  return <p key={i}>{inline(block)}</p>;
                 })}
               </div>
             </div>

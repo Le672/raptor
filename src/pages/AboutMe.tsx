@@ -93,7 +93,7 @@ export default function AboutMe() {
               </a>
               <a
                 className="inline-flex items-center gap-1.5 transition hover:text-stone-900"
-                href="https://github.com"
+                href="https://github.com/Le672"
                 rel="noreferrer"
                 target="_blank"
               >
