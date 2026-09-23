@@ -1,10 +1,11 @@
-import { useEffect } from "react";
-import { Menu, X, ArrowUpRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Menu, X, ArrowUpRight, Search } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { HomeLink } from "@/components/HomeLink";
 import { useSiteStore } from "@/hooks/useSiteStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { api } from "@/lib/api";
+import { QuickSearch } from "@/components/QuickSearch";
 const mainNav = [
   { label: "首页", to: "/" },
   { label: "笔记", to: "/notes" },
@@ -24,9 +25,14 @@ export function TopNav() {
   const { mobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useSiteStore();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [searchOpen, setSearchOpen] = useState(false);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") closeMobileMenu();
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -71,6 +77,11 @@ export function TopNav() {
             </div>
           </details>
         </nav>
+        <button className="search-toggle" onClick={() => setSearchOpen(true)} aria-label="搜索站内内容">
+          <Search size={17} />
+          <span>搜索</span>
+          <kbd>⌘ K</kbd>
+        </button>
         <div className="nav-account">
           {user ? (
             <>
@@ -129,6 +140,7 @@ export function TopNav() {
           )}
         </nav>
       )}
+      <QuickSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   );
 }

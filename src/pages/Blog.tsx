@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Calendar, Clock, Tag } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Tag, Link as LinkIcon, Check } from "lucide-react";
+import { useState } from "react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
@@ -120,6 +121,7 @@ const blogPosts = [
 export default function Blog() {
   const [params] = useSearchParams();
   const selected = params.get("post");
+  const [copied, setCopied] = useState(false);
   const posts = selected
     ? blogPosts.filter((post) => post.slug === selected)
     : blogPosts;
@@ -127,6 +129,11 @@ export default function Blog() {
     posts.length === 1 ? posts[0].title : "博客",
     "开发心得、随笔和折腾日志。",
   );
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
@@ -182,9 +189,10 @@ export default function Blog() {
               </span>
             </div>
 
-            <h2 className="font-display text-3xl text-stone-900">
-              {post.title}
-            </h2>
+            <div className="article-title-row">
+              <h2 className="font-display text-3xl text-stone-900">{post.title}</h2>
+              {selected && <button className="copy-link" onClick={copyLink} aria-label="复制文章链接">{copied ? <Check size={16} /> : <LinkIcon size={16} />}<span>{copied ? "已复制" : "复制链接"}</span></button>}
+            </div>
             <p className="mt-4 text-sm leading-7 text-stone-600">
               {post.summary}
             </p>
