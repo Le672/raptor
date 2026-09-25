@@ -13,11 +13,14 @@ export function AlbumCard({ item, cachedData, onClick, cardRef }: {
         <div
             ref={cardRef}
             data-album-id={item.id}
-            className="border dark:border-gray-700 rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow bg-white dark:bg-gray-900 flex flex-col"
+            className="jm-album-card"
             onClick={onClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(); } }}
+            aria-label={`查看作品：${item.name}`}
         >
-            {/* cover */}
-            <div className="w-full aspect-[3/4] bg-gray-100 shrink-0">
+            <div className="jm-album-cover">
                 {photo?.images[0] ? (
                     <CoverImage
                         coverUrl={photo.images[0].url}
@@ -26,16 +29,15 @@ export function AlbumCard({ item, cachedData, onClick, cardRef }: {
                         className="w-full h-full"
                     />
                 ) : (
-                    <div className="w-full h-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                    <div className="w-full h-full animate-pulse" />
                 )}
+                <span className="jm-album-number">#{item.id}</span>
             </div>
-            {/* info */}
-            <div className="p-2 flex flex-col gap-0.5 flex-1 min-w-0">
-                <div className="text-xs font-medium leading-snug line-clamp-2 break-words" title={item.name}>
+            <div className="jm-album-info">
+                <div className="jm-album-title" title={item.name}>
                     {item.name}
                 </div>
-                <div className="text-xs text-gray-400 truncate">{item.author}</div>
-                <div className="text-xs text-gray-300 dark:text-gray-600">#{item.id}</div>
+                <div className="jm-album-author">{item.author || '作者未知'}</div>
             </div>
         </div>
     );

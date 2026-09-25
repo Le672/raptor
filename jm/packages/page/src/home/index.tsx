@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, InputGroup, Select, ListBox } from "@heroui/react";
-import { SearchIcon, RefreshCw, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Heart, RefreshCw, Search, Sparkles } from "lucide-react";
 import { TaskContext } from "./task-context";
 import { useSearchState } from "./useSearchState";
 import { useAlbumBatch } from "./useAlbumBatch";
@@ -11,6 +10,11 @@ import { AlbumCard } from "./AlbumCard";
 import { CoverImage } from "./CoverImage";
 import { ThemePopover } from "../theme/ThemeControls";
 import { FAVORITES_CHANGED, readFavorites, toggleFavorite } from "./favorites";
+import "./home.css";
+
+const categories = [
+    ["0", "全部内容"], ["1", "作品名称"], ["2", "作者"], ["3", "标签"], ["4", "角色"],
+] as const;
 
 export default function Home() {
     const [modalAlbumId, setModalAlbumId] = useState<string | null>(null);
@@ -42,279 +46,162 @@ export default function Home() {
 
     return (
         <TaskContext.Provider value={taskContextValue}>
-            <div className="fixed inset-0 flex flex-col items-center pt-4 px-4">
+            <div className="jm-web-shell">
+                {showTaskPanel && <TaskPanel onClose={() => { setShowTaskPanel(false); clearCompleted(); }} />}
+                {modalAlbumId && <AlbumModal
+                    albumId={modalAlbumId}
+                    cachedData={albumCache.get(modalAlbumId)}
+                    isFavorite={favorites.some(item => item.id === modalAlbumId)}
+                    onToggleFavorite={item => toggleFavorite(item)}
+                    onClose={() => setModalAlbumId(null)}
+                />}
 
-                {/* task panel */}
-                {showTaskPanel && (
-                    <TaskPanel onClose={() => { setShowTaskPanel(false); clearCompleted(); }} />
-                )}
-
-                {/* modal */}
-                {modalAlbumId && (
-                    <AlbumModal
-                        albumId={modalAlbumId}
-                        cachedData={albumCache.get(modalAlbumId)}
-                        isFavorite={favorites.some(item => item.id === modalAlbumId)}
-                        onToggleFavorite={item => toggleFavorite(item)}
-                        onClose={() => setModalAlbumId(null)}
-                    />
-                )}
-
-                <div className="w-full max-w-2xl flex flex-col h-full">
-
-                    {/* ── search bar ── */}
-                    <form onSubmit={handleSubmit} className="shrink-0 mb-3">
-                        <div className="flex h-12 w-full">
-                            <InputGroup
-                                className="search-input-group relative z-0 h-12 min-w-0 flex-1 rounded-r-none focus-within:z-10"
-                                isInvalid={!!queryError}
-                            >
-                                <InputGroup.Prefix className="p-0 flex-shrink-0">
-                                    <Select
-                                        aria-label="搜索类别"
-                                        className="w-24 min-w-[96px] h-full"
-                                        variant="secondary"
-                                        value={category}
-                                        onChange={(value) => {
-                                            const v = (value as "0" | "1" | "2" | "3" | "4") ?? "0";
-                                            setCategory(v);
-                                            if (query.trim()) pushSearch(query, v, orderBy, timeFilter, 1);
-                                        }}
-                                        placeholder="选择类别"
-                                    >
-                                        <Select.Trigger className="h-full rounded-none border-none shadow-none bg-transparent px-3 flex items-center justify-center gap-1">
-                                            <Select.Value className="text-center flex-1" />
-                                            <Select.Indicator className="flex-shrink-0" />
-                                        </Select.Trigger>
-                                        <Select.Popover>
-                                            <ListBox>
-                                                <ListBox.Item id="0" textValue="全部">全部</ListBox.Item>
-                                                <ListBox.Item id="1" textValue="作品名称">作品名称</ListBox.Item>
-                                                <ListBox.Item id="2" textValue="作者">作者</ListBox.Item>
-                                                <ListBox.Item id="3" textValue="标签">标签</ListBox.Item>
-                                                <ListBox.Item id="4" textValue="角色">角色</ListBox.Item>
-                                            </ListBox>
-                                        </Select.Popover>
-                                    </Select>
-                                </InputGroup.Prefix>
-                                <InputGroup.Input
-                                    placeholder="搜索内容..."
-                                    name="query"
-                                    value={query}
-                                    onChange={handleQueryChange}
-                                    aria-describedby={queryError ? "search-query-error" : undefined}
-                                    aria-invalid={!!queryError}
-                                    className="flex-1 min-w-0 [&:-webkit-autofill]:h-full [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#030712]"
-                                />
-                            </InputGroup>
-                            <Button
-                                type="submit"
-                                className="relative z-0 -ml-px h-12 min-w-12 flex-shrink-0 rounded-field rounded-l-none px-4 bg-brand-500 text-brand-foreground hover:bg-brand-600 data-[hovered=true]:bg-brand-600 data-[pressed=true]:bg-brand-700 focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-                                variant="primary"
-                                isDisabled={searchPending}
-                                aria-label={searchPending ? '正在搜索' : '搜索'}
-                                aria-busy={searchPending}
-                            >
-                                {searchPending
-                                    ? <span className="h-[18px] w-[18px] animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                    : <SearchIcon size={18} />}
-                            </Button>
-                        </div>
-                        {queryError && (
-                            <p id="search-query-error" role="alert" className="field-error mt-1 ml-1" data-visible="true">
-                                {queryError}
-                            </p>
-                        )}
-
-                        {/* sort & time */}
-                        <div className="flex gap-2 mt-2 items-center">
-                            <Select
-                                aria-label="排序方式" className="flex-1" variant="secondary"
-                                value={orderBy}
-                                onChange={(value) => {
-                                    const v = (value as "mr" | "mv" | "mp" | "tf") ?? "mr";
-                                    setOrderBy(v);
-                                    if (query.trim()) pushSearch(urlQuery, category, v, timeFilter, 1);
-                                }}
-
-                            >
-                                <Select.Trigger className="h-10 text-sm"><Select.Value /><Select.Indicator /></Select.Trigger>
-                                <Select.Popover>
-                                    <ListBox>
-                                        <ListBox.Item id="mr" textValue="最新发布">最新发布</ListBox.Item>
-                                        <ListBox.Item id="mv" textValue="最多浏览">最多浏览</ListBox.Item>
-                                        <ListBox.Item id="mp" textValue="最多图片">最多图片</ListBox.Item>
-                                        <ListBox.Item id="tf" textValue="最多喜欢">最多喜欢</ListBox.Item>
-                                    </ListBox>
-                                </Select.Popover>
-                            </Select>
-                            <Select
-                                aria-label="时间范围" className="flex-1" variant="secondary"
-                                value={timeFilter}
-                                onChange={(value) => {
-                                    const v = (value as "a" | "t" | "w" | "m") ?? "a";
-                                    setTimeFilter(v);
-                                    if (query.trim()) pushSearch(urlQuery, category, orderBy, v, 1);
-                                }}
-
-                            >
-                                <Select.Trigger className="h-10 text-sm"><Select.Value /><Select.Indicator /></Select.Trigger>
-                                <Select.Popover>
-                                    <ListBox>
-                                        <ListBox.Item id="a" textValue="全部时间">全部时间</ListBox.Item>
-                                        <ListBox.Item id="t" textValue="今天">今天</ListBox.Item>
-                                        <ListBox.Item id="w" textValue="本周">本周</ListBox.Item>
-                                        <ListBox.Item id="m" textValue="本月">本月</ListBox.Item>
-                                    </ListBox>
-                                </Select.Popover>
-                            </Select>
-
-                            <ThemePopover />
-                        </div>
-                    </form>
-
-                    <div className="shrink-0 mb-3 flex gap-2" role="tablist" aria-label="内容视图">
-                        <Button size="sm" variant={view === 'search' ? 'primary' : 'secondary'}
-                            role="tab" aria-selected={view === 'search'} onPress={() => setView('search')}>
-                            搜索结果
-                        </Button>
-                        <Button size="sm" variant={view === 'favorites' ? 'primary' : 'secondary'}
-                            role="tab" aria-selected={view === 'favorites'} onPress={() => setView('favorites')}>
-                            <Star size={14} className="mr-1" />本地收藏 ({favorites.length})
-                        </Button>
+                <header className="jm-site-header">
+                    <div className="jm-header-inner">
+                        <a className="jm-brand" href="https://www.yukino.bond/" aria-label="返回 Yukino 主站">
+                            <span className="jm-brand-mark">雪</span>
+                            <span>Yukino<span className="jm-brand-dot">.</span></span>
+                            <span className="jm-brand-divider" />
+                            <span className="jm-brand-section">COMIC LIBRARY</span>
+                        </a>
+                        <nav className="jm-header-actions" aria-label="站点导航">
+                            <a className="jm-back-link" href="https://www.yukino.bond/"><ArrowLeft size={15} /> 主站</a>
+                            <button className="jm-task-button" type="button" onClick={() => setShowTaskPanel(true)}>
+                                <BookOpen size={15} /> 下载任务
+                            </button>
+                            <ThemePopover className="jm-theme-trigger" />
+                        </nav>
                     </div>
+                </header>
 
-                    {view === 'favorites' && (
-                        <div className="min-h-0 flex-1 overflow-y-auto pb-4" role="tabpanel">
-                            {favorites.length === 0 ? (
-                                <div className="h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
-                                    暂无收藏。在作品详情中点击收藏即可保存到此浏览器。
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {favorites.map(item => (
-                                        <div key={item.id} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 flex items-center gap-3 bg-white dark:bg-gray-900">
-                                            <button className="min-w-0 flex-1 text-left" onClick={() => setModalAlbumId(item.id)}>
-                                                <span className="block truncate text-sm font-medium">{item.name}</span>
-                                                <span className="block truncate text-xs text-gray-500">{item.author || `#${item.id}`}</span>
-                                            </button>
-                                            <Button size="sm" variant="secondary" aria-label={`取消收藏 ${item.name}`}
-                                                onPress={() => toggleFavorite(item)}>取消收藏</Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                <main className="jm-main">
+                    <section className="jm-intro" aria-labelledby="jm-title">
+                        <div className="jm-intro-copy">
+                            <p className="jm-eyebrow"><span className="jm-status-dot" /> A QUIET CORNER FOR COMICS</p>
+                            <h1 id="jm-title">慢慢挑一本，<br /><span>慢慢读。</span></h1>
+                            <p className="jm-intro-text">在这里发现喜欢的作品，收藏起来，留给一个刚刚好的午后。</p>
+                            <a className="jm-home-link" href="https://www.yukino.bond/"><ArrowLeft size={15} /> 回到 Yukino 的小站</a>
                         </div>
-                    )}
-
-                    {view === 'search' && isSearchError && (
-                        <div className="shrink-0 mb-3 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
-                            <div className="min-w-0">
-                                <div className="text-sm font-medium">第 {urlPage} 页加载失败</div>
-                                <div className="text-xs opacity-80">
-                                    {fallbackSearch ? '仍显示上一次成功加载的结果。' : '请检查网络或稍后重试。'}
-                                </div>
-                            </div>
-                            <Button
-                                size="sm"
-                                variant="secondary"
-                                className="shrink-0 text-xs"
-                                onPress={() => { void refetchSearch(); }}
-                            >
-                                <RefreshCw size={14} className="mr-1" />重试
-                            </Button>
+                        <div className="jm-intro-art" aria-hidden="true">
+                            <div className="jm-art-topline"><span>YUKINO / READING ROOM</span><Sparkles size={17} /></div>
+                            <span className="jm-art-kanji">漫</span>
+                            <span className="jm-art-orbit jm-art-orbit-one" />
+                            <span className="jm-art-orbit jm-art-orbit-two" />
+                            <span className="jm-art-sun" />
+                            <span className="jm-art-hill jm-art-hill-back" />
+                            <span className="jm-art-hill jm-art-hill-front" />
+                            <div className="jm-art-caption"><span>今日の一冊</span><span>让故事<br />在纸页间生长。</span></div>
+                            <div className="jm-art-foot"><span>READ · SAVE · RETURN</span><span>01 — ∞</span></div>
                         </div>
-                    )}
+                    </section>
 
-                    <div className={view === 'search' ? 'relative flex min-h-0 flex-1 flex-col' : 'hidden'} aria-busy={searchPending}>
-                        {searchPending && data && (
-                            <div
-                                className="pointer-events-none absolute inset-x-0 top-0 z-20 h-0.5 overflow-hidden bg-brand-100 dark:bg-brand-950"
-                                role="progressbar"
-                                aria-label="正在更新搜索结果"
-                            >
-                                <div className="search-progress-bar h-full w-2/5 bg-brand-500" />
+                    <div className="jm-divider"><span>保持好奇，遇见新的故事。</span><span>搜寻作品 / 收进喜欢 / 随时继续</span></div>
+
+                    <section className="jm-library" aria-label="作品库">
+                        <div className="jm-section-heading">
+                            <div>
+                                <p className="jm-eyebrow">THE COLLECTION</p>
+                                <h2>{view === 'search' ? <>找一本<span> / Discover</span></> : <>留下喜欢<span> / Saved</span></>}</h2>
                             </div>
-                        )}
+                            <div className="jm-view-tabs" role="tablist" aria-label="内容视图">
+                                <button type="button" className={view === 'search' ? 'is-active' : ''} role="tab" aria-selected={view === 'search'} onClick={() => setView('search')}>
+                                    发现作品
+                                </button>
+                                <button type="button" className={view === 'favorites' ? 'is-active' : ''} role="tab" aria-selected={view === 'favorites'} onClick={() => setView('favorites')}>
+                                    <Heart size={14} /> 我的收藏 <span className="jm-tab-count">{favorites.length}</span>
+                                </button>
+                            </div>
+                        </div>
 
-                        {/* ── direct match ── */}
-                        {redirectAid && (
-                            <div className="shrink-0 mb-3 border dark:border-gray-700 rounded-lg bg-brand-50 dark:bg-brand-900/30 overflow-hidden">
-                                <div className="p-2 bg-brand-100 dark:bg-brand-900/40 text-sm font-medium text-brand-800 dark:text-brand-200">搜索到直接匹配的本子</div>
-                                <div
-                                    className="p-3 cursor-pointer hover:bg-brand-50 dark:hover:bg-brand-900/20"
-                                    onClick={() => setModalAlbumId(redirectAid)}
-                                >
-                                    <div className="flex gap-3 items-center">
-                                        {albumCache.get(redirectAid)?.photo?.images[0] && (
-                                            <CoverImage
-                                                coverUrl={albumCache.get(redirectAid)!.photo!.images[0].url}
-                                                scrambleId={albumCache.get(redirectAid)!.photo!.scrambleId}
-                                                albumId={redirectAid}
-                                                className="w-12 h-16 rounded shrink-0"
-                                            />
-                                        )}
-                                        <div>
-                                            <div className="text-sm font-medium">{albumCache.get(redirectAid)?.album?.name ?? `#${redirectAid}`}</div>
-                                            <div className="text-xs text-gray-400">点击查看详情</div>
+                        {view === 'search' && <>
+                            <form onSubmit={handleSubmit} className="jm-search-form">
+                                <label className="jm-category-wrap">
+                                    <span className="jm-sr-only">搜索类别</span>
+                                    <select value={category} onChange={event => {
+                                        const value = event.target.value as "0" | "1" | "2" | "3" | "4";
+                                        setCategory(value);
+                                        if (query.trim()) pushSearch(query, value, orderBy, timeFilter, 1);
+                                    }}>
+                                        {categories.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                                    </select>
+                                </label>
+                                <span className="jm-search-divider" />
+                                <Search className="jm-search-icon" size={20} aria-hidden="true" />
+                                <input name="query" value={query} onChange={handleQueryChange} placeholder="输入作品、作者或标签" aria-label="搜索漫画" aria-invalid={!!queryError} aria-describedby={queryError ? "search-query-error" : undefined} />
+                                <button className="jm-search-submit" type="submit" disabled={searchPending} aria-busy={searchPending}>
+                                    {searchPending ? <span className="jm-spinner" /> : <>开始搜索 <ArrowRight size={16} /></>}
+                                </button>
+                            </form>
+                            {queryError && <p id="search-query-error" role="alert" className="jm-field-error">{queryError}</p>}
+
+                            <div className="jm-filter-row">
+                                <span className="jm-filter-label">整理方式</span>
+                                <label><span className="jm-sr-only">排序方式</span><select value={orderBy} onChange={event => {
+                                    const value = event.target.value as "mr" | "mv" | "mp" | "tf";
+                                    setOrderBy(value);
+                                    if (query.trim()) pushSearch(urlQuery, category, value, timeFilter, 1);
+                                }}>
+                                    <option value="mr">最新发布</option><option value="mv">最多浏览</option><option value="mp">最多图片</option><option value="tf">最多喜欢</option>
+                                </select></label>
+                                <label><span className="jm-sr-only">时间范围</span><select value={timeFilter} onChange={event => {
+                                    const value = event.target.value as "a" | "t" | "w" | "m";
+                                    setTimeFilter(value);
+                                    if (query.trim()) pushSearch(urlQuery, category, orderBy, value, 1);
+                                }}>
+                                    <option value="a">全部时间</option><option value="t">今天</option><option value="w">本周</option><option value="m">本月</option>
+                                </select></label>
+                                <span className="jm-filter-note">用一点时间，找到想读的故事。</span>
+                            </div>
+
+                            {isSearchError && <div className="jm-error-banner" role="alert">
+                                <div><strong>第 {urlPage} 页暂时没有载入</strong><span>{fallbackSearch ? '先为你保留上一次成功加载的结果。' : '请检查网络连接，或稍后再试。'}</span></div>
+                                <button type="button" onClick={() => { void refetchSearch(); }}><RefreshCw size={14} /> 重试</button>
+                            </div>}
+
+                            <div className="jm-results-area" aria-busy={searchPending}>
+                                {redirectAid && <button className="jm-direct-match" type="button" onClick={() => setModalAlbumId(redirectAid)}>
+                                    <span className="jm-direct-cover">{albumCache.get(redirectAid)?.photo?.images[0] && <CoverImage coverUrl={albumCache.get(redirectAid)!.photo!.images[0].url} scrambleId={albumCache.get(redirectAid)!.photo!.scrambleId} albumId={redirectAid} className="w-full h-full" />}</span>
+                                    <span className="jm-direct-copy"><small>DIRECT MATCH</small><strong>{albumCache.get(redirectAid)?.album?.name ?? `作品 #${redirectAid}`}</strong><span>找到直接匹配的作品 <ArrowUpRight size={13} /></span></span>
+                                </button>}
+
+                                {hasResults && <>
+                                    <div className="jm-result-meta"><span>搜索结果</span><span>{totalCount.toLocaleString()} 部作品</span></div>
+                                    <div ref={listRef} className="jm-results-scroll">
+                                        <div className="jm-results-grid">
+                                            {data.content.map(item => <AlbumCard key={item.id} item={item} cachedData={albumCache.get(item.id)} onClick={() => setModalAlbumId(item.id)} cardRef={getCardRef(item.id)} />)}
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        )}
+                                </>}
 
-                        {/* ── results grid ── */}
-                        {hasResults && (
-                            <div ref={listRef} className="flex-1 overflow-y-auto min-h-0 mb-3">
-                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                                    {data.content.map(item => (
-                                        <AlbumCard
-                                            key={item.id}
-                                            item={item}
-                                            cachedData={albumCache.get(item.id)}
-                                            onClick={() => setModalAlbumId(item.id)}
-                                            cardRef={getCardRef(item.id)}
-                                        />
-                                    ))}
-                                </div>
+                                {searchPending && !data && <div className="jm-state-panel" role="status"><span className="jm-spinner jm-spinner-dark" /><span>正在翻找作品…</span></div>}
+                                {!data && !searchPending && <div className="jm-state-panel jm-welcome-state"><span className="jm-state-ornament">✳</span><strong>从一个关键词开始</strong><span>搜索作品名、作者、标签或角色，发现下一本喜欢的故事。</span></div>}
+                                {data && "content" in data && data.content.length === 0 && !redirectAid && <div className="jm-state-panel jm-welcome-state"><span className="jm-state-ornament">⌕</span><strong>还没有找到这本故事</strong><span>试试更短的关键词，或换一种搜索类别。</span></div>}
                             </div>
-                        )}
 
-                        {/* ── first load ── */}
-                        {searchPending && !data && (
-                            <div className="flex flex-1 items-center justify-center text-gray-500 dark:text-gray-400" role="status">
-                                <div className="flex items-center gap-2">
-                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-brand-500 dark:border-gray-600 dark:border-t-brand-500" />
-                                    <span className="text-sm">正在搜索...</span>
+                            {totalCount > 0 && <div className="jm-pagination">
+                                <span>{totalCount.toLocaleString()} 部作品 <i /> 第 {urlPage} / {totalPages} 页</span>
+                                <div>
+                                    <button type="button" disabled={urlPage === 1 || searchPending} onClick={() => handlePageChange(1)}>首页</button>
+                                    <button type="button" disabled={!hasPrevPage || searchPending} onClick={() => handlePageChange(urlPage - 1)}>上一页</button>
+                                    <button className="jm-page-next" type="button" disabled={!hasNextPage || searchPending || isSearchError} onClick={() => handlePageChange(urlPage + 1)}>下一页 <ArrowRight size={14} /></button>
+                                    <button type="button" disabled={urlPage === totalPages || searchPending || isSearchError} onClick={() => handlePageChange(totalPages)}>末页</button>
                                 </div>
-                            </div>
-                        )}
+                            </div>}
+                        </>}
 
-                        {/* ── empty ── */}
-                        {data && "content" in data && data.content.length === 0 && !redirectAid && (
-                            <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
-                                没有找到相关结果
-                            </div>
-                        )}
+                        {view === 'favorites' && <div className="jm-favorites-panel" role="tabpanel">
+                            {favorites.length === 0 ? <div className="jm-state-panel jm-welcome-state"><span className="jm-state-ornament">♡</span><strong>喜欢的作品会留在这里</strong><span>打开作品详情，点一下收藏，下次就能接着找回来。</span><button type="button" className="jm-return-search" onClick={() => setView('search')}>去发现作品 <ArrowRight size={14} /></button></div> : <>
+                                <div className="jm-result-meta"><span>本地收藏</span><span>保存于当前浏览器</span></div>
+                                <div className="jm-favorites-list">{favorites.map(item => <article key={item.id} className="jm-favorite-row">
+                                    <button className="jm-favorite-open" type="button" onClick={() => setModalAlbumId(item.id)}><span className="jm-favorite-cover"><Heart size={15} fill="currentColor" /></span><span className="jm-favorite-copy"><strong>{item.name}</strong><small>{item.author || `作品 #${item.id}`}</small></span><ArrowUpRight size={17} className="jm-favorite-arrow" /></button>
+                                    <button className="jm-remove-favorite" type="button" aria-label={`取消收藏 ${item.name}`} onClick={() => toggleFavorite(item)}>移除</button>
+                                </article>)}</div>
+                            </>}
+                        </div>}
+                    </section>
 
-                        {/* ── pagination ── */}
-                        {totalCount > 0 && (
-                            <div className="shrink-0 py-3 border-t dark:border-gray-700">
-                                <div className="flex items-center justify-center gap-1 mb-2">
-                                    <Button variant="secondary" size="sm" className="px-2 text-xs"
-                                        isDisabled={urlPage === 1 || searchPending} onPress={() => handlePageChange(1)}>首页</Button>
-                                    <Button variant="secondary" size="sm" className="px-2 text-xs"
-                                        isDisabled={!hasPrevPage || searchPending} onPress={() => handlePageChange(urlPage - 1)}>上页</Button>
-                                    <Button variant="secondary" size="sm" className="px-2 text-xs"
-                                        isDisabled={!hasNextPage || searchPending || isSearchError} onPress={() => handlePageChange(urlPage + 1)}>下页</Button>
-                                    <Button variant="secondary" size="sm" className="px-2 text-xs"
-                                        isDisabled={urlPage === totalPages || searchPending || isSearchError} onPress={() => handlePageChange(totalPages)}>尾页</Button>
-                                </div>
-                                <div className="text-center text-gray-500 dark:text-gray-400 text-xs">{totalCount}条·{urlPage}/{totalPages}页</div>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                    <footer className="jm-footer"><span>YUKINO / COMIC LIBRARY</span><span>给故事一点安静的空间 <i>✳</i></span><a href="https://www.yukino.bond/">Yukino.bond <ArrowUpRight size={12} /></a></footer>
+                </main>
             </div>
         </TaskContext.Provider>
     );

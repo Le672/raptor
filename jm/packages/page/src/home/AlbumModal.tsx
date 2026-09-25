@@ -72,38 +72,38 @@ export function AlbumModal({ albumId, cachedData, isFavorite, onToggleFavorite, 
     return (
         /* backdrop */
         <div
-            className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4"
+            className="jm-album-backdrop fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4"
             onClick={onClose}
         >
             <div
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden"
+                className="jm-album-dialog bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden"
                 onClick={e => e.stopPropagation()}
             >
                 {/* header */}
-                <div className="flex items-start justify-between p-4 border-b dark:border-gray-700 gap-3">
+                <div className="jm-album-header flex items-start justify-between p-4 border-b dark:border-gray-700 gap-3">
                     <div className="flex gap-3 min-w-0">
                         {photo && photo.images[0] && (
                             <CoverImage
                                 coverUrl={photo.images[0].url}
                                 scrambleId={photo.scrambleId}
                                 albumId={albumId}
-                                className="w-16 h-22 rounded shrink-0"
+                                className="jm-album-head-cover w-16 h-22 rounded shrink-0"
                             />
                         )}
                         <div className="min-w-0">
-                            <div className="font-semibold text-sm leading-snug break-words">
+                            <div className="jm-album-heading font-semibold text-sm leading-snug break-words">
                                 {album?.name ?? `#${albumId}`}
                             </div>
-                        <div className="text-xs text-gray-400 mt-1">#{albumId}</div>
+                        <div className="jm-album-heading-id text-xs text-gray-400 mt-1">#{albumId}</div>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 shrink-0 mt-0.5">
+                    <button onClick={onClose} aria-label="关闭详情" className="jm-album-close text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 shrink-0 mt-0.5">
                         <X size={18} />
                     </button>
                 </div>
 
                 {/* body */}
-                <div className="overflow-y-auto flex-1 p-4 text-sm space-y-3">
+                <div className="jm-album-body overflow-y-auto flex-1 p-4 text-sm space-y-3">
                     {!detailData && detailQuery.isPending ? (
                         <div className="text-gray-400 text-center py-8">加载中...</div>
                     ) : detailData?.error || detailQuery.isError ? (
@@ -128,7 +128,7 @@ export function AlbumModal({ albumId, cachedData, isFavorite, onToggleFavorite, 
                             <Button
                                 size="sm"
                                 variant={isFavorite ? 'primary' : 'secondary'}
-                                className="w-full"
+                                className="jm-album-favorite w-full"
                                 aria-label={isFavorite ? '取消收藏' : '收藏作品'}
                                 onPress={() => onToggleFavorite({
                                     id: albumId,
@@ -139,7 +139,7 @@ export function AlbumModal({ albumId, cachedData, isFavorite, onToggleFavorite, 
                                 <Star size={14} className="mr-1" fill={isFavorite ? 'currentColor' : 'none'} />
                                 {isFavorite ? '已收藏 · 点击取消' : '收藏到本地'}
                             </Button>
-                            <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            <div className="jm-album-stats flex gap-4 text-xs text-gray-500 dark:text-gray-400">
                                 <span>浏览 {album!.totalViews}</span>
                                 <span>点赞 {album!.likes}</span>
                                 <span>{statsLabel}</span>
@@ -147,8 +147,8 @@ export function AlbumModal({ albumId, cachedData, isFavorite, onToggleFavorite, 
 
                             {album!.author.length > 0 && (
                                 <div>
-                                    <div className="text-xs text-gray-400 mb-1">作者</div>
-                                    <div className="flex flex-wrap gap-1">
+                                    <div className="jm-detail-label text-xs text-gray-400 mb-1">作者</div>
+                                    <div className="jm-detail-tags flex flex-wrap gap-1">
                                         {album!.author.map(a => (
                                             <span key={a} className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 rounded text-xs">{a}</span>
                                         ))}
@@ -158,8 +158,8 @@ export function AlbumModal({ albumId, cachedData, isFavorite, onToggleFavorite, 
 
                             {album!.tags.length > 0 && (
                                 <div>
-                                    <div className="text-xs text-gray-400 mb-1">标签</div>
-                                    <div className="flex flex-wrap gap-1">
+                                    <div className="jm-detail-label text-xs text-gray-400 mb-1">标签</div>
+                                    <div className="jm-detail-tags flex flex-wrap gap-1">
                                         {album!.tags.map(t => (
                                             <span key={t} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-xs">{t}</span>
                                         ))}
@@ -169,8 +169,8 @@ export function AlbumModal({ albumId, cachedData, isFavorite, onToggleFavorite, 
 
                             {album!.works.length > 0 && (
                                 <div>
-                                    <div className="text-xs text-gray-400 mb-1">作品</div>
-                                    <div className="flex flex-wrap gap-1">
+                                    <div className="jm-detail-label text-xs text-gray-400 mb-1">作品</div>
+                                    <div className="jm-detail-tags flex flex-wrap gap-1">
                                         {album!.works.map(w => (
                                             <span key={w} className="px-2 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded text-xs">{w}</span>
                                         ))}
@@ -180,8 +180,8 @@ export function AlbumModal({ albumId, cachedData, isFavorite, onToggleFavorite, 
 
                             {album!.actors.length > 0 && (
                                 <div>
-                                    <div className="text-xs text-gray-400 mb-1">角色</div>
-                                    <div className="flex flex-wrap gap-1">
+                                    <div className="jm-detail-label text-xs text-gray-400 mb-1">角色</div>
+                                    <div className="jm-detail-tags flex flex-wrap gap-1">
                                         {album!.actors.map(a => (
                                             <span key={a} className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded text-xs">{a}</span>
                                         ))}
@@ -217,16 +217,16 @@ export function AlbumModal({ albumId, cachedData, isFavorite, onToggleFavorite, 
                                             {sortedSeries.map((seriesItem) => (
                                                 <div
                                                     key={seriesItem.id}
-                                                    className="rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+                                                    className="jm-series-card rounded-lg border border-gray-200 dark:border-gray-700 p-3"
                                                 >
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="min-w-0">
-                                                            <div className="text-sm font-medium leading-snug break-words">
+                                                            <div className="jm-series-title text-sm font-medium leading-snug break-words">
                                                                 {seriesItem.name}
                                                             </div>
-                                                            <div className="text-xs text-gray-400 mt-1">#{seriesItem.id}</div>
+                                                            <div className="jm-series-id text-xs text-gray-400 mt-1">#{seriesItem.id}</div>
                                                         </div>
-                                                        <div className="text-xs text-gray-400 shrink-0">
+                                                        <div className="jm-series-order text-xs text-gray-400 shrink-0">
                                                             {seriesItem.sort ? `第 ${seriesItem.sort} 话` : '章节'}
                                                         </div>
                                                     </div>

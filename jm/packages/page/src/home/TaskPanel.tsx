@@ -18,7 +18,7 @@ export function TaskPanel({ onClose }: { onClose: () => void }) {
     if (tasks.length === 0) return null;
 
     return (
-        <div className="fixed bottom-20 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10">
+        <div className="jm-task-panel fixed bottom-20 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10">
             <div
                 className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50/80 dark:hover:bg-white/5 rounded-t-2xl"
                 onClick={() => setExpanded(!expanded)}
