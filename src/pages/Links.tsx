@@ -124,6 +124,11 @@ const linkGroups = [
     icon: Music,
     links: [
       {
+        label: "jm.yukino.bond",
+        url: "https://jm.yukino.bond",
+        desc: "漫画搜索、阅读、收藏与章节导出",
+      },
+      {
         label: "Music For Programming",
         url: "https://musicforprogramming.net",
         desc: "编程背景音乐合集",
