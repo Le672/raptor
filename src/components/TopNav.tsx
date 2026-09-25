@@ -47,7 +47,7 @@ export function TopNav() {
     <header className="site-header">
       <div className="nav-inner">
         <HomeLink className="brand" onClick={closeMobileMenu}>
-          <span className="brand-mark">雪</span>
+          <span className="brand-mark">Y</span>
           <span>
             Yukino<span className="brand-dot">.</span>
           </span>

@@ -83,11 +83,11 @@ export default function Home() {
           <div className="art-orbit orbit-one" />
           <div className="art-orbit orbit-two" />
           <div className="art-sun" />
-          <span className="art-kanji">雪</span>
+          <span className="art-word">记录</span>
           <div className="art-hill hill-back" />
           <div className="art-hill hill-front" />
           <div className="art-caption">
-            <span>日々のかけら</span>
+            <span>日常切片</span>
             <span>
               把平凡的日子，
               <br />
