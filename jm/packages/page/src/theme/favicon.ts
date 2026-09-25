@@ -4,7 +4,8 @@ import {
   type ResolvedThemeMode,
 } from './theme';
 
-export const APP_ICON_PATH = 'M352 224H768V800H256V544H384V672H640V352H352Z';
+export const APP_ICON_PATH = 'M480 292C416 252 338 236 240 236C200 236 176 262 176 296V686C176 715 200 735 231 731C330 716 421 737 480 780ZM544 292C608 252 686 236 784 236C824 236 848 262 848 296V686C848 715 824 735 793 731C694 716 603 737 544 780Z';
+const APP_ICON_DETAIL_PATH = 'M504 300H520V780H504ZM244 378C314 373 382 386 438 414M244 472C314 467 382 480 438 508M780 378C710 373 642 386 586 414M780 472C710 467 642 480 586 508';
 export const FAVICON_LINK_ID = 'app-favicon';
 export const FAVICON_MIN_CONTRAST = 4.5;
 
@@ -87,7 +88,7 @@ export function getFaviconPalette(accentColor: string, mode: ResolvedThemeMode) 
 
 export function createFaviconSvg(accentColor: string, mode: ResolvedThemeMode): string {
   const { backgroundColor, markColor } = getFaviconPalette(accentColor, mode);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="${backgroundColor}"/><path fill="${markColor}" d="${APP_ICON_PATH}"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="${backgroundColor}"/><path fill="${markColor}" d="${APP_ICON_PATH}"/><path d="${APP_ICON_DETAIL_PATH}" fill="none" stroke="${backgroundColor}" stroke-linecap="round" stroke-linejoin="round" stroke-width="18"/></svg>`;
 }
 
 export function createFaviconDataUrl(accentColor: string, mode: ResolvedThemeMode): string {

@@ -7,12 +7,12 @@ import sharp from 'sharp';
 
 const iconDirectory = fileURLToPath(new URL('../public/icons/', import.meta.url));
 const expectedSizes = new Map([
-  ['favicon-32-v3.png', 32],
-  ['apple-touch-icon-180-v3.png', 180],
-  ['icon-192-v3.png', 192],
-  ['icon-512-v3.png', 512],
-  ['icon-maskable-512-v3.png', 512],
-  ['icon-1024-v3.png', 1024],
+  ['favicon-32-v4.png', 32],
+  ['apple-touch-icon-180-v4.png', 180],
+  ['icon-192-v4.png', 192],
+  ['icon-512-v4.png', 512],
+  ['icon-maskable-512-v4.png', 512],
+  ['icon-1024-v4.png', 1024],
 ]);
 
 async function readPixel(filename: string, x: number, y: number) {
@@ -35,19 +35,21 @@ describe('generated icon assets', () => {
     }
   });
 
-  it('renders a black background and white geometric mark', async () => {
-    assert.deepEqual(await readPixel('icon-1024-v3.png', 0, 0), [0, 0, 0]);
-    assert.deepEqual(await readPixel('icon-1024-v3.png', 400, 250), [255, 255, 255]);
-    assert.deepEqual(await readPixel('icon-1024-v3.png', 512, 512), [0, 0, 0]);
+  it('renders a paper background and forest-green book mark', async () => {
+    assert.deepEqual(await readPixel('icon-1024-v4.png', 0, 0), [243, 245, 236]);
+    assert.deepEqual(await readPixel('icon-1024-v4.png', 340, 260), [40, 77, 61]);
+    assert.deepEqual(await readPixel('icon-1024-v4.png', 512, 512), [243, 245, 236]);
   });
 
   it('keeps every outer mark corner inside the maskable safe circle', () => {
     const outerCorners = [
-      [352, 224],
-      [768, 224],
-      [768, 800],
-      [256, 800],
-      [256, 544],
+      [240, 236],
+      [784, 236],
+      [848, 296],
+      [793, 731],
+      [512, 780],
+      [231, 731],
+      [176, 296],
     ];
     const safeRadius = 1024 * 0.4;
     for (const [x, y] of outerCorners) {

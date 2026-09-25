@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <style>
+    .background { fill: #F3F5EC; }
+    .mark { fill: #284D3D; }
+    .detail { stroke: #F3F5EC; }
+    @media (prefers-color-scheme: dark) {
+      .background { fill: #181D18; }
+      .mark { fill: #ADC493; }
+      .detail { stroke: #181D18; }
+    }
+  </style>
+  <rect class="background" width="1024" height="1024" />
+  <path class="mark" d="M480 292C416 252 338 236 240 236C200 236 176 262 176 296V686C176 715 200 735 231 731C330 716 421 737 480 780ZM544 292C608 252 686 236 784 236C824 236 848 262 848 296V686C848 715 824 735 793 731C694 716 603 737 544 780Z" />
+  <path class="detail" d="M504 300H520V780H504ZM244 378C314 373 382 386 438 414M244 472C314 467 382 480 438 508M780 378C710 373 642 386 586 414M780 472C710 467 642 480 586 508" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="18" />
+</svg>

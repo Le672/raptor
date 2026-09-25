@@ -4,15 +4,15 @@ import sharp from 'sharp';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const iconDirectory = path.join(packageRoot, 'public', 'icons');
-const source = path.join(iconDirectory, 'icon-v3.svg');
+const source = path.join(iconDirectory, 'icon-v4.svg');
 
 const outputs = [
-  ['favicon-32-v3.png', 32],
-  ['apple-touch-icon-180-v3.png', 180],
-  ['icon-192-v3.png', 192],
-  ['icon-512-v3.png', 512],
-  ['icon-maskable-512-v3.png', 512],
-  ['icon-1024-v3.png', 1024],
+  ['favicon-32-v4.png', 32],
+  ['apple-touch-icon-180-v4.png', 180],
+  ['icon-192-v4.png', 192],
+  ['icon-512-v4.png', 512],
+  ['icon-maskable-512-v4.png', 512],
+  ['icon-1024-v4.png', 1024],
 ];
 
 await Promise.all(outputs.map(async ([filename, size]) => {
@@ -22,4 +22,4 @@ await Promise.all(outputs.map(async ([filename, size]) => {
     .toFile(path.join(iconDirectory, filename));
 }));
 
-console.log(`Generated ${outputs.length} icon assets from public/icons/icon-v3.svg`);
+console.log(`Generated ${outputs.length} icon assets from public/icons/icon-v4.svg`);

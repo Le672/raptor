@@ -45,10 +45,14 @@ async function readDistFile(filename: string) {
 describe('PWA build output', () => {
   it('emits a stable, installable web app manifest', async () => {
     const manifest = JSON.parse(await readDistFile('manifest.webmanifest')) as WebAppManifest;
+    const html = await readDistFile('index.html');
 
     assert.equal(manifest.id, '/');
-    assert.equal(manifest.name, 'J Client');
-    assert.equal(manifest.short_name, 'J');
+    assert.equal(manifest.name, 'Yukino JM');
+    assert.equal(manifest.short_name, 'Yukino JM');
+    assert.match(html, /<title>Yukino JM<\/title>/);
+    assert.match(html, /\/icons\/favicon-32-v4\.png/);
+    assert.match(html, /\/icons\/favicon-v4\.svg/);
     assert.equal(manifest.lang, 'zh-CN');
     assert.equal(manifest.start_url, '/');
     assert.equal(manifest.scope, '/');
