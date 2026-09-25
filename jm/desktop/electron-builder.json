@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "bond.yukino.comicstudio",
+  "productName": "Yukino Comic Studio",
+  "electronVersion": "31.7.7",
+  "directories": { "output": "release" },
+  "files": ["main.cjs", "dist/**/*", "assets/icon.png", "package.json"],
+  "asar": true,
+  "npmRebuild": false,
+  "win": {
+    "target": ["portable"],
+    "icon": "assets/icon.png",
+    "artifactName": "Yukino-Comic-Studio-${version}-portable.${ext}"
+  }
+}

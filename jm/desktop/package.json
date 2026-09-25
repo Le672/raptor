@@ -1,0 +1,8 @@
+{
+  "name": "yukino-comic-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Yukino 漫画书房 Windows 桌面应用",
+  "author": "Yukino",
+  "main": "main.cjs"
+}
