@@ -52,6 +52,14 @@ export const domainLinks: DomainLink[] = [
     category: "core",
   },
   {
+    title: "漫画阅读",
+    hostname: "jm.yukino.bond",
+    href: "https://jm.yukino.bond",
+    description: "搜索、阅读、收藏和导出漫画章节。",
+    status: "online",
+    category: "content",
+  },
+  {
     title: "博客正文",
     hostname: "blog.yukino.bond",
     href: "https://blog.yukino.bond",

@@ -1,0 +1,56 @@
+name: Deploy JM to Cloudflare
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'jm/**'
+      - '.github/workflows/deploy-jm.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-jm-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: pnpm
+          cache-dependency-path: jm/pnpm-lock.yaml
+      - name: Install JM dependencies
+        working-directory: jm
+        run: pnpm install --frozen-lockfile
+      - name: Check Worker types
+        working-directory: jm
+        run: pnpm --filter @tiny-client/worker typecheck
+      - name: Build Pages
+        working-directory: jm
+        env:
+          VITE_BACKEND_URL: https://jm-api-yukino.3584643854.workers.dev
+          CF_PAGES_COMMIT_SHA: ${{ github.sha }}
+          CF_PAGES_BRANCH: master
+        run: pnpm run page:build
+      - name: Deploy API Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: jm/packages/worker
+          command: deploy
+      - name: Deploy Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy jm/packages/page/dist --project-name=jm-yukino --branch=master

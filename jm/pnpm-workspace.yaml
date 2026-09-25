@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+
+onlyBuiltDependencies:
+  - '@heroui/shared-utils'
+  - esbuild
+  - protobufjs
+  - sharp
+  - workerd
