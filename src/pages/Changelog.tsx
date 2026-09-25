@@ -2,7 +2,57 @@ import { ArrowLeft, GitCommit, Plus, Wrench, Zap } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
-const changelog = [
+type ChangelogEntry = {
+  date: string;
+  version?: string;
+  type: "feature" | "improvement" | "fix";
+  title: string;
+  changes: string[];
+};
+
+const changelog: ChangelogEntry[] = [
+  {
+    date: "2026-09-25",
+    type: "feature",
+    title: "姬漫图书馆与桌面端上线",
+    changes: [
+      "上线 JM 网页图书馆与 Cloudflare 子域部署，提供漫画浏览、阅读、搜索、收藏和批量下载",
+      "新增 Windows 桌面漫画工作台及独立构建流程",
+      "重做 JM 图书馆界面，更新站点标题和应用图标",
+      "优化 Yukino 品牌标识：首页插画改为「记录」，导航徽标改为 Y",
+    ],
+  },
+  {
+    date: "2026-09-23",
+    type: "feature",
+    title: "首页改版与全站搜索",
+    changes: [
+      "重做首页、关于、笔记与博客页面，围绕个人数字花园重新整理内容",
+      "笔记卡片可直达对应文章，修复本地预览环境的站内路由",
+      "新增 Ctrl/⌘ K 全站搜索，覆盖文章、常用页面和站点入口",
+      "笔记页新增即时关键词筛选，文章页支持复制当前链接",
+    ],
+  },
+  {
+    date: "2026-09-22",
+    type: "improvement",
+    title: "个人站视觉与导航重整",
+    changes: [
+      "建立统一的 Yukino 配色、排版和页面视觉样式",
+      "简化桌面导航，统一页头、页脚和页面入口",
+      "改善移动菜单与键盘操作，并加入跳转到正文的无障碍入口",
+    ],
+  },
+  {
+    date: "2026-07-31",
+    type: "feature",
+    title: "新增桌面端与 Android 应用支持",
+    changes: [
+      "加入 Electron 桌面应用和 Capacitor Android 项目配置",
+      "新增 Windows 桌面安装包构建流程；移除无法在 Windows 构建的 iOS 平台目标",
+      "修复 Electron 使用 file:// 加载时的静态资源路径",
+    ],
+  },
   {
     date: "2026-07-29",
     version: "v0.7.0",
@@ -18,6 +68,14 @@ const changelog = [
     ],
   },
   {
+    date: "2026-07-16",
+    type: "fix",
+    title: "修复 TypeScript 5.8 构建配置",
+    changes: [
+      "移除已弃用的 tsconfig baseUrl 配置，保持生产构建兼容并重新部署",
+    ],
+  },
+  {
     date: "2026-07-13",
     version: "v0.6.0",
     type: "fix",
@@ -29,6 +87,7 @@ const changelog = [
       "统一联系邮箱为 Raptor@yukino.bond（关于我、友链页），关于我页网站链接修正为 www.yukino.bond",
       "安全修复：JWT_SECRET 从硬编码改为读取 Cloudflare 环境变量，wrangler.toml 移除明文 [vars] 死配置",
       "清理死代码：删除未引用的 src/components/SubdomainRouter.tsx 与 functions_backup/ 备份目录",
+      "修复开发工具的 Base64 编解码，改用 UTF-8 并与标准工具保持一致",
     ],
   },
   {
@@ -146,7 +205,7 @@ export default function Changelog() {
           const config = typeConfig[entry.type];
           const Icon = config.icon;
           return (
-            <div key={entry.version} className="flex gap-6">
+            <div key={`${entry.date}-${entry.title}`} className="flex gap-6">
               <div className="flex flex-col items-center">
                 <div className="flex size-10 items-center justify-center rounded-full border-2 border-white/40 bg-white/30 backdrop-blur-xl">
                   <GitCommit className="size-4 text-stone-500" />
@@ -157,9 +216,11 @@ export default function Changelog() {
               </div>
               <div className="pb-8">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="font-display text-xl text-stone-900">
-                    {entry.version}
-                  </span>
+                  {entry.version && (
+                    <span className="font-display text-xl text-stone-900">
+                      {entry.version}
+                    </span>
+                  )}
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] uppercase tracking-[0.2em] ${config.className}`}
                   >
