@@ -1,4 +1,4 @@
-const CACHE = 'yukino-jm-shell-v1';
+const CACHE = 'yukino-jm-shell-v2';
 const FILES = __PRECACHE__;
 
 self.addEventListener('install', event => {

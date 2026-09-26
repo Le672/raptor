@@ -22,7 +22,7 @@ function parseRoute(): Route {
   return { kind: 'home' };
 }
 
-function navigate(path: string) { location.hash = path; }
+function navigate(path: string) { location.hash = path; requestAnimationFrame(() => window.scrollTo(0, 0)); }
 function message(error: unknown) { return error instanceof Error ? error.message : String(error); }
 
 function PageImage({ chapter, index, onVisible }: { chapter: Chapter; index: number; onVisible?: (index: number) => void }) {
@@ -55,7 +55,7 @@ function PageImage({ chapter, index, onVisible }: { chapter: Chapter; index: num
     observer.observe(node);
     return () => observer.disconnect();
   }, [index, onVisible]);
-  return <div className="jm-page-frame" ref={element}>
+  return <div className="jm-page-frame" ref={element} data-page-index={index}>
     {src ? <img src={src} alt={`${chapter.title} · 第 ${index + 1} 页`} /> : <div className="jm-image-state">{error || <><LoaderCircle className="spin" size={22} /> 正在载入第 {index + 1} 页</>}</div>}
   </div>;
 }
@@ -79,6 +79,7 @@ function Reader({ route, back, settings }: { route: Extract<Route, { kind: 'read
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'vertical' | 'horizontal'>(() => setting('reader-mode', 'vertical'));
   const [page, setPage] = useState(0);
+  const resumePage = useRef(0);
   const [zoom, setZoom] = useState(1);
   const [translated, setTranslated] = useState('');
   const [sourceText, setSourceText] = useState('');
@@ -92,13 +93,22 @@ function Reader({ route, back, settings }: { route: Extract<Route, { kind: 'read
       if (cancelled) return;
       setBook(nextBook); setChapter(nextChapter);
       const old = history()[route.bookId];
-      setPage(old?.chapterId === route.chapterId ? Math.min(old.page, nextChapter.images.length - 1) : 0);
+      resumePage.current = old?.chapterId === route.chapterId ? Math.min(old.page, nextChapter.images.length - 1) : 0;
+      setPage(resumePage.current);
     }).catch(cause => { if (!cancelled) setError(message(cause)); });
     return () => { cancelled = true; };
   }, [route.bookId, route.chapterId]);
 
   useEffect(() => { if (chapter) saveProgress(route.bookId, { chapterId: chapter.id, page, updatedAt: Date.now() }); }, [chapter, page, route.bookId]);
   useEffect(() => { setTranslated(''); setSourceText(''); }, [page, chapter?.id]);
+  useEffect(() => {
+    if (!chapter || mode !== 'vertical' || resumePage.current < 1) return;
+    const target = resumePage.current;
+    const timers = [120, 550, 1200].map(delay => window.setTimeout(() => {
+      document.querySelector(`[data-page-index="${target}"]`)?.scrollIntoView({ block: 'start' });
+    }, delay));
+    return () => timers.forEach(timer => window.clearTimeout(timer));
+  }, [chapter, mode]);
 
   const markVisible = useCallback((index: number) => setPage(index), []);
   const currentChapterIndex = book?.chapters.findIndex(item => item.id === route.chapterId) ?? -1;
