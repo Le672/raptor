@@ -10,6 +10,35 @@ function sliceTotal(chapter: Chapter, name: string): number {
 }
 
 const inFlight = new Map<string, Promise<Blob>>();
+const waiting: Array<() => void> = [];
+let activeRequests = 0;
+
+async function withImageSlot<T>(work: () => Promise<T>): Promise<T> {
+  if (activeRequests >= 3) await new Promise<void>(resolve => waiting.push(resolve));
+  else activeRequests++;
+  try { return await work(); }
+  finally {
+    const next = waiting.shift();
+    if (next) next();
+    else activeRequests--;
+  }
+}
+
+async function fetchImage(url: string): Promise<Blob> {
+  return withImageSlot(async () => {
+    let failure: Error = new Error('图片读取失败');
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await fetch(url, { cache: 'no-store' });
+        if (response.ok) return response.blob();
+        failure = new Error(`图片读取失败：${response.status}`);
+        if (response.status < 500 && response.status !== 429) break;
+      } catch (cause) { failure = cause instanceof Error ? cause : new Error('图片网络中断'); }
+      if (attempt < 2) await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 650));
+    }
+    throw failure;
+  });
+}
 
 async function decode(source: Blob, pieces: number): Promise<Blob> {
   if (!pieces) return source;
@@ -44,9 +73,7 @@ export function pageBlob(chapter: Chapter, index: number): Promise<Blob> {
     const storage = 'caches' in window ? await caches.open('yukino-jm-pages-v1') : null;
     const cached = await storage?.match(request);
     if (cached) return cached.blob();
-    const response = await fetch(request);
-    if (!response.ok) throw new Error(`图片读取失败：${response.status}`);
-    const result = await decode(await response.blob(), sliceTotal(chapter, entry.name));
+    const result = await decode(await fetchImage(request), sliceTotal(chapter, entry.name));
     if (storage) await storage.put(request, new Response(result, { headers: { 'Content-Type': result.type } }));
     return result;
   })().finally(() => inFlight.delete(key));

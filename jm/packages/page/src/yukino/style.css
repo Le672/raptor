@@ -132,9 +132,10 @@ h1, h2, h3, p { margin-top: 0; }
 .small-select { border: 1px solid; border-radius: 8px; padding: 8px; font-size: 11px; }
 .jm-reader-stage { min-height: calc(100vh - 120px); overflow: auto; }
 .jm-vertical-pages { max-width: 920px; margin: 0 auto; }
-.jm-page-frame { min-height: 180px; display: grid; place-items: center; }
+.jm-page-frame { min-height: 420px; display: grid; place-items: center; }
 .jm-page-frame img { display: block; width: 100%; height: auto; }
 .jm-image-state { padding: 65px 20px; display: flex; align-items: center; gap: 8px; color: #a5b5a7; font-size: 12px; }
+.jm-image-state button { border: 1px solid #718c78; border-radius: 6px; color: #e7eee9; background: #2c4837; padding: 5px 10px; }
 .jm-horizontal-page { min-height: calc(100vh - 160px); display: flex; align-items: center; justify-content: center; gap: 10px; }
 .jm-horizontal-page > button { border: 0; background: #ffffff15; color: #fff; border-radius: 50%; padding: 10px; margin: 8px; }
 .jm-horizontal-page > div { max-width: 850px; flex: 1; }

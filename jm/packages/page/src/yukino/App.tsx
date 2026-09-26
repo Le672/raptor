@@ -28,6 +28,7 @@ function message(error: unknown) { return error instanceof Error ? error.message
 function PageImage({ chapter, index, onVisible }: { chapter: Chapter; index: number; onVisible?: (index: number) => void }) {
   const [src, setSrc] = useState('');
   const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
   const [ready, setReady] = useState(false);
   const element = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -35,7 +36,7 @@ function PageImage({ chapter, index, onVisible }: { chapter: Chapter; index: num
     if (!node) return;
     const observer = new IntersectionObserver(entries => {
       if (entries[0]?.isIntersecting) { setReady(true); observer.disconnect(); }
-    }, { rootMargin: '900px 0px' });
+    }, { rootMargin: '350px 0px' });
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
@@ -44,7 +45,7 @@ function PageImage({ chapter, index, onVisible }: { chapter: Chapter; index: num
     let active = true;
     pageObjectUrl(chapter, index).then(url => { if (active) setSrc(url); else URL.revokeObjectURL(url); }).catch(cause => { if (active) setError(message(cause)); });
     return () => { active = false; };
-  }, [chapter, index, ready]);
+  }, [chapter, index, ready, retry]);
   useEffect(() => () => { if (src) URL.revokeObjectURL(src); }, [src]);
   useEffect(() => {
     const node = element.current;
@@ -56,7 +57,7 @@ function PageImage({ chapter, index, onVisible }: { chapter: Chapter; index: num
     return () => observer.disconnect();
   }, [index, onVisible]);
   return <div className="jm-page-frame" ref={element} data-page-index={index}>
-    {src ? <img src={src} alt={`${chapter.title} · 第 ${index + 1} 页`} /> : <div className="jm-image-state">{error || <><LoaderCircle className="spin" size={22} /> 正在载入第 {index + 1} 页</>}</div>}
+    {src ? <img src={src} alt={`${chapter.title} · 第 ${index + 1} 页`} /> : <div className="jm-image-state">{error ? <><span>{error}</span><button onClick={() => { setError(''); setRetry(value => value + 1); }}>重试</button></> : <><LoaderCircle className="spin" size={22} /> 正在载入第 {index + 1} 页</>}</div>}
   </div>;
 }
 
