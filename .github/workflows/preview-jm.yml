@@ -1,19 +1,19 @@
-name: Deploy JM to Cloudflare
+name: Preview independent JM
 
 on:
   push:
-    branches: [master]
+    branches: [codex/jm-independent-rebuild]
     paths:
       - 'jm/**'
-      - '.github/workflows/deploy-jm.yml'
+      - '.github/workflows/preview-jm.yml'
   workflow_dispatch:
 
 concurrency:
-  group: deploy-jm-production
-  cancel-in-progress: false
+  group: preview-jm-independent
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  preview:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,29 +28,27 @@ jobs:
           node-version: '22.13.0'
           cache: pnpm
           cache-dependency-path: jm/pnpm-lock.yaml
-      - name: Install JM dependencies
+      - name: Install
         working-directory: jm
         run: pnpm install --frozen-lockfile
-      - name: Check Worker types
+      - name: Check Worker
         working-directory: jm/packages/worker
         run: pnpm typecheck
       - name: Build Pages
         working-directory: jm
-        env:
-          VITE_BACKEND_URL: https://jm-api-yukino.3584643854.workers.dev
-          CF_PAGES_COMMIT_SHA: ${{ github.sha }}
-          CF_PAGES_BRANCH: master
         run: pnpm web:build
-      - name: Deploy API Worker
+        env:
+          VITE_BACKEND_URL: https://jm-api-yukino-preview.3584643854.workers.dev
+      - name: Deploy preview API
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: jm/packages/worker
-          command: deploy
-      - name: Deploy Pages
+          command: deploy --name jm-api-yukino-preview
+      - name: Deploy preview Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy jm/packages/page/dist --project-name=jm-yukino --branch=master
+          command: pages deploy jm/packages/page/dist --project-name=jm-yukino --branch=codex-jm-independent

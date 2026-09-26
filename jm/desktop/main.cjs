@@ -56,8 +56,8 @@ function createWindow() {
       try {
         result = await win.webContents.executeJavaScript(`(async () => {
           await new Promise(resolve => setTimeout(resolve, 600));
-          const response = await fetch('https://jm-api-yukino.3584643854.workers.dev/search?query=__codex_no_match_2026__&page=1');
-          return { title: document.title, workspace: !!document.querySelector('.desktop-shell'),
+          const response = await fetch('https://jm-api-yukino.3584643854.workers.dev/v1/health');
+          return { title: document.title, workspace: !!document.querySelector('.jm-desktop'),
             secureContext: isSecureContext, opfs: typeof navigator.storage.getDirectory === 'function',
             apiStatus: response.status };
         })()`);

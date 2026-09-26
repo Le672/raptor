@@ -1,649 +1,304 @@
-import { getClientDataAndCreateClient, getDomainsFromDomainServer } from '@tiny-client/shared/client';
-import { DOMAIN_SERVER_URL, SEARCH_PAGE_SIZE } from '@tiny-client/shared/constants';
-import { assertDistinctSearchResult, selectFirstDistinctSearchResult } from './search';
-import { SearchResultCache, SEARCH_RESULT_CACHE_TTL_MS } from './search-cache';
-import { handleLlmProxyRequest, LLM_PROXY_TARGET_HEADER } from './llm-proxy';
-import {
-	type CachedResource,
-	type ResourceDescriptor,
-	getResourceCacheKey,
-	readResources,
-	resolveResource,
-} from './resource-cache';
+import CryptoJS from 'crypto-js';
 
-const BATCH_PHOTO_MAX_IDS = 20;
-const BATCH_ALBUM_MAX_IDS = 15;
-const BATCH_PHOTO_UPSTREAM_CONCURRENCY = 4;
-const BATCH_ALBUM_UPSTREAM_CONCURRENCY = 3;
-const CLIENT_DOMAIN_RETRY_COUNT = 3;
-const SEARCH_CLIENT_RACE_COUNT = 5;
-const CLIENT_CONTEXT_CACHE_TTL_MS = 5 * 60_000;
-const DOMAIN_LIST_CACHE_TTL_MS = 5 * 60_000;
+type Env = { JM_API_DOMAIN?: string };
+type Session = { origin: URL; imageOrigin: URL; version: string; cookie: string; expires: number };
+type SearchEntry = { id: string; title: string; creator: string };
 
-// ─── Search session client stickiness ────────────────────────────
-const SEARCH_CLIENT_CACHE_TTL = 60_000;
-const SEARCH_CLIENT_CACHE_MAX_ENTRIES = 128;
-const searchClientCache = new Map<string, { context: ClientContext; ts: number }>();
+const directoryUrls = [
+  'https://rup4a04-c01.tos-ap-southeast-1.bytepluses.com/newsvr-2025.txt',
+  'https://rup4a04-c02.tos-cn-hongkong.bytepluses.com/newsvr-2025.txt',
+];
 
-function getCachedSearchClient(key: string): ClientContext | undefined {
-	const entry = searchClientCache.get(key);
-	if (!entry) return undefined;
-	if (Date.now() - entry.ts > SEARCH_CLIENT_CACHE_TTL) {
-		searchClientCache.delete(key);
-		return undefined;
-	}
-	return entry.context;
-}
-
-function setCachedSearchClient(key: string, context: ClientContext) {
-	searchClientCache.delete(key);
-	searchClientCache.set(key, { context, ts: Date.now() });
-	while (searchClientCache.size > SEARCH_CLIENT_CACHE_MAX_ENTRIES) {
-		const oldest = searchClientCache.keys().next().value as string | undefined;
-		if (!oldest) break;
-		searchClientCache.delete(oldest);
-	}
-}
-
-// ─── Search result cache ─────────────────────────────────────────
-// Caches the final search result (post duplicate-guard) per query+page so
-// repeated pagination round-trips don't hammer upstream. Short TTL: search
-// results change often. Warmup still runs on the first (miss) request.
-const searchResultCache = new SearchResultCache<unknown>();
-const searchFlights = new Map<string, Promise<unknown>>();
-
-type WorkerBatchErrorStage = 'client_init' | 'get_album' | 'get_photo' | 'get_scramble_id' | 'unknown';
-
-type WorkerBatchError = {
-	message: string;
-	stage: WorkerBatchErrorStage;
-	domain: string | null;
-	reference: string | null;
-	retryable: boolean;
+// These values are public parts of the upstream wire protocol, not application credentials.
+const wire = {
+  app: '18comicAPP',
+  content: '18comicAPPContent',
+  response: '185Hcomic3PAPP7R',
+  directory: 'diosfjckwpqpdfjkvnqQjsik',
+  initialVersion: '2.0.16',
 };
 
-type ClientContext = {
-	client: Awaited<ReturnType<typeof getClientDataAndCreateClient>>;
-	domain: string;
-};
+let liveSession: Session | undefined;
+let sessionRequest: Promise<Session> | undefined;
 
-type BatchAlbumItem = {
-	albumId: string;
-	album: unknown;
-	photo: unknown;
-	error?: WorkerBatchError;
-};
-
-type BatchPhotoItem = {
-	photoId: string;
-	photo: unknown;
-	error?: WorkerBatchError;
-};
-
-let preferredClient: { context: ClientContext; ts: number } | null = null;
-let preferredClientFlight: Promise<ClientContext> | null = null;
-let domainListCache: { domains: string[]; ts: number } | null = null;
-let domainListFlight: Promise<string[]> | null = null;
-
-const corsHeaders = {
-	'Access-Control-Allow-Origin': '*',
-	'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
-	'Access-Control-Allow-Headers': `Authorization, Content-Type, ${LLM_PROXY_TARGET_HEADER}`,
-	'Access-Control-Expose-Headers': 'Server-Timing, X-Cache, X-Cache-Meta',
-	'Access-Control-Max-Age': '86400',
-	'Timing-Allow-Origin': '*',
-};
-
-// Add a short browser-side Cache-Control TTL to responses whose payload is
-// already cached server-side (in-memory / KV). Static resources are excluded
-// on purpose: the PWA recovery strategy requires no-cache for those.
-function withCacheHeaders(
-	ttlSeconds: number,
-	resources: CachedResource[] = [],
-	startedAt?: number,
-): Record<string, string> {
-	const headers: Record<string, string> = {
-		...corsHeaders,
-		'Cache-Control': `public, max-age=${ttlSeconds}`,
-	};
-	if (startedAt !== undefined) {
-		headers['Server-Timing'] = `worker;dur=${Math.max(0, performance.now() - startedAt).toFixed(1)}`;
-	}
-	if (resources.length > 0) {
-		const sources = new Set(resources.map((resource) => resource.source));
-		const hasStale = resources.some((resource) => resource.freshness === 'stale');
-		headers['X-Cache'] = hasStale ? 'stale' : sources.size === 1 ? resources[0].source : 'mixed';
-		const metadata = Object.fromEntries(resources.map((resource) => [
-			getResourceCacheKey(resource.descriptor),
-			{
-				fetchedAt: resource.fetchedAt,
-				freshness: resource.freshness,
-				source: resource.source,
-			},
-		]));
-		headers['X-Cache-Meta'] = encodeURIComponent(JSON.stringify(metadata));
-	}
-	return headers;
+function md5(input: string): string {
+  return CryptoJS.MD5(input).toString(CryptoJS.enc.Hex);
 }
 
-class UpstreamError extends Error {
-	stage: WorkerBatchErrorStage;
-	domain: string | null;
-	reference: string | null;
-	retryable: boolean;
-
-	constructor(stage: WorkerBatchErrorStage, domain: string | null, error: unknown, retryable = true) {
-		const message = error instanceof Error ? error.message : String(error);
-		super(message);
-		this.stage = stage;
-		this.domain = domain;
-		this.reference = message.match(/reference\s*=\s*([a-z0-9]+)/i)?.[1] ?? null;
-		this.retryable = retryable;
-	}
+function unpackCiphertext(ciphertext: string, key: string): unknown {
+  const words = CryptoJS.AES.decrypt(ciphertext, CryptoJS.enc.Utf8.parse(key), {
+    mode: CryptoJS.mode.ECB,
+    padding: CryptoJS.pad.NoPadding,
+  });
+  const bytes = new Uint8Array(words.sigBytes);
+  for (let offset = 0; offset < bytes.length; offset++) {
+    bytes[offset] = (words.words[offset >>> 2] >>> (24 - (offset % 4) * 8)) & 255;
+  }
+  const padding = bytes.at(-1) ?? 0;
+  const end = padding > 0 && padding <= 16 ? bytes.length - padding : bytes.length;
+  return JSON.parse(new TextDecoder().decode(bytes.subarray(0, end)));
 }
 
-function shuffle<T>(items: T[]) {
-	const result = [...items];
-	for (let i = result.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[result[i], result[j]] = [result[j], result[i]];
-	}
-	return result;
+function safeHttpOrigin(candidate: string): URL {
+  const url = new URL(candidate.startsWith('http') ? candidate : `https://${candidate}`);
+  if (url.protocol !== 'https:' || !/^[a-z0-9.-]+$/i.test(url.hostname)) {
+    throw new Error('Invalid upstream host');
+  }
+  if (url.hostname === 'localhost' || url.hostname.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(url.hostname)) {
+    throw new Error('Private upstream host rejected');
+  }
+  return url;
 }
 
-function toWorkerBatchError(error: unknown): WorkerBatchError {
-	if (error instanceof UpstreamError) {
-		return {
-			message: error.message,
-			stage: error.stage,
-			domain: error.domain,
-			reference: error.reference,
-			retryable: error.retryable,
-		};
-	}
-
-	const message = error instanceof Error ? error.message : String(error);
-	return {
-		message,
-		stage: 'unknown',
-		domain: null,
-		reference: message.match(/reference\s*=\s*([a-z0-9]+)/i)?.[1] ?? null,
-		retryable: false,
-	};
+async function discoverHosts(env: Env): Promise<URL[]> {
+  if (env.JM_API_DOMAIN) return [safeHttpOrigin(env.JM_API_DOMAIN)];
+  for (const directoryUrl of directoryUrls) {
+    try {
+      const response = await fetch(directoryUrl, { signal: AbortSignal.timeout(6000) });
+      if (!response.ok) continue;
+      const decoded = unpackCiphertext((await response.text()).trim(), md5(wire.directory)) as { Server?: unknown };
+      if (!Array.isArray(decoded.Server)) continue;
+      const hosts: URL[] = [];
+      for (const value of decoded.Server) {
+        if (typeof value !== 'string') continue;
+        try { hosts.push(safeHttpOrigin(value)); } catch { /* skip malformed hosts */ }
+      }
+      if (hosts.length) return hosts;
+    } catch { /* try the other directory */ }
+  }
+  throw new Error('No upstream domains available');
 }
 
-async function mapWithConcurrency<T, R>(
-	items: T[],
-	concurrency: number,
-	mapper: (item: T) => Promise<R>,
-) {
-	const results = new Array<R>(items.length);
-	let nextIndex = 0;
-
-	await Promise.all(
-		Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-			while (nextIndex < items.length) {
-				const currentIndex = nextIndex++;
-				results[currentIndex] = await mapper(items[currentIndex]);
-			}
-		}),
-	);
-
-	return results;
+function tokenHeaders(timestamp: number, version: string, secret = wire.app, cookie = ''): Headers {
+  const headers = new Headers({
+    token: md5(`${timestamp}${secret}`),
+    tokenparam: `${timestamp},${version}`,
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36',
+  });
+  if (cookie) headers.set('Cookie', cookie);
+  return headers;
 }
 
-async function getDomains(forceRefresh = false): Promise<string[]> {
-	if (!forceRefresh && domainListCache && Date.now() - domainListCache.ts < DOMAIN_LIST_CACHE_TTL_MS) {
-		return domainListCache.domains;
-	}
-	if (!forceRefresh && domainListFlight) return domainListFlight;
-	const domainServerURL = DOMAIN_SERVER_URL[Math.floor(Math.random() * DOMAIN_SERVER_URL.length)];
-	const promise = getDomainsFromDomainServer(domainServerURL)
-		.then((domains) => {
-			domainListCache = { domains, ts: Date.now() };
-			return domains;
-		})
-		.finally(() => {
-			if (domainListFlight === promise) domainListFlight = null;
-		});
-	domainListFlight = promise;
-	return promise;
+async function readEncryptedJson(response: Response, timestamp: number): Promise<Record<string, unknown>> {
+  if (!response.ok) throw new Error(`Upstream returned ${response.status}`);
+  const envelope = await response.json() as { data?: unknown };
+  if (typeof envelope.data !== 'string') throw new Error('Unexpected upstream response');
+  const payload = unpackCiphertext(envelope.data, md5(`${timestamp}${wire.response}`));
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Invalid upstream JSON');
+  return payload as Record<string, unknown>;
 }
 
-function rememberPreferredClient(context: ClientContext) {
-	preferredClient = { context, ts: Date.now() };
+function cookiesFrom(response: Response): string {
+  const values = response.headers.getSetCookie?.() ?? [];
+  return values.map(value => value.split(';', 1)[0]).filter(Boolean).join('; ');
 }
 
-function invalidateClient(domain: string | null) {
-	if (!domain || preferredClient?.context.domain === domain) preferredClient = null;
+async function establishSession(env: Env): Promise<Session> {
+  let lastError: unknown;
+  const hosts = await discoverHosts(env);
+  for (const origin of hosts.slice(0, 12)) {
+    try {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const setting = await fetch(new URL('/setting', origin), {
+        headers: tokenHeaders(timestamp, wire.initialVersion),
+        signal: AbortSignal.timeout(7000),
+      });
+      const cookie = cookiesFrom(setting);
+      const data = await readEncryptedJson(setting, timestamp);
+      if (typeof data.version !== 'string' || typeof data.img_host !== 'string') {
+        throw new Error('Setting response is incomplete');
+      }
+      return {
+        origin,
+        imageOrigin: safeHttpOrigin(data.img_host),
+        version: data.version,
+        cookie,
+        expires: Date.now() + 10 * 60_000,
+      };
+    } catch (error) { lastError = error; }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Unable to connect to upstream');
 }
 
-async function createClient(excludedDomains: string[] = []): Promise<ClientContext> {
-	const allDomains = shuffle(await getDomains());
-	const domains = allDomains.filter((domain) => !excludedDomains.includes(domain));
-	const candidateDomains = domains.length > 0 ? domains : allDomains;
-	let lastError: unknown;
-
-	for (const domain of candidateDomains.slice(0, CLIENT_DOMAIN_RETRY_COUNT)) {
-		try {
-			const client = await getClientDataAndCreateClient(`https://${domain}`);
-			console.log('Client created.', domain);
-			const context = { client, domain };
-			rememberPreferredClient(context);
-			return context;
-		} catch (error) {
-			lastError = new UpstreamError('client_init', domain, error);
-			console.warn('Client creation failed for domain', domain, error);
-		}
-	}
-
-	throw lastError instanceof Error ? lastError : new Error(String(lastError));
+async function getSession(env: Env): Promise<Session> {
+  if (liveSession && liveSession.expires > Date.now()) return liveSession;
+  sessionRequest ??= establishSession(env).then(value => {
+    liveSession = value;
+    return value;
+  }).finally(() => { sessionRequest = undefined; });
+  return sessionRequest;
 }
 
-async function getClient(excludedDomains: string[] = []): Promise<ClientContext> {
-	if (
-		excludedDomains.length === 0
-		&& preferredClient
-		&& Date.now() - preferredClient.ts < CLIENT_CONTEXT_CACHE_TTL_MS
-	) {
-		return preferredClient.context;
-	}
-	if (excludedDomains.length > 0) return createClient(excludedDomains);
-	if (preferredClientFlight) return preferredClientFlight;
-	const promise = createClient().finally(() => {
-		if (preferredClientFlight === promise) preferredClientFlight = null;
-	});
-	preferredClientFlight = promise;
-	return promise;
+async function upstreamJson(env: Env, pathname: string, params: Record<string, string>): Promise<Record<string, unknown>> {
+  const session = await getSession(env);
+  const url = new URL(pathname, session.origin);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  const timestamp = Math.floor(Date.now() / 1000);
+  const response = await fetch(url, {
+    headers: tokenHeaders(timestamp, session.version, wire.app, session.cookie),
+    signal: AbortSignal.timeout(12_000),
+  });
+  try { return await readEncryptedJson(response, timestamp); }
+  catch (error) { liveSession = undefined; throw error; }
 }
 
-export async function fetchPhotoWithScrambleId(clientContext: ClientContext, photoId: string) {
-	const { client, domain } = clientContext;
-	const [photoResult, scrambleResult] = await Promise.allSettled([
-		client.getPhoto(photoId),
-		client.getScrambleId(photoId),
-	]);
-	if (photoResult.status === 'rejected') {
-		throw new UpstreamError('get_photo', domain, photoResult.reason);
-	}
-	if (photoResult.value === null) return null;
-	if (scrambleResult.status === 'rejected') {
-		throw new UpstreamError('get_scramble_id', domain, scrambleResult.reason);
-	}
-
-	return {
-		...photoResult.value,
-		scrambleId: scrambleResult.value,
-	};
+function asString(value: unknown): string { return value == null ? '' : String(value); }
+function asList(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; }
+function json(data: unknown, cacheSeconds = 0, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': cacheSeconds ? `public, max-age=${cacheSeconds}` : 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }
 
-async function fetchBatchPhotoWithRetry(
-	photoId: string,
-	getPrimaryClient: () => Promise<ClientContext>,
-	getRetryClient: (excludedDomain: string | null) => Promise<ClientContext>,
-) {
-	try {
-		return await fetchPhotoWithScrambleId(await getPrimaryClient(), photoId);
-	} catch (error) {
-		const firstError = toWorkerBatchError(error);
-		if (!firstError.retryable) throw error;
-		invalidateClient(firstError.domain);
-		return await fetchPhotoWithScrambleId(await getRetryClient(firstError.domain), photoId);
-	}
+async function search(env: Env, url: URL): Promise<Response> {
+  const q = (url.searchParams.get('q') ?? '').trim();
+  if (!q || q.length > 120) return json({ error: 'Search term must contain 1–120 characters' }, 0, 400);
+  const page = Math.max(1, Math.min(1000, Number.parseInt(url.searchParams.get('page') ?? '1', 10) || 1));
+  const category = ['0', '1', '2', '3', '4'].includes(url.searchParams.get('category') ?? '') ? url.searchParams.get('category')! : '0';
+  const order = ['mr', 'mv', 'mp', 'tf'].includes(url.searchParams.get('order') ?? '') ? url.searchParams.get('order')! : 'mr';
+  const time = ['a', 't', 'w', 'm'].includes(url.searchParams.get('time') ?? '') ? url.searchParams.get('time')! : 'a';
+  const raw = await upstreamJson(env, '/search', { search_query: q, main_tag: category, o: order, t: time, page: String(page) });
+  const items: SearchEntry[] = Array.isArray(raw.content) ? raw.content.flatMap(value => {
+    if (!value || typeof value !== 'object') return [];
+    const entry = value as Record<string, unknown>;
+    return [{ id: asString(entry.id), title: asString(entry.name), creator: asString(entry.author) }];
+  }).filter(entry => entry.id && entry.title) : [];
+  return json({ page, pageSize: 80, total: Number(raw.total) || 0, directId: asString(raw.redirect_aid) || null, items }, 30);
 }
 
-async function fetchAlbumWithRetry(
-	albumId: string,
-	getPrimaryClient: () => Promise<ClientContext>,
-	getRetryClient: (excludedDomain: string | null) => Promise<ClientContext>,
-) {
-	const fetchAlbum = async (clientContext: ClientContext) => {
-		const { client, domain } = clientContext;
-		try {
-			return await client.getAlbum(albumId);
-		} catch (error) {
-			throw new UpstreamError('get_album', domain, error);
-		}
-	};
-
-	try {
-		return await fetchAlbum(await getPrimaryClient());
-	} catch (error) {
-		const firstError = toWorkerBatchError(error);
-		if (!firstError.retryable) throw error;
-		invalidateClient(firstError.domain);
-		return await fetchAlbum(await getRetryClient(firstError.domain));
-	}
+async function book(env: Env, id: string): Promise<Response> {
+  const raw = await upstreamJson(env, '/album', { id });
+  if (!raw.name) return json({ error: 'Book not found' }, 0, 404);
+  const chapters = Array.isArray(raw.series) ? raw.series.flatMap(value => {
+    if (!value || typeof value !== 'object') return [];
+    const entry = value as Record<string, unknown>;
+    return [{ id: asString(entry.id), title: asString(entry.name), order: Number(entry.sort) || 0 }];
+  }).filter(entry => entry.id) : [];
+  if (!chapters.length) chapters.push({ id, title: asString(raw.name), order: 0 });
+  return json({
+    id,
+    title: asString(raw.name),
+    creators: asList(raw.author),
+    description: asString(raw.description),
+    tags: asList(raw.tags),
+    works: asList(raw.works),
+    characters: asList(raw.actors),
+    views: Number(raw.total_views) || 0,
+    likes: Number(raw.likes) || 0,
+    chapters: chapters.sort((a, b) => a.order - b.order),
+  }, 1800);
 }
 
-function createRequestClients() {
-	let primaryPromise: ReturnType<typeof getClient> | null = null;
-	let retryPromise: ReturnType<typeof getClient> | null = null;
-	return {
-		primary: () => {
-			if (!primaryPromise) primaryPromise = getClient();
-			return primaryPromise;
-		},
-		retry: (excludedDomain: string | null) => {
-			if (!retryPromise) retryPromise = getClient(excludedDomain ? [excludedDomain] : []);
-			return retryPromise;
-		},
-	};
+async function chapter(env: Env, id: string): Promise<Response> {
+  const session = await getSession(env);
+  const raw = await upstreamJson(env, '/chapter', { id });
+  const images = asList(raw.images).map(name => ({ name, url: `/v1/image/${id}/${encodeURIComponent(name)}` }));
+  const viewUrl = new URL('/chapter_view_template', session.origin);
+  for (const [key, value] of Object.entries({ id, mode: 'vertical', page: '0', app_img_shunt: '1', express: 'off', v: String(Math.floor(Date.now() / 1000)) })) {
+    viewUrl.searchParams.set(key, value);
+  }
+  const timestamp = Math.floor(Date.now() / 1000);
+  const view = await fetch(viewUrl, { headers: tokenHeaders(timestamp, session.version, wire.content, session.cookie), signal: AbortSignal.timeout(12_000) });
+  if (!view.ok) throw new Error(`Chapter view returned ${view.status}`);
+  const match = (await view.text()).match(/scramble_id\s*=\s*(\d+)/);
+  if (!match) throw new Error('Chapter image key is unavailable');
+  return json({ id, title: asString(raw.name), images, scramble: Number(match[1]) }, 1800);
 }
 
-function descriptor(kind: ResourceDescriptor['kind'], id: string): ResourceDescriptor {
-	return { kind, id };
+async function image(env: Env, id: string, encodedName: string): Promise<Response> {
+  const name = decodeURIComponent(encodedName);
+  if (!/^[^/\\]+\.(?:jpe?g|png|gif|webp)$/i.test(name)) return json({ error: 'Invalid image name' }, 0, 400);
+  const session = await getSession(env);
+  const url = new URL(`/media/photos/${id}/${encodeURIComponent(name)}`, session.imageOrigin);
+  const source = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+  if (!source.ok || !source.body) throw new Error(`Image returned ${source.status}`);
+  return new Response(source.body, {
+    status: 200,
+    headers: {
+      'Content-Type': source.headers.get('content-type') ?? 'image/jpeg',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=86400',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }
 
-function cachedFor(cache: Map<string, CachedResource>, resource: ResourceDescriptor) {
-	return cache.get(getResourceCacheKey(resource));
+async function cover(env: Env, id: string): Promise<Response> {
+  const session = await getSession(env);
+  const upstream = new URL(`/media/albums/${id}_3x4.jpg`, session.imageOrigin);
+  const response = await fetch(upstream, { signal: AbortSignal.timeout(15_000) });
+  if (!response.ok || !response.body) throw new Error(`Cover returned ${response.status}`);
+  return new Response(response.body, {
+    headers: {
+      'Content-Type': response.headers.get('Content-Type') ?? 'image/jpeg',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=86400',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }
 
-function parseIds(url: URL) {
-	return (url.searchParams.get('ids') ?? '').split(',').map((id) => id.trim()).filter(Boolean);
-}
-
-function notFoundError(stage: 'get_album' | 'get_photo'): WorkerBatchError {
-	return { message: 'not found', stage, domain: null, reference: null, retryable: false };
-}
-
-type SearchEdgeEnvelope = {
-	version: 3;
-	result: unknown;
-	fetchedAt: number;
-};
-
-function isSearchEdgeEnvelope(value: unknown): value is SearchEdgeEnvelope {
-	if (!value || typeof value !== 'object') return false;
-	const candidate = value as Partial<SearchEdgeEnvelope>;
-	return candidate.version === 3
-		&& typeof candidate.fetchedAt === 'number'
-		&& Object.prototype.hasOwnProperty.call(candidate, 'result');
-}
-
-function searchEdgeKey(url: URL) {
-	const key = new URL(url);
-	key.pathname = '/__search-cache/v3';
-	key.searchParams.delete('warmup');
-	const previousIds = key.searchParams.get('previousIds');
-	if (previousIds) {
-		key.searchParams.set('previousIds', previousIds.split(',').filter(Boolean).sort().join(','));
-	}
-	key.searchParams.sort();
-	return new Request(key.toString(), { method: 'GET' });
-}
-
-function scheduleSearchWarmup(result: any, url: URL, ctx: ExecutionContext) {
-	if (url.searchParams.get('warmup') !== '1') return;
-	const orderedIds = [
-		...(result.redirect_aid ? [String(result.redirect_aid)] : []),
-		...(Array.isArray(result.content) ? result.content.map((item: any) => String(item.id)) : []),
-	];
-	const warmupIds = [...new Set(orderedIds)].slice(0, BATCH_ALBUM_MAX_IDS);
-	if (warmupIds.length === 0) return;
-	const batchUrl = new URL('/batch-album', url);
-	batchUrl.searchParams.set('ids', warmupIds.join(','));
-	ctx.waitUntil(fetch(batchUrl.toString()).then(async (response) => {
-		if (!response.ok) console.warn('Warmup batch-album failed', response.status, await response.text());
-	}).catch((error) => console.warn('Warmup batch-album failed', error)));
+async function translate(request: Request): Promise<Response> {
+  const body = await request.json() as Record<string, unknown>;
+  const endpoint = asString(body.endpoint);
+  const apiKey = asString(body.apiKey);
+  const model = asString(body.model).trim();
+  const language = asString(body.language).trim().slice(0, 40) || '简体中文';
+  const text = asString(body.text).trim();
+  if (!endpoint || !apiKey || !model || !text || text.length > 12000) return json({ error: '翻译设置或文字无效' }, 0, 400);
+  let target: URL;
+  try {
+    target = new URL(endpoint);
+    safeHttpOrigin(target.origin);
+  } catch { return json({ error: '请输入公开的 HTTPS API 地址' }, 0, 400); }
+  if (target.username || target.password || target.port || target.hash || target.search || !target.pathname.endsWith('/chat/completions')) {
+    return json({ error: 'API 地址必须指向 chat/completions' }, 0, 400);
+  }
+  const response = await fetch(target, {
+    method: 'POST',
+    redirect: 'error',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model, temperature: 0.2, messages: [
+      { role: 'system', content: `Translate the following comic dialogue into ${language}. Keep the line order. Return only the translation.` },
+      { role: 'user', content: text },
+    ] }),
+    signal: AbortSignal.timeout(45_000),
+  });
+  if (!response.ok) return json({ error: `翻译服务返回 ${response.status}` }, 0, 502);
+  const result = await response.json() as { choices?: { message?: { content?: unknown } }[] };
+  const translated = result.choices?.[0]?.message?.content;
+  return typeof translated === 'string' && translated.trim() ? json({ text: translated.trim() }) : json({ error: '翻译服务没有返回文字' }, 0, 502);
 }
 
 export default {
-	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		const startedAt = performance.now();
-		const url = new URL(request.url);
-
-		if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-
-		try {
-			if (url.pathname === '/llm-proxy') return handleLlmProxyRequest(request, corsHeaders);
-
-			if (url.pathname === '/search') {
-				const query = url.searchParams.get('query');
-				if (!query) return new Response("Missing query 'query'", { status: 400, headers: corsHeaders });
-				const previousIds = (url.searchParams.get('previousIds') ?? '').split(',').map((id) => id.trim()).filter(Boolean);
-				if (previousIds.length > SEARCH_PAGE_SIZE) {
-					return new Response(`Too many previousIds, max ${SEARCH_PAGE_SIZE}`, { status: 400, headers: corsHeaders });
-				}
-				const searchOptions = {
-					page: Number(url.searchParams.get('page')) || 1,
-					orderBy: (url.searchParams.get('orderBy') as any) || 'mr',
-					time: (url.searchParams.get('time') as any) || 'a',
-					mainTag: (Number(url.searchParams.get('mainTag')) as any) || 0,
-				};
-				const duplicateGuardIds = searchOptions.page > 1 ? previousIds : [];
-				const guardKey = [...duplicateGuardIds].sort().join(',');
-				const resultCacheKey = `search:${query}:${searchOptions.mainTag}:${searchOptions.orderBy}:${searchOptions.time}:${searchOptions.page}:${guardKey}`;
-
-				let cachedResult = searchResultCache.get(resultCacheKey);
-				let searchCacheSource = 'l1';
-				if (cachedResult === undefined) {
-					try {
-						const edgeResponse = await caches.default.match(searchEdgeKey(url));
-						if (edgeResponse) {
-							const envelope = await edgeResponse.json();
-							if (
-								isSearchEdgeEnvelope(envelope)
-								&& Date.now() - envelope.fetchedAt < SEARCH_RESULT_CACHE_TTL_MS
-							) {
-								cachedResult = envelope.result;
-								searchResultCache.set(resultCacheKey, cachedResult, envelope.fetchedAt);
-								searchCacheSource = 'edge';
-							}
-						}
-					} catch {
-						// Search edge cache is best effort.
-					}
-				}
-				if (cachedResult !== undefined) {
-					scheduleSearchWarmup(cachedResult, url, ctx);
-					return Response.json(cachedResult, {
-						headers: { ...withCacheHeaders(30, [], startedAt), 'X-Cache': searchCacheSource },
-					});
-				}
-
-					let result: any;
-					try {
-						const existingFlight = searchFlights.get(resultCacheKey);
-						if (existingFlight) {
-							result = await existingFlight;
-						} else {
-							const promise = (async () => {
-								const sessionKey = `search:${query}:${searchOptions.mainTag}:${searchOptions.orderBy}:${searchOptions.time}`;
-								const reusablePreferred = preferredClient && Date.now() - preferredClient.ts < CLIENT_CONTEXT_CACHE_TTL_MS
-									? preferredClient.context
-									: undefined;
-								const cachedContext = getCachedSearchClient(sessionKey) ?? reusablePreferred;
-								let upstreamResult: any;
-								if (cachedContext) {
-									try {
-										upstreamResult = assertDistinctSearchResult(
-											await cachedContext.client.search(query, searchOptions),
-											duplicateGuardIds,
-										);
-										setCachedSearchClient(sessionKey, cachedContext);
-									} catch (error) {
-										console.warn('Cached search client failed, falling back to race', cachedContext.domain, error);
-										searchClientCache.delete(sessionKey);
-										invalidateClient(cachedContext.domain);
-									}
-								}
-								if (upstreamResult) return upstreamResult;
-
-								const candidateDomains = shuffle(await getDomains())
-									.filter((domain) => domain !== cachedContext?.domain)
-									.slice(0, SEARCH_CLIENT_RACE_COUNT);
-								const winner = await selectFirstDistinctSearchResult(
-									candidateDomains.map((domain) => async () => {
-										const client = await getClientDataAndCreateClient(`https://${domain}`);
-										return { result: await client.search(query, searchOptions), value: { client, domain } };
-									}),
-									duplicateGuardIds,
-								);
-								setCachedSearchClient(sessionKey, winner.value);
-								rememberPreferredClient(winner.value);
-								return winner.result;
-							})().finally(() => {
-								if (searchFlights.get(resultCacheKey) === promise) searchFlights.delete(resultCacheKey);
-							});
-							searchFlights.set(resultCacheKey, promise);
-							result = await promise;
-						}
-					} catch (error) {
-						for (const cause of (error as AggregateError).errors ?? []) console.warn('Search failed on a domain', cause);
-						return new Response('All upstream domains failed or returned duplicate search results', { status: 502, headers: corsHeaders });
-					}
-
-				const fetchedAt = Date.now();
-				searchResultCache.set(resultCacheKey, result, fetchedAt);
-				ctx.waitUntil(caches.default.put(
-					searchEdgeKey(url),
-					Response.json(
-						{ version: 3, result, fetchedAt } satisfies SearchEdgeEnvelope,
-						{ headers: { 'Cache-Control': 'public, max-age=30' } },
-					),
-				).catch(() => undefined));
-				scheduleSearchWarmup(result, url, ctx);
-				return Response.json(result, {
-					headers: { ...withCacheHeaders(30, [], startedAt), 'X-Cache': 'upstream' },
-				});
-			}
-
-			const forceRefresh = url.searchParams.get('refresh') === '1';
-
-			if (url.pathname.startsWith('/album/')) {
-				const id = url.pathname.split('/').pop();
-				if (!id) return new Response('Missing album id', { status: 400, headers: corsHeaders });
-				const resource = descriptor('album', id);
-				const cached = await readResources([resource], request.url, env.ALBUM_CACHE_KV);
-				const clients = createRequestClients();
-				const resolved = await resolveResource({
-					descriptor: resource,
-					cached: cachedFor(cached, resource),
-					forceRefresh,
-					requestUrl: request.url,
-					kv: env.ALBUM_CACHE_KV,
-					ctx,
-					fetcher: () => fetchAlbumWithRetry(id, clients.primary, clients.retry),
-				});
-				const headers = withCacheHeaders(60, [resolved], startedAt);
-				if (resolved.value === null) return new Response('album not found', { status: 404, headers });
-				return Response.json(resolved.value, { headers });
-			}
-
-			if (url.pathname.startsWith('/photo/')) {
-				const id = url.pathname.split('/').pop();
-				if (!id) return new Response('Missing photo id', { status: 400, headers: corsHeaders });
-				const resource = descriptor('photo', id);
-				const cached = await readResources([resource], request.url, env.ALBUM_CACHE_KV);
-				const clients = createRequestClients();
-				const resolved = await resolveResource({
-					descriptor: resource,
-					cached: cachedFor(cached, resource),
-					forceRefresh,
-					requestUrl: request.url,
-					kv: env.ALBUM_CACHE_KV,
-					ctx,
-					fetcher: () => fetchBatchPhotoWithRetry(id, clients.primary, clients.retry),
-				});
-				const headers = withCacheHeaders(3600, [resolved], startedAt);
-				if (resolved.value === null) return new Response('photo not found', { status: 404, headers });
-				return Response.json(resolved.value, { headers });
-			}
-
-			if (url.pathname === '/batch-photo') {
-				if (!url.searchParams.has('ids')) return new Response("Missing query 'ids'", { status: 400, headers: corsHeaders });
-				const ids = parseIds(url);
-				if (ids.length === 0) return new Response('Empty ids', { status: 400, headers: corsHeaders });
-				if (ids.length > BATCH_PHOTO_MAX_IDS) {
-					return new Response(`Too many ids, max ${BATCH_PHOTO_MAX_IDS}`, { status: 400, headers: corsHeaders });
-				}
-				const descriptors = ids.map((id) => descriptor('photo', id));
-				const cached = await readResources(descriptors, request.url, env.ALBUM_CACHE_KV);
-				const clients = createRequestClients();
-				const resources: CachedResource[] = [];
-				const results = await mapWithConcurrency(ids, BATCH_PHOTO_UPSTREAM_CONCURRENCY, async (photoId): Promise<BatchPhotoItem> => {
-					const resource = descriptor('photo', photoId);
-					try {
-						const resolved = await resolveResource({
-							descriptor: resource,
-							cached: cachedFor(cached, resource),
-							forceRefresh,
-							requestUrl: request.url,
-							kv: env.ALBUM_CACHE_KV,
-							ctx,
-							fetcher: () => fetchBatchPhotoWithRetry(photoId, clients.primary, clients.retry),
-						});
-						resources.push(resolved);
-						return resolved.value === null
-							? { photoId, photo: null, error: notFoundError('get_photo') }
-							: { photoId, photo: resolved.value };
-					} catch (error) {
-						return { photoId, photo: null, error: toWorkerBatchError(error) };
-					}
-				});
-				const headers = withCacheHeaders(60, resources, startedAt);
-				if (results.some((item) => item.error)) headers['Cache-Control'] = 'no-store';
-				return Response.json(results, { headers });
-			}
-
-			if (url.pathname === '/batch-album') {
-				if (!url.searchParams.has('ids')) return new Response("Missing query 'ids'", { status: 400, headers: corsHeaders });
-				const ids = parseIds(url);
-				if (ids.length === 0) return new Response('Empty ids', { status: 400, headers: corsHeaders });
-				if (ids.length > BATCH_ALBUM_MAX_IDS) {
-					return new Response(`Too many ids, max ${BATCH_ALBUM_MAX_IDS}`, { status: 400, headers: corsHeaders });
-				}
-				const descriptors = ids.flatMap((id) => [descriptor('album', id), descriptor('photo', id)]);
-				const cached = await readResources(descriptors, request.url, env.ALBUM_CACHE_KV);
-				const clients = createRequestClients();
-				const resources: CachedResource[] = [];
-				const results = await mapWithConcurrency(ids, BATCH_ALBUM_UPSTREAM_CONCURRENCY, async (albumId): Promise<BatchAlbumItem> => {
-					const albumResource = descriptor('album', albumId);
-					const photoResource = descriptor('photo', albumId);
-					try {
-						const [album, photo] = await Promise.all([
-							resolveResource({
-								descriptor: albumResource,
-								cached: cachedFor(cached, albumResource),
-								forceRefresh,
-								requestUrl: request.url,
-								kv: env.ALBUM_CACHE_KV,
-								ctx,
-								fetcher: () => fetchAlbumWithRetry(albumId, clients.primary, clients.retry),
-							}),
-							resolveResource({
-								descriptor: photoResource,
-								cached: cachedFor(cached, photoResource),
-								forceRefresh,
-								requestUrl: request.url,
-								kv: env.ALBUM_CACHE_KV,
-								ctx,
-								fetcher: () => fetchBatchPhotoWithRetry(albumId, clients.primary, clients.retry),
-							}),
-						]);
-						resources.push(album, photo);
-						return album.value === null
-							? { albumId, album: null, photo: null, error: notFoundError('get_album') }
-							: { albumId, album: album.value, photo: photo.value };
-					} catch (error) {
-						return { albumId, album: null, photo: null, error: toWorkerBatchError(error) };
-					}
-				});
-				const headers = withCacheHeaders(60, resources, startedAt);
-				if (results.some((item) => item.error)) headers['Cache-Control'] = 'no-store';
-				return Response.json(results, { headers });
-			}
-
-			return new Response('Not found', { status: 404, headers: corsHeaders });
-		} catch (error) {
-			const failure = error as Error;
-			console.error('WORKER ERROR:', failure);
-			console.error('STACK:', failure.stack);
-			return new Response(JSON.stringify({ error: failure.message || 'Internal Error', stack: failure.stack }), {
-				status: 500,
-				headers: corsHeaders,
-			});
-		}
-	},
-} satisfies ExportedHandler<Env>;
+  async fetch(request: Request, env: Env): Promise<Response> {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } });
+    }
+    const url = new URL(request.url);
+    const pathname = url.pathname;
+    try {
+      if (request.method === 'POST' && pathname === '/v1/translate') return await translate(request);
+      if (request.method !== 'GET') return json({ error: 'Method not allowed' }, 0, 405);
+      if (pathname === '/v1/health') return json({ status: 'ok', service: 'yukino-jm' }, 0);
+      if (pathname === '/v1/search') return await search(env, url);
+      const coverMatch = pathname.match(/^\/v1\/covers\/(\d+)$/);
+      if (coverMatch) return await cover(env, coverMatch[1]);
+      const bookMatch = pathname.match(/^\/v1\/books\/(\d+)$/);
+      if (bookMatch) return await book(env, bookMatch[1]);
+      const chapterMatch = pathname.match(/^\/v1\/chapters\/(\d+)$/);
+      if (chapterMatch) return await chapter(env, chapterMatch[1]);
+      const imageMatch = pathname.match(/^\/v1\/image\/(\d+)\/([^/]+)$/);
+      if (imageMatch) return await image(env, imageMatch[1], imageMatch[2]);
+      return json({ error: 'Not found' }, 0, 404);
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : 'Request failed' }, 0, 502);
+    }
+  },
+};

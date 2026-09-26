@@ -5,14 +5,7 @@ on:
     branches: [master]
     paths:
       - '.github/workflows/build-jm-desktop.yml'
-      - 'jm/desktop/**'
-      - 'jm/packages/page/desktop.html'
-      - 'jm/packages/page/vite.desktop.config.ts'
-      - 'jm/packages/page/src/desktop/**'
-      - 'jm/packages/page/src/home/**'
-      - 'jm/packages/page/src/reader/**'
-      - 'jm/packages/page/src/translation/**'
-      - 'jm/packages/shared/**'
+      - 'jm/**'
   workflow_dispatch:
 
 jobs:
@@ -32,7 +25,7 @@ jobs:
       - name: Install JM dependencies
         run: pnpm --dir jm install --frozen-lockfile
       - name: Build desktop interface
-        run: pnpm --dir jm/packages/page exec vite build --config vite.desktop.config.ts
+        run: pnpm --dir jm desktop:build
         env:
           VITE_BACKEND_URL: https://jm-api-yukino.3584643854.workers.dev
       - name: Package Windows portable executable
