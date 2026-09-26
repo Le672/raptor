@@ -54,6 +54,18 @@ const changelog: ChangelogEntry[] = [
     ],
   },
   {
+    date: "2026-09-26",
+    version: "v0.8.0",
+    type: "improvement",
+    title: "JM 漫画书房独立重写",
+    changes: [
+      "重写 jm.yukino.bond 的搜索、作品详情和阅读界面，网页视觉与主站统一",
+      "新增本机书架、阅读进度、纵向与横向阅读、缩放、缓存和 PWA 安装",
+      "支持章节批量导出为 CBZ、ZIP、PDF，并提供可配置的 OCR 翻译入口",
+      "Windows 便携版采用独立深色工作台界面，不再沿用网页版布局",
+    ],
+  },
+  {
     date: "2026-07-29",
     version: "v0.7.0",
     type: "feature",
