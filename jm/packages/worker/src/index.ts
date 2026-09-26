@@ -20,6 +20,8 @@ const wire = {
 
 let liveSession: Session | undefined;
 let sessionRequest: Promise<Session> | undefined;
+let imageOriginsRequest: Promise<URL[]> | undefined;
+let imageOriginsUntil = 0;
 
 function md5(input: string): string {
   return CryptoJS.MD5(input).toString(CryptoJS.enc.Hex);
@@ -129,6 +131,50 @@ async function getSession(env: Env): Promise<Session> {
   return sessionRequest;
 }
 
+async function alternateImageOrigins(env: Env, session: Session): Promise<URL[]> {
+  if (imageOriginsRequest && imageOriginsUntil > Date.now()) return imageOriginsRequest;
+  imageOriginsUntil = Date.now() + 10 * 60_000;
+  imageOriginsRequest = (async () => {
+    const hosts = await discoverHosts(env);
+    const candidates = hosts.filter(host => host.origin !== session.origin.origin).slice(0, 7);
+    const results = await Promise.all(candidates.map(async origin => {
+      try {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const response = await fetch(new URL('/setting', origin), {
+          headers: tokenHeaders(timestamp, wire.initialVersion),
+          signal: AbortSignal.timeout(7000),
+        });
+        const data = await readEncryptedJson(response, timestamp);
+        return typeof data.img_host === 'string' ? safeHttpOrigin(data.img_host) : null;
+      } catch { return null; }
+    }));
+    return results.filter((origin): origin is URL => origin !== null && origin.origin !== session.imageOrigin.origin);
+  })();
+  return imageOriginsRequest;
+}
+
+async function fetchImageSource(env: Env, path: string): Promise<Response> {
+  const session = await getSession(env);
+  const failures: string[] = [];
+  const attempt = async (origin: URL): Promise<Response | null> => {
+    try {
+      const response = await fetch(new URL(path, origin), { signal: AbortSignal.timeout(15_000) });
+      if (response.ok && response.body) return response;
+      failures.push(`${origin.hostname}: ${response.status}`);
+    } catch (error) {
+      failures.push(`${origin.hostname}: ${error instanceof Error ? error.message : 'network error'}`);
+    }
+    return null;
+  };
+  const primary = await attempt(session.imageOrigin);
+  if (primary) return primary;
+  for (const origin of await alternateImageOrigins(env, session)) {
+    const response = await attempt(origin);
+    if (response) return response;
+  }
+  throw new Error(`Image sources unavailable (${failures.join(', ')})`);
+}
+
 async function upstreamJson(env: Env, pathname: string, params: Record<string, string>): Promise<Record<string, unknown>> {
   const session = await getSession(env);
   const url = new URL(pathname, session.origin);
@@ -214,10 +260,7 @@ async function chapter(env: Env, id: string): Promise<Response> {
 async function image(env: Env, id: string, encodedName: string): Promise<Response> {
   const name = decodeURIComponent(encodedName);
   if (!/^[^/\\]+\.(?:jpe?g|png|gif|webp)$/i.test(name)) return json({ error: 'Invalid image name' }, 0, 400);
-  const session = await getSession(env);
-  const url = new URL(`/media/photos/${id}/${encodeURIComponent(name)}`, session.imageOrigin);
-  const source = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-  if (!source.ok || !source.body) throw new Error(`Image returned ${source.status}`);
+  const source = await fetchImageSource(env, `/media/photos/${id}/${encodeURIComponent(name)}`);
   return new Response(source.body, {
     status: 200,
     headers: {
@@ -230,10 +273,7 @@ async function image(env: Env, id: string, encodedName: string): Promise<Respons
 }
 
 async function cover(env: Env, id: string): Promise<Response> {
-  const session = await getSession(env);
-  const upstream = new URL(`/media/albums/${id}_3x4.jpg`, session.imageOrigin);
-  const response = await fetch(upstream, { signal: AbortSignal.timeout(15_000) });
-  if (!response.ok || !response.body) throw new Error(`Cover returned ${response.status}`);
+  const response = await fetchImageSource(env, `/media/albums/${id}_3x4.jpg`);
   return new Response(response.body, {
     headers: {
       'Content-Type': response.headers.get('Content-Type') ?? 'image/jpeg',
