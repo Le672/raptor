@@ -13,6 +13,14 @@ type ChangelogEntry = {
 const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-27",
+    type: "fix",
+    title: "恢复根域名跳转",
+    changes: [
+      "访问 yukino.bond 时自动以 302 跳转到 www.yukino.bond，保留页面路径和查询参数",
+    ],
+  },
+  {
+    date: "2026-09-27",
     type: "feature",
     title: "12306 余票提醒",
     changes: [
