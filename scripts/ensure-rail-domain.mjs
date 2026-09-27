@@ -22,3 +22,23 @@ if (!domains.some((domain) => domain.name === "cr.yukino.bond")) {
 } else {
   console.log("cr.yukino.bond is already attached to Pages project raptor");
 }
+
+const zones = await request("https://api.cloudflare.com/client/v4/zones?name=yukino.bond");
+const zone = Array.isArray(zones) ? zones.find((item) => item.name === "yukino.bond") : undefined;
+if (!zone?.id) throw new Error("Cloudflare token cannot read the yukino.bond zone");
+const dnsEndpoint = `https://api.cloudflare.com/client/v4/zones/${encodeURIComponent(zone.id)}/dns_records`;
+const records = await request(`${dnsEndpoint}?name=cr.yukino.bond`);
+if (!Array.isArray(records)) throw new Error("Cloudflare returned an unexpected DNS record list");
+if (records.length === 0) {
+  await request(dnsEndpoint, {
+    method: "POST",
+    body: JSON.stringify({
+      type: "CNAME", name: "cr.yukino.bond", content: "raptor.pages.dev", proxied: true,
+    }),
+  });
+  console.log("Created cr.yukino.bond CNAME for raptor.pages.dev");
+} else if (records.length !== 1 || records[0].type !== "CNAME" || records[0].content !== "raptor.pages.dev") {
+  throw new Error("cr.yukino.bond has a different DNS record; refusing to replace it");
+} else {
+  console.log("cr.yukino.bond CNAME already points to raptor.pages.dev");
+}

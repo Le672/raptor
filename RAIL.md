@@ -31,4 +31,4 @@ node node_modules/electron-builder/out/cli/cli.js --config rail-electron-builder
 
 生成文件在 `release-rail/`。推送到 `master` 后，`build-rail-desktop.yml` 也会构建并上传 Windows 构建产物。桌面版通过 `www.yukino.bond/api/rail` 查询，不要求窗口保持打开，但需要网络且云端 API 已部署。
 
-主站的 Cloudflare Pages 部署工作流会通过现有 Cloudflare 密钥尝试绑定 `cr.yukino.bond`。该域名须在 Cloudflare 项目中生效，不能仅靠前端路由创建 DNS 记录。
+主站的 Cloudflare Pages 部署工作流会通过现有 Cloudflare 密钥绑定 `cr.yukino.bond`，并在 DNS 中创建指向 `raptor.pages.dev` 的 CNAME。令牌需要 Pages 与 DNS 的读写权限；不能仅靠前端路由创建域名。
