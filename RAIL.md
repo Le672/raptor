@@ -1,6 +1,6 @@
 # Yukino 余票提醒
 
-网页入口：`https://cr.yukino.bond`（部署后）；同一页面也可在 `https://www.yukino.bond/cr` 打开。
+网页入口：`https://www.yukino.bond/cr`。目标子域 `https://cr.yukino.bond` 已绑定 Pages，需待 Cloudflare DNS 记录生效后才能访问。
 
 ## 功能
 
