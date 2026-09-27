@@ -16,6 +16,7 @@ const mainNav = [
 const extraNav = [
   { label: "游戏", to: "/games" },
   { label: "新闻", to: "/news" },
+  { label: "余票", to: "/cr" },
   { label: "资源", to: "/box" },
   { label: "博客", to: "/blog" },
   { label: "设备", to: "/uses" },

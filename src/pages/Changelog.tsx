@@ -12,6 +12,16 @@ type ChangelogEntry = {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: "2026-09-27",
+    type: "feature",
+    title: "12306 余票提醒",
+    changes: [
+      "新增 cr.yukino.bond 余票查询页，可按日期、车站、车次与席别查看结果并定时监控",
+      "网页开启浏览器通知；Windows 桌面版在系统托盘持续检查并发送系统通知",
+      "结果显示席别余票和查询时间，车型未获可靠数据时明确标注",
+    ],
+  },
+  {
     date: "2026-09-25",
     type: "feature",
     title: "姬漫图书馆与桌面端上线",

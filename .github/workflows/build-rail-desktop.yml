@@ -1,0 +1,31 @@
+name: Build Rail Watch for Windows
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'electron/rail-*.cjs'
+      - 'src/pages/Rail.tsx'
+      - 'src/index.css'
+      - 'functions/api/rail.ts'
+      - 'rail-electron-builder.json'
+      - '.github/workflows/build-rail-desktop.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node node_modules/electron-builder/out/cli/cli.js --config rail-electron-builder.json --win portable
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Yukino-Rail-Watch-Windows
+          path: release-rail/*.exe
+          if-no-files-found: error

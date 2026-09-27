@@ -13,9 +13,11 @@ dist-ssr
 *.local
 .dev.vars
 .cf-config
+.wrangler
 
 # Electron / Capacitor 构建产物
 release
+release-rail
 .electron-cache
 android/app/build
 android/.gradle

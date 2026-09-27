@@ -60,6 +60,14 @@ export const domainLinks: DomainLink[] = [
     category: "content",
   },
   {
+    title: "余票提醒",
+    hostname: "cr.yukino.bond",
+    href: "https://cr.yukino.bond",
+    description: "查询 12306 余票，按自定间隔关注车次与席别。",
+    status: "planned",
+    category: "content",
+  },
+  {
     title: "博客正文",
     hostname: "blog.yukino.bond",
     href: "https://blog.yukino.bond",

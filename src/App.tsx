@@ -20,6 +20,7 @@ import Notes from "@/pages/Notes";
 import NotFound from "@/pages/NotFound";
 import Register from "@/pages/Register";
 import RSS from "@/pages/RSS";
+import Rail from "@/pages/Rail";
 import Status from "@/pages/Status";
 import Uses from "@/pages/Uses";
 import { isElectronApp } from "@/lib/runtime";
@@ -38,6 +39,7 @@ const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
   status: "/status",
   games: "/games",
   news: "/news",
+  cr: "/cr",
   www: "/",
 };
 
@@ -82,6 +84,7 @@ export default function App() {
           <Route path="/status" element={<Status />} />
           <Route path="/games" element={<Games />} />
           <Route path="/news" element={<News />} />
+          <Route path="/cr" element={<Rail />} />
           <Route path="/uses" element={<Uses />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
