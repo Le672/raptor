@@ -16,29 +16,44 @@ async function request(url, options = {}) {
 
 const domains = await request(endpoint);
 if (!Array.isArray(domains)) throw new Error("Cloudflare returned an unexpected domain list");
-if (!domains.some((domain) => domain.name === "cr.yukino.bond")) {
-  await request(endpoint, { method: "POST", body: JSON.stringify({ name: "cr.yukino.bond" }) });
+let railDomain = domains.find((domain) => domain.name === "cr.yukino.bond");
+if (!railDomain) {
+  railDomain = await request(endpoint, { method: "POST", body: JSON.stringify({ name: "cr.yukino.bond" }) });
   console.log("Requested cr.yukino.bond for Pages project raptor");
 } else {
   console.log("cr.yukino.bond is already attached to Pages project raptor");
 }
 
-const zones = await request("https://api.cloudflare.com/client/v4/zones?name=yukino.bond");
-const zone = Array.isArray(zones) ? zones.find((item) => item.name === "yukino.bond") : undefined;
-if (!zone?.id) throw new Error("Cloudflare token cannot read the yukino.bond zone");
-const dnsEndpoint = `https://api.cloudflare.com/client/v4/zones/${encodeURIComponent(zone.id)}/dns_records`;
-const records = await request(`${dnsEndpoint}?name=cr.yukino.bond`);
-if (!Array.isArray(records)) throw new Error("Cloudflare returned an unexpected DNS record list");
-if (records.length === 0) {
-  await request(dnsEndpoint, {
-    method: "POST",
-    body: JSON.stringify({
-      type: "CNAME", name: "cr.yukino.bond", content: "raptor.pages.dev", proxied: true,
-    }),
-  });
-  console.log("Created cr.yukino.bond CNAME for raptor.pages.dev");
-} else if (records.length !== 1 || records[0].type !== "CNAME" || records[0].content !== "raptor.pages.dev") {
-  throw new Error("cr.yukino.bond has a different DNS record; refusing to replace it");
-} else {
-  console.log("cr.yukino.bond CNAME already points to raptor.pages.dev");
+try {
+  let zoneId = railDomain?.zone_tag || domains.find((domain) => domain.name.endsWith(".yukino.bond") && domain.zone_tag)?.zone_tag;
+  if (!zoneId) {
+    const zones = await request("https://api.cloudflare.com/client/v4/zones?name=yukino.bond");
+    zoneId = Array.isArray(zones) ? zones.find((item) => item.name === "yukino.bond")?.id : undefined;
+  }
+  if (!zoneId) throw new Error("Cloudflare token cannot read the yukino.bond zone");
+  const dnsEndpoint = `https://api.cloudflare.com/client/v4/zones/${encodeURIComponent(zoneId)}/dns_records`;
+  let records;
+  try {
+    records = await request(`${dnsEndpoint}?name=cr.yukino.bond`);
+  } catch {
+    // A token can have DNS Edit without DNS Read. Creating an existing record
+    // fails safely; it never replaces it.
+    records = [];
+  }
+  if (!Array.isArray(records)) throw new Error("Cloudflare returned an unexpected DNS record list");
+  if (records.length === 0) {
+    await request(dnsEndpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "CNAME", name: "cr.yukino.bond", content: "raptor.pages.dev", proxied: true,
+      }),
+    });
+    console.log("Created cr.yukino.bond CNAME for raptor.pages.dev");
+  } else if (records.length !== 1 || records[0].type !== "CNAME" || records[0].content !== "raptor.pages.dev") {
+    throw new Error("cr.yukino.bond has a different DNS record; refusing to replace it");
+  } else {
+    console.log("cr.yukino.bond CNAME already points to raptor.pages.dev");
+  }
+} catch (cause) {
+  console.warn(`Pages was deployed, but DNS still needs Zone Read and DNS Edit permissions: ${cause instanceof Error ? cause.message : String(cause)}`);
 }
