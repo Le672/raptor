@@ -1,6 +1,7 @@
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
 const token = process.env.CLOUDFLARE_API_TOKEN;
 if (!accountId || !token) throw new Error("Cloudflare deployment secrets are missing");
+const pagesDomain = "raptor-20g.pages.dev";
 
 const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/pages/projects/raptor/domains`;
 const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -45,14 +46,14 @@ try {
     await request(dnsEndpoint, {
       method: "POST",
       body: JSON.stringify({
-        type: "CNAME", name: "cr.yukino.bond", content: "raptor.pages.dev", proxied: true,
+        type: "CNAME", name: "cr.yukino.bond", content: pagesDomain, proxied: true,
       }),
     });
-    console.log("Created cr.yukino.bond CNAME for raptor.pages.dev");
-  } else if (records.length !== 1 || records[0].type !== "CNAME" || records[0].content !== "raptor.pages.dev") {
+    console.log(`Created cr.yukino.bond CNAME for ${pagesDomain}`);
+  } else if (records.length !== 1 || records[0].type !== "CNAME" || records[0].content !== pagesDomain) {
     throw new Error("cr.yukino.bond has a different DNS record; refusing to replace it");
   } else {
-    console.log("cr.yukino.bond CNAME already points to raptor.pages.dev");
+    console.log(`cr.yukino.bond CNAME already points to ${pagesDomain}`);
   }
 } catch (cause) {
   console.warn(`Pages was deployed, but DNS still needs Zone Read and DNS Edit permissions: ${cause instanceof Error ? cause.message : String(cause)}`);

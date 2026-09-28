@@ -12,6 +12,16 @@ type ChangelogEntry = {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: "2026-09-28",
+    type: "improvement",
+    title: "余票提醒开通子域并增加车型参考",
+    changes: [
+      "补齐 cr.yukino.bond 的 DNS 记录，修正 Pages 目标域名，恢复 HTTPS 余票入口",
+      "按出行日期、车站、车次与发车时间匹配 RailGo 车型和配属资料，标明来源与查询时间",
+      "新增 rail.re 历史交路入口；第三方资料缺失或暂不可用时仍显示 12306 余票",
+    ],
+  },
+  {
     date: "2026-09-27",
     type: "fix",
     title: "恢复根域名跳转",

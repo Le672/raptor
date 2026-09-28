@@ -6,6 +6,7 @@ on:
     paths:
       - 'electron/rail-*.cjs'
       - 'src/pages/Rail.tsx'
+      - 'src/lib/railgo.ts'
       - 'src/index.css'
       - 'functions/api/rail.ts'
       - 'rail-electron-builder.json'
