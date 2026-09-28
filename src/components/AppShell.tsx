@@ -6,6 +6,7 @@ import { useSiteStore } from "@/hooks/useSiteStore";
 
 export function AppShell() {
   const location = useLocation();
+  const isRailPage = location.pathname.replace(/\/+$/, "").toLowerCase() === "/cr";
   const closeMobileMenu = useSiteStore((state) => state.closeMobileMenu);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export function AppShell() {
       >
         <Outlet />
       </main>
-      <Footer />
+      {!isRailPage && <Footer />}
     </div>
   );
 }
