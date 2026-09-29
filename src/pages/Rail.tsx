@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { enrichWithRailGo } from "@/lib/railgo";
-import { TrainIllustration, TrainArtReferences } from "@/components/TrainIllustration";
+import { TrainIllustration } from "@/components/TrainIllustration";
 import { RailPosition } from "@/components/RailPosition";
 
 type Station = { name: string; code: string; pinyin: string };
@@ -269,7 +269,6 @@ export default function Rail() {
               </article>;
             })}</div>}
         </section>
-        <TrainArtReferences models={result?.trains.map((train) => train.trainsetModel) ?? []} />
         </div>
         {feature === "position" && <RailPosition key={`${positionSelection.train}/${positionSelection.date}`} initialTrain={positionSelection.train} initialDate={positionSelection.date} />}
         <p className="rail-disclaimer">本工具仅展示公开查询结果，不提供购票或抢票。车票状态会随时变化，最终以 12306 官网为准。</p>
