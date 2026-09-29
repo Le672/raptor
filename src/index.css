@@ -1051,6 +1051,7 @@ svg {
 .rail-train-identity { display: flex; align-items: center; gap: 12px; flex: none; min-width: 244px; }
 .rail-train-art { margin: 0; width: 160px; flex: none; text-align: center; }
 .rail-train-art img { display: block; width: 160px; height: 56px; object-fit: contain; }
+.rail-train-art-images { display: flex; width: 160px; height: 56px; align-items: center; }
 .rail-train-art figcaption { margin-top: 1px; color: #617861; font-size: 10px; line-height: 1.4; letter-spacing: .02em; }
 .rail-art-reference-label { display: block; margin-top: 3px; color: #8a641f; font-size: 10px; line-height: 1.5; }
 .rail-art-reference-note { color: #8a641f; }
