@@ -15,6 +15,7 @@ dist-ssr
 .cf-config
 .wrangler
 .rail-art-work
+.rail-position-work
 
 # Electron / Capacitor 构建产物
 release
