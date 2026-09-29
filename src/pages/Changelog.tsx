@@ -12,6 +12,16 @@ type ChangelogEntry = {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: "2026-09-29",
+    type: "fix",
+    title: "按实拍修正车型插画",
+    changes: [
+      "按中国动车组资料重绘 33 款首车侧视图，修正车头、驾驶窗、窗带和红金色带，并分开处理 AF-C 与智能型涂装",
+      "撤下 10 个无法区分同名头型或代际的图示，保留余票与车型文字；页底可查看对应实拍核对资料",
+      "网页与 Windows 1.3.1 使用相同的新版插画",
+    ],
+  },
+  {
     date: "2026-09-28",
     type: "improvement",
     title: "余票提醒开通子域、独立车次查询与车型插画",
