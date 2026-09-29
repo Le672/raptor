@@ -13,6 +13,15 @@ type ChangelogEntry = {
 const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-29",
+    type: "fix",
+    title: "修复余票页面窄屏排版",
+    changes: [
+      "手机上查询条件改为单列，日期与时间输入框保持在卡片内，标题和说明可自动换行",
+      "调整车次插画与到发时间布局、速度卡片及地图工具栏，长车型名称和停站表不再撑宽页面；同步 Windows 1.7.1 的窄窗口样式",
+    ],
+  },
+  {
+    date: "2026-09-29",
     type: "feature",
     title: "列车位置与下一停靠站",
     changes: [
