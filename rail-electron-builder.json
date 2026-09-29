@@ -2,10 +2,10 @@
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "bond.yukino.rail",
   "productName": "Yukino Rail Watch",
-  "extraMetadata": { "main": "electron/rail-main.cjs", "version": "1.4.0" },
+  "extraMetadata": { "main": "electron/rail-main.cjs", "version": "1.5.0" },
   "artifactName": "Yukino-Rail-Watch-${version}-portable.${ext}",
   "directories": { "output": "release-rail" },
-  "files": ["dist/**/*", "electron/rail-main.cjs", "electron/rail-preload.cjs", "public/icon-512.png"],
+  "files": ["dist/**/*", "electron/rail-main.cjs", "electron/rail-preload.cjs", "electron/rail-location.cjs", "public/icon-512.png", "public/rail-third-party-notices.txt"],
   "win": {
     "target": ["portable"],
     "icon": "public/icon-512.png"
