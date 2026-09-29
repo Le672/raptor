@@ -12,6 +12,7 @@ on:
       - 'src/lib/rail-position-data.ts'
       - 'src/lib/rail-gps.ts'
       - 'src/lib/rail-speed.ts'
+      - 'src/lib/rail-motion.ts'
       - 'src/hooks/useRailLocation.ts'
       - 'src/types/coordtransform.d.ts'
       - 'src/components/RailMap.tsx'
