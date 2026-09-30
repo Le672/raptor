@@ -29,6 +29,7 @@ on:
       - 'src/data/train-art.json'
       - 'src/assets/trains/**'
       - 'public/rail-third-party-notices.txt'
+      - 'public/rail-icon.*'
       - 'src/index.css'
       - 'functions/api/rail.ts'
       - 'rail-electron-builder.json'
