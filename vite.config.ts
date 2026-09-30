@@ -8,6 +8,7 @@ export default defineConfig({
   base: './',
   build: {
     sourcemap: 'hidden',
+    rollupOptions: { input: { web: 'index.html', desktop: 'desktop.html' } },
   },
   test: {
     environment: "jsdom",

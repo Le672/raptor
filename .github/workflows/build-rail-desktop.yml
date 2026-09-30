@@ -6,6 +6,12 @@ on:
     paths:
       - 'electron/rail-*.cjs'
       - 'src/pages/Rail.tsx'
+      - 'desktop.html'
+      - 'src/desktop.tsx'
+      - 'src/desktop.css'
+      - 'src/DesktopRail.tsx'
+      - 'src/hooks/useRailMonitor.ts'
+      - 'vite.config.ts'
       - 'src/lib/railgo.ts'
       - 'src/lib/train-art.ts'
       - 'src/lib/train-position.ts'
