@@ -136,18 +136,13 @@ svg {
   letter-spacing: -1px;
 }
 .brand-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #284d3d;
-  color: #f9faef;
-  width: 37px;
-  height: 39px;
-  border-radius: 10px 10px 3px 10px;
-  font-family: Georgia, serif;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -1px;
+  display: block;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
 }
 .brand-dot {
   color: #71915b;
@@ -765,9 +760,8 @@ svg {
     font-size: 25px;
   }
   .brand-mark {
-    width: 32px;
+    width: 34px;
     height: 34px;
-    font-size: 21px;
   }
   .desktop-nav,
   .nav-account {

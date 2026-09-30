@@ -48,7 +48,14 @@ export function TopNav() {
     <header className="site-header">
       <div className="nav-inner">
         <HomeLink className="brand" onClick={closeMobileMenu}>
-          <span className="brand-mark">Y</span>
+          <img
+            className="brand-mark"
+            src="/favicon.png"
+            alt=""
+            width="40"
+            height="40"
+            decoding="async"
+          />
           <span>
             Yukino<span className="brand-dot">.</span>
           </span>

@@ -13,6 +13,14 @@ type ChangelogEntry = {
 const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-30",
+    type: "improvement",
+    title: "导航栏头像统一",
+    changes: [
+      "导航栏的 Y 字徽标换为浏览器标签页同款头像，以圆形展示，适配桌面与手机导航",
+    ],
+  },
+  {
+    date: "2026-09-30",
     type: "fix",
     title: "港铁动感号车型与涂装",
     changes: [
