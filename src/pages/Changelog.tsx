@@ -13,6 +13,16 @@ type ChangelogEntry = {
 const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-30",
+    type: "feature",
+    title: "余票提醒 Android 与 iOS 客户端预览",
+    changes: [
+      "新增独立手机界面与 Android / iOS 原生工程，提供余票查询、车型插图、位置地图及 GPS 测速，手机底部导航与窄屏布局独立适配",
+      "接入手机原生通知和本机监控设置；Android 后台最短约 15 分钟检查，iOS 由系统安排，前台按所设间隔检查，后台停止读取 GPS",
+      "提供 Android / iOS 自动构建、中文安装和商店发行教程，并新增公开的手机应用隐私政策；正式商店发行仍需开发者账号签名与审核",
+    ],
+  },
+  {
+    date: "2026-09-30",
     type: "improvement",
     title: "导航栏头像统一",
     changes: [
