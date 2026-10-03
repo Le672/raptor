@@ -13,15 +13,24 @@ export type MailProfile = {
 
 async function mailRequest(path: string, init: RequestInit): Promise<any> {
   let response: Response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
   try {
     response = await fetch(`${MAIL_API}${path}`, {
       ...init,
-      redirect: "error",
-      signal: AbortSignal.timeout(12000),
+      redirect: "manual",
+      signal: controller.signal,
       headers: { "Content-Type": "application/json", ...init.headers },
     });
-  } catch {
-    throw new MailAuthError("邮箱登录服务暂时无法连接，请稍后再试", 503);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    const code = /1042|same.?zone|workers? route/i.test(message) ? "worker-route"
+      : /abort|timeout/i.test(message) ? "timeout"
+      : /redirect/i.test(message) ? "redirect"
+      : /implement|not a function/i.test(message) ? "runtime" : "network";
+    throw new MailAuthError(`邮箱登录服务暂时无法连接，请稍后再试（${code}）`, 503);
+  } finally {
+    clearTimeout(timeout);
   }
   let result: any;
   try { result = await response.json(); } catch {
