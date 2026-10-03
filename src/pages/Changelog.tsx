@@ -13,6 +13,16 @@ type ChangelogEntry = {
 const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-03",
+    type: "improvement",
+    title: "余票与列车位置优先使用 12306 官方数据",
+    changes: [
+      "停站表、站序、到发时间和跨日运行改由 12306 提供；正晚点使用官方未来三小时查询，暂无结果时按官方时刻表估算",
+      "RailGo 仅补充官方缺少的车型、配属和铁路坐标；停止第三方整段车次、时刻表及正晚点查询，单车次车型请求合并并缓存 12 小时",
+      "先显示官方余票和停站表，再补充车型；第三方暂不可用时仍可正常查询余票和下一站，网页及 Windows、Android、iOS 客户端同步调整",
+    ],
+  },
+  {
+    date: "2026-10-03",
     type: "feature",
     title: "邮箱账号登录与设备清单编辑",
     changes: [

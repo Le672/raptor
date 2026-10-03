@@ -6,6 +6,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   // 使用相对路径，保证 Electron (file://) 和 Capacitor (https://localhost) 都能正确加载资源
   base: './',
+  server: { proxy: { '/api/rail': { target: 'https://www.yukino.bond', changeOrigin: true } } },
   build: {
     sourcemap: 'hidden',
     rollupOptions: { input: { web: 'index.html', desktop: 'desktop.html' } },
