@@ -5,15 +5,16 @@
 
 import {
   getCurrentUser,
-  hashPassword,
   verifyPassword,
   signJWT,
   jsonResponse,
   errorResponse,
 } from "../../_utils/auth";
+import { authenticateMail, linkMailAccount, MailAuthError } from "../../_utils/mail-auth";
 
 interface Env {
-  DB: D1Database;
+  DB: any;
+  JWT_SECRET?: string;
 }
 
 export async function onRequestGet(context: { request: Request; env: Env }) {
@@ -43,24 +44,33 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 }
 
 async function handleLogin(context: { request: Request; env: Env }) {
+  let body: any;
   try {
-    const body = await context.request.json();
-    const { email, password } = body;
-
-    if (!email || !password) return errorResponse("邮箱和密码不能为空");
-
-    const { results } = await context.env.DB.prepare(
-      "SELECT id, email, name, role, password_hash FROM users WHERE email = ?",
-    )
-      .bind(email)
-      .all();
-
-    if (!results || results.length === 0)
-      return errorResponse("邮箱或密码错误", 401);
-
-    const user = results[0];
-    const valid = await verifyPassword(password, user.password_hash);
-    if (!valid) return errorResponse("邮箱或密码错误", 401);
+    const raw = await context.request.text();
+    if (raw.length > 4096) return errorResponse("登录请求过大", 413);
+    body = JSON.parse(raw);
+  } catch { return errorResponse("请求格式错误", 400); }
+  if (!body || typeof body.email !== "string" || typeof body.password !== "string" ||
+      !body.email.trim() || !body.password || body.email.length > 254 || body.password.length > 512) {
+    return errorResponse("请填写有效的邮箱和密码");
+  }
+  const email = body.email.trim().toLowerCase();
+  const password = body.password;
+  const source = body.source ?? "mail";
+  if (!["mail", "local"].includes(source)) return errorResponse("请选择有效的登录方式");
+  try {
+    let user: any;
+    if (source === "mail") {
+      const profile = await authenticateMail(email, password);
+      user = await linkMailAccount(context.env.DB, profile);
+    } else {
+      user = await context.env.DB.prepare(
+        "SELECT id, email, name, role, password_hash FROM users WHERE lower(email) = ?",
+      ).bind(email).first();
+      if (!user || !await verifyPassword(password, user.password_hash)) {
+        return errorResponse("邮箱或密码错误", 401);
+      }
+    }
 
     const token = await signJWT(
       {
@@ -81,72 +91,14 @@ async function handleLogin(context: { request: Request; env: Env }) {
         role: user.role,
       },
     });
-  } catch {
-    return errorResponse("请求格式错误", 400);
+  } catch (error) {
+    if (error instanceof MailAuthError) return errorResponse(error.message, error.status);
+    return errorResponse("主站登录服务暂时不可用，请稍后再试", 503);
   }
 }
 
 async function handleRegister(context: { request: Request; env: Env }) {
-  try {
-    const body = await context.request.json();
-    const { email, password, name } = body;
-
-    if (!email || !password || !name)
-      return errorResponse("邮箱、密码和昵称不能为空");
-
-    if (password.length < 6) return errorResponse("密码至少 6 位");
-
-    // Check if email already exists
-    const existing = await context.env.DB.prepare(
-      "SELECT id FROM users WHERE email = ?",
-    )
-      .bind(email)
-      .all();
-
-    if (existing.results && existing.results.length > 0)
-      return errorResponse("该邮箱已被注册", 409);
-
-    const passwordHash = await hashPassword(password);
-
-    // Check if this is the first user -> make them admin
-    const userCount = await context.env.DB.prepare(
-      "SELECT COUNT(*) as count FROM users",
-    ).all();
-
-    const isFirstUser =
-      userCount.results &&
-      (userCount.results[0] as any).count === 0;
-
-    const role = isFirstUser ? "admin" : "user";
-
-    const result = await context.env.DB.prepare(
-      "INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)",
-    )
-      .bind(email, passwordHash, name, role)
-      .run();
-
-    const userId = result.meta.last_row_id;
-
-    const token = await signJWT(
-      {
-        userId,
-        email,
-        role,
-        name,
-      },
-      context.env,
-    );
-
-    return jsonResponse(
-      {
-        token,
-        user: { id: userId, email, name, role },
-      },
-      201,
-    );
-  } catch {
-    return errorResponse("请求格式错误", 400);
-  }
+  return errorResponse("请在 mail.yukino.bond 注册邮箱账号，再回到主站登录", 403);
 }
 
 async function handleLogout(_context: { request: Request; env: Env }) {

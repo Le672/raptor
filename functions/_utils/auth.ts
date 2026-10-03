@@ -1,12 +1,12 @@
 // Cloudflare Pages Function: API authentication utilities
 // Handles JWT generation, verification, and password hashing
 
-// Fallback ONLY for local dev when JWT_SECRET is not configured.
-// Production MUST set JWT_SECRET via `wrangler secret put JWT_SECRET`.
-const DEV_FALLBACK_SECRET = "dev-only-never-use-in-production-change-me";
-
 function getJwtSecret(env: any): string {
-  return (env && env.JWT_SECRET) || DEV_FALLBACK_SECRET;
+  if (typeof env?.JWT_SECRET !== "string" || !env.JWT_SECRET ||
+      env.JWT_SECRET === "dev-only-never-use-in-production-change-me") {
+    throw new Error("JWT_SECRET is not configured");
+  }
+  return env.JWT_SECRET;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -26,7 +26,7 @@ export async function verifyPassword(
 }
 
 function base64UrlEncode(data: string): string {
-  return btoa(data)
+  return btoa(String.fromCharCode(...new TextEncoder().encode(data)))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
@@ -34,7 +34,11 @@ function base64UrlEncode(data: string): string {
 
 function base64UrlDecode(data: string): string {
   const padded = data.replace(/-/g, "+").replace(/_/g, "/");
-  return atob(padded);
+  return new TextDecoder().decode(Uint8Array.from(atob(padded), (c) => c.charCodeAt(0)));
+}
+
+function signatureBytes(data: string): Uint8Array {
+  return Uint8Array.from(atob(data.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 }
 
 export async function signJWT(
@@ -71,9 +75,8 @@ export async function signJWT(
     key,
     encoder.encode(signatureInput),
   );
-  const signatureStr = base64UrlEncode(
-    String.fromCharCode(...new Uint8Array(signature)),
-  );
+  const signatureStr = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
   return `${signatureInput}.${signatureStr}`;
 }
@@ -87,6 +90,8 @@ export async function verifyJWT(
     if (parts.length !== 3) return null;
 
     const [headerStr, payloadStr, signatureStr] = parts;
+    const header = JSON.parse(base64UrlDecode(headerStr));
+    if (header.alg !== "HS256" || header.typ !== "JWT") return null;
     const signatureInput = `${headerStr}.${payloadStr}`;
 
     const encoder = new TextEncoder();
@@ -98,10 +103,7 @@ export async function verifyJWT(
       ["verify"],
     );
 
-    const signature = Uint8Array.from(
-      base64UrlDecode(signatureStr),
-      (c) => c.charCodeAt(0),
-    );
+    const signature = signatureBytes(signatureStr);
     const valid = await crypto.subtle.verify(
       "HMAC",
       key,
@@ -113,7 +115,10 @@ export async function verifyJWT(
 
     const payload = JSON.parse(base64UrlDecode(payloadStr));
     const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) return null;
+    if (!Number.isSafeInteger(payload.exp) || payload.exp <= now ||
+        !Number.isSafeInteger(payload.userId) || payload.userId <= 0 ||
+        typeof payload.email !== "string" || typeof payload.name !== "string" ||
+        !["admin", "user"].includes(payload.role)) return null;
 
     return {
       userId: payload.userId,
@@ -134,7 +139,7 @@ export function getAuthToken(request: Request): string | null {
   // Also check cookie
   const cookie = request.headers.get("Cookie");
   if (cookie) {
-    const match = cookie.match(/auth_token=([^;]+)/);
+    const match = cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
     if (match) return match[1];
   }
   return null;
@@ -146,7 +151,13 @@ export async function getCurrentUser(
 ): Promise<{ userId: number; email: string; role: string; name: string } | null> {
   const token = getAuthToken(request);
   if (!token) return null;
-  return await verifyJWT(token, env);
+  const claims = await verifyJWT(token, env);
+  if (!claims) return null;
+  // Check the current database role rather than the role cached in the JWT.
+  const user = await env.DB.prepare("SELECT id, email, name, role FROM users WHERE id = ?")
+    .bind(claims.userId).first();
+  if (!user || !["admin", "user"].includes(user.role)) return null;
+  return { userId: user.id, email: user.email, name: user.name, role: user.role };
 }
 
 export function jsonResponse(data: unknown, status = 200): Response {
@@ -154,6 +165,7 @@ export function jsonResponse(data: unknown, status = 200): Response {
     status,
     headers: {
       "Content-Type": "application/json",
+      "Cache-Control": "no-store",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, LogIn } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useAuthStore } from "@/hooks/useAuthStore";
@@ -8,11 +8,13 @@ import { cn } from "@/lib/utils";
 
 export default function Login() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { setUser, setToken } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [source, setSource] = useState<"mail" | "local">("mail");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +22,12 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await api.login(email, password);
+      const res = await api.login(email, password, source);
       setToken(res.token);
       setUser(res.user);
-      navigate(res.user.role === "admin" ? "/admin" : "/");
+      const next = params.get("next");
+      navigate(next?.startsWith("/") && !next.startsWith("//") && !next.includes("\\") && !/[\x00-\x1f\x7f]/.test(next)
+        ? next : res.user.role === "admin" ? "/admin" : "/");
     } catch (err: any) {
       setError(err.message || "登录失败");
     } finally {
@@ -45,10 +49,19 @@ export default function Login() {
 
         <div className="mt-8 space-y-2">
           <h1 className="font-display text-3xl text-stone-900">欢迎回来</h1>
-          <p className="text-sm text-stone-500">登录你的 Yukino 账号</p>
+          <p className="text-sm leading-6 text-stone-500">
+            {source === "mail" ? "使用 Yukino Mail 的邮箱账号和密码登录，无需重复注册。" : "使用原主站账号登录，保留已有管理员权限。"}
+          </p>
         </div>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+          <fieldset disabled={loading} className="flex gap-2 rounded-2xl bg-white/30 p-1.5" aria-label="登录方式">
+            {([ ["mail", "邮箱账号"], ["local", "原主站账号"] ] as const).map(([value, label]) => (
+              <button key={value} type="button" aria-pressed={source === value}
+                className={cn("flex-1 rounded-xl px-3 py-2 text-sm transition", source === value ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-white/50")}
+                onClick={() => { setSource(value); setError(""); }}>{label}</button>
+            ))}
+          </fieldset>
           {error && (
             <div className="rounded-2xl border border-red-200/40 bg-red-50/40 px-4 py-3 text-sm text-red-700 backdrop-blur-xl">
               {error}
@@ -56,25 +69,29 @@ export default function Login() {
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">邮箱</label>
+            <label htmlFor="login-email" className="text-sm font-medium text-stone-700">邮箱</label>
             <input
               className="w-full rounded-2xl border border-white/40 bg-white/30 px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 backdrop-blur-xl focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
               type="email"
+              id="login-email"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              placeholder={source === "mail" ? "你的账号@yukino.bond" : "原主站账号的邮箱"}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">密码</label>
+            <label htmlFor="login-password" className="text-sm font-medium text-stone-700">密码</label>
             <input
               className="w-full rounded-2xl border border-white/40 bg-white/30 px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 backdrop-blur-xl focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
               type="password"
+              id="login-password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="至少 6 位"
+              placeholder={source === "mail" ? "邮箱账号的密码" : "原主站账号的密码"}
               required
             />
           </div>

@@ -16,12 +16,21 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - run: npm ci
 
+      - name: Check account integration and editing permissions
+        run: npm run test -- src/test/portal-auth.test.ts src/test/uses-editor.test.tsx
+
       - run: npm run build
+
+      - name: Ensure private portal signing secret
+        run: node scripts/ensure-auth-secret.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

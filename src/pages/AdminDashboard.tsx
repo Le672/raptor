@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Boxes, LogOut, User } from "lucide-react";
+import { ArrowLeft, FileText, Boxes, LogOut, User, Monitor } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { api } from "@/lib/api";
@@ -20,6 +20,12 @@ export default function AdminDashboard() {
   };
 
   const menuItems = [
+    {
+      title: "设备与环境",
+      description: "编辑设备、软件、分类及页面介绍",
+      icon: Monitor,
+      to: "/uses",
+    },
     {
       title: "文章管理",
       description: "创建、编辑和发布博客文章",

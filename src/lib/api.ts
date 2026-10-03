@@ -1,4 +1,10 @@
 import { getApiBase } from "@/lib/runtime";
+import type { User } from "@/hooks/useAuthStore";
+import type { UsesDocument, UsesResponse } from "@/lib/uses";
+
+export class ApiError extends Error {
+  constructor(message: string, public status: number) { super(message); }
+}
 
 const BASE = getApiBase();
 
@@ -30,17 +36,20 @@ async function request<T>(
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "请求失败");
+  if (!res.ok) throw new ApiError(data.error || "请求失败", res.status);
   return data;
 }
 
 export const api = {
-  getMe: () => request<unknown>("GET", "/auth/me"),
-  login: (email: string, password: string) =>
-    request<{ token: string; user: any }>("POST", "/auth/me", { email, password }, { action: "login" }),
+  getMe: () => request<{ user: User }>("GET", "/auth/me"),
+  login: (email: string, password: string, source: "mail" | "local" = "mail") =>
+    request<{ token: string; user: User }>("POST", "/auth/me", { email, password, source }, { action: "login" }),
   register: (email: string, password: string, name: string) =>
     request<{ token: string; user: any }>("POST", "/auth/me", { email, password, name }, { action: "register" }),
   logout: () => request<unknown>("POST", "/auth/me", undefined, { action: "logout" }),
+  getUses: () => request<UsesResponse>("GET", "/uses"),
+  updateUses: (content: UsesDocument, revision: number) =>
+    request<UsesResponse>("PUT", "/uses", { content, revision }),
 
   getPosts: () => request<{ posts: any[] }>("GET", "/posts"),
   getPost: (slug: string) => request<{ post: any }>("GET", "/posts", undefined, { slug }),

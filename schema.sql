@@ -47,6 +47,20 @@ CREATE TABLE IF NOT EXISTS comments (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS mail_identities (
+  mail_user_id TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL UNIQUE REFERENCES users(id),
+  portal_role TEXT NOT NULL DEFAULT 'user' CHECK (portal_role IN ('admin', 'user')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS site_content (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  revision INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL
+);
+
 -- Insert default admin user (password: admin123, change after first login!)
 -- password_hash is bcrypt hash of 'admin123'
 INSERT OR IGNORE INTO users (email, password_hash, name, role)
