@@ -22,13 +22,8 @@ async function mailRequest(path: string, init: RequestInit): Promise<any> {
       signal: controller.signal,
       headers: { "Content-Type": "application/json", ...init.headers },
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    const code = /1042|same.?zone|workers? route/i.test(message) ? "worker-route"
-      : /abort|timeout/i.test(message) ? "timeout"
-      : /redirect/i.test(message) ? "redirect"
-      : /implement|not a function/i.test(message) ? "runtime" : "network";
-    throw new MailAuthError(`邮箱登录服务暂时无法连接，请稍后再试（${code}）`, 503);
+  } catch {
+    throw new MailAuthError("邮箱登录服务暂时无法连接，请稍后再试", 503);
   } finally {
     clearTimeout(timeout);
   }
