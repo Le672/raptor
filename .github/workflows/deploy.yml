@@ -21,8 +21,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Check account integration and editing permissions
-        run: npm run test -- src/test/portal-auth.test.ts src/test/uses-editor.test.tsx
+      - name: Check website behavior
+        run: npm run test -- src/test
 
       - run: npm run build
 

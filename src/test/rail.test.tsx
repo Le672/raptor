@@ -73,7 +73,7 @@ describe("12306 result handling", () => {
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => new Promise(() => {})));
     window.history.pushState({}, "", "/cr");
     render(<App />);
-    expect(screen.getByRole("heading", { name: /余票提醒/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /余票提醒/ }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "开启监控" })).toBeInTheDocument();
   });
 });
@@ -171,7 +171,7 @@ describe("independent train and route searches", () => {
     window.history.pushState({}, "", "/cr");
     render(<App />);
     expect(screen.queryByLabelText("出发站")).toBeNull();
-    fireEvent.change(screen.getByLabelText("车次"), { target: { value: "G547" } });
+    fireEvent.change(await screen.findByLabelText("车次"), { target: { value: "G547" } });
     fireEvent.click(screen.getByRole("button", { name: "开启监控" }));
     await screen.findByRole("heading", { name: "正在监控" });
     await screen.findByText(/北京南 → 上海虹桥 · 全程余票/);
@@ -193,7 +193,7 @@ describe("independent train and route searches", () => {
     vi.stubGlobal("fetch", fetchMock);
     window.history.pushState({}, "", "/cr");
     render(<App />);
-    fireEvent.change(screen.getByLabelText("车次"), { target: { value: "G547" } });
+    fireEvent.change(await screen.findByLabelText("车次"), { target: { value: "G547" } });
     fireEvent.click(screen.getByRole("button", { name: "按区间查询" }));
     expect(screen.queryByLabelText("车次")).toBeNull();
     fireEvent.change(screen.getByLabelText("出发站"), { target: { value: "北京南" } });
@@ -214,7 +214,7 @@ describe("independent train and route searches", () => {
       Promise.resolve(Response.json({ stations: [] })) : new Promise<Response>((resolve) => { finishQuery = resolve; })));
     window.history.pushState({}, "", "/cr");
     render(<App />);
-    fireEvent.change(screen.getByLabelText("车次"), { target: { value: "G547" } });
+    fireEvent.change(await screen.findByLabelText("车次"), { target: { value: "G547" } });
     fireEvent.click(screen.getByRole("button", { name: "立即查询" }));
     await waitFor(() => expect(finishQuery).toBeDefined());
     fireEvent.click(screen.getByRole("button", { name: "按区间查询" }));

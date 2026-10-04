@@ -7,6 +7,9 @@ import {
   Mail,
   Github,
   Sparkles,
+  Newspaper,
+  Timer,
+  Monitor,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { postPreviews, siteProfile } from "@/data/site";
@@ -33,6 +36,9 @@ const corners = [
     text: "偶尔停下来，玩一局也不错。",
     to: "/games",
   },
+  { icon: Newspaper, title: "新闻阅读室", en: "READING ROOM", text: "从不同的视角，看看今天的世界。", to: "/news" },
+  { icon: Timer, title: "专注角落", en: "FOCUS", text: "选一件事，留一段安静的时间。", to: "/focus" },
+  { icon: Monitor, title: "设备与环境", en: "EVERYDAY SETUP", text: "那些陪着我写代码、过日子的工具。", to: "/uses" },
 ];
 export default function Home() {
   useDocumentMeta(

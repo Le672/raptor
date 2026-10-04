@@ -1,132 +1,49 @@
-// Cloudflare Pages Function: News aggregator
-// GET /api/news - 聚合多个 RSS 源，返回 JSON
-// GET /api/news?source=ithome - 单个源
+import { feedsToOpml, NEWS_FEEDS, NewsItem, NewsResponse } from "../../src/lib/news";
+import { parseFeed } from "../_utils/news-feed";
 
-interface NewsItem {
-  title: string;
-  link: string;
-  pubDate: string;
-  source: string;
-  sourceLabel: string;
-}
-
-interface FeedSource {
-  key: string;
-  label: string;
-  url: string;
-}
-
-const FEEDS: FeedSource[] = [
-  { key: "ithome", label: "IT之家", url: "https://www.ithome.com/rss/" },
-  { key: "kr36", label: "36氪", url: "https://36kr.com/feed" },
-  { key: "hn", label: "Hacker News", url: "https://hnrss.org/frontpage" },
-  { key: "verge", label: "The Verge", url: "https://www.theverge.com/rss/index.xml" },
-];
-
-// 从 RSS 2.0 / Atom XML 提取条目
-function parseFeed(xml: string, source: FeedSource): NewsItem[] {
-  const items: NewsItem[] = [];
-  // RSS 2.0: <item>...</item>
-  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-  let m: RegExpExecArray | null;
-  while ((m = itemRegex.exec(xml)) !== null) {
-    const block = m[1];
-    const title = block.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1]?.trim();
-    const link = block.match(/<link[^>]*>([\s\S]*?)<\/link>/)?.[1]?.trim()
-      || block.match(/<link[^>]*href="([^"]+)"/)?.[1]?.trim();
-    const pubDate = block.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/)?.[1]?.trim()
-      || block.match(/<dc:date[^>]*>([\s\S]*?)<\/dc:date>/)?.[1]?.trim()
-      || "";
-    if (title && link) {
-      items.push({
-        title: decodeEntities(title),
-        link: decodeEntities(link),
-        pubDate,
-        source: source.key,
-        sourceLabel: source.label,
-      });
+const jsonHeaders = { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" };
+export async function onRequestGet(context: { request: Request; waitUntil?: (promise: Promise<unknown>) => void }) {
+  const url = new URL(context.request.url); const sourceKey = url.searchParams.get("source");
+  const targets = sourceKey ? NEWS_FEEDS.filter((f) => f.key === sourceKey) : NEWS_FEEDS;
+  if (!targets.length) return new Response(JSON.stringify({ error: "未知新闻源" }), { status: 400, headers: jsonHeaders });
+  if (url.searchParams.get("format") === "opml") return new Response(feedsToOpml(targets), { headers: { "Content-Type": "text/x-opml; charset=utf-8", "Content-Disposition": 'attachment; filename="yukino-news.opml"', "Cache-Control": "public, max-age=3600", "Access-Control-Allow-Origin": "*" } });
+  const cache = typeof caches !== "undefined" ? (caches as CacheStorage & { default?: Cache }).default : undefined;
+  const cacheUrl = new URL(url.origin + url.pathname); cacheUrl.searchParams.set("version", "3"); cacheUrl.searchParams.set("feeds", NEWS_FEEDS.map((feed) => feed.key).join(",")); cacheUrl.searchParams.set("source", sourceKey || "all");
+  const cacheKey = new Request(cacheUrl, { method: "GET" });
+  if (url.searchParams.get("refresh") !== "1") {
+    try { const cached = await cache?.match(cacheKey); if (cached) return cached; } catch { /* Caching is optional. */ }
+  }
+  const fetchedAt = new Date().toISOString();
+  const results = await Promise.allSettled(targets.map(async (feed) => {
+    const addresses = [feed.url, ...(feed.fallbackUrls ?? [])];
+    let failure = new Error("暂时无法连接订阅源");
+    for (const address of addresses) {
+      const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 8000 / addresses.length);
+      try {
+        const response = await fetch(address, { signal: controller.signal, headers: { Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9", "User-Agent": "Yukino-News/2.0 (+https://www.yukino.bond/news)" } });
+        if (!response.ok) throw new Error(`请求失败（HTTP ${response.status}）`);
+        const xml = await response.text(); if (xml.length > 1_500_000) throw new Error("订阅源内容过大");
+        const items = parseFeed(xml, { ...feed, url: address }); if (!items.length) throw new Error("订阅源暂未返回有效条目");
+        return items;
+      } catch (error) {
+        failure = controller.signal.aborted ? new Error("连接超时，请稍后重试") : error instanceof Error && /^(请求失败|订阅源)/.test(error.message) ? error : new Error("暂时无法连接订阅源");
+      } finally { clearTimeout(timer); }
     }
-    if (items.length >= 15) break;
-  }
-  // Atom: <entry>...</entry>
-  if (items.length === 0) {
-    const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
-    while ((m = entryRegex.exec(xml)) !== null) {
-      const block = m[1];
-      const title = block.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1]?.trim();
-      const link = block.match(/<link[^>]*href="([^"]+)"/)?.[1]?.trim();
-      const pubDate = block.match(/<published[^>]*>([\s\S]*?)<\/published>/)?.[1]?.trim()
-        || block.match(/<updated[^>]*>([\s\S]*?)<\/updated>/)?.[1]?.trim()
-        || "";
-      if (title && link) {
-        items.push({
-          title: decodeEntities(title),
-          link,
-          pubDate,
-          source: source.key,
-          sourceLabel: source.label,
-        });
-      }
-      if (items.length >= 15) break;
-    }
-  }
-  return items;
-}
-
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
-}
-
-export async function onRequestGet(context: { request: Request }) {
-  const url = new URL(context.request.url);
-  const sourceKey = url.searchParams.get("source");
-
-  const targets = sourceKey
-    ? FEEDS.filter((f) => f.key === sourceKey)
-    : FEEDS;
-
-  if (targets.length === 0) {
-    return new Response(JSON.stringify({ error: "未知源" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-    });
-  }
-
-  const results = await Promise.allSettled(
-    targets.map(async (feed) => {
-      const res = await fetch(feed.url, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; yukino-news/1.0)" },
-      });
-      if (!res.ok) throw new Error(`${feed.label} HTTP ${res.status}`);
-      const xml = await res.text();
-      return parseFeed(xml, feed);
-    }),
-  );
-
-  const items: NewsItem[] = [];
-  const errors: { source: string; error: string }[] = [];
-  results.forEach((r, i) => {
-    if (r.status === "fulfilled") items.push(...r.value);
-    else errors.push({ source: targets[i].label, error: String(r.reason) });
+    throw failure;
+  }));
+  const payload: NewsResponse = { items: [], errors: [], sources: [], fetchedAt };
+  results.forEach((result, index) => {
+    const source = targets[index]; const available = result.status === "fulfilled";
+    payload.sources.push({ key: source.key, label: source.label, count: available ? result.value.length : 0, available, fetchedAt });
+    if (result.status === "fulfilled") payload.items.push(...result.value);
+    else payload.errors.push({ source: source.key, label: source.label, error: result.reason instanceof Error ? result.reason.message : "暂时无法读取" });
   });
-
-  // 按时间倒序（粗略：有的源无 pubDate 则保持原序）
-  items.sort((a, b) => {
-    const ta = a.pubDate ? Date.parse(a.pubDate) : 0;
-    const tb = b.pubDate ? Date.parse(b.pubDate) : 0;
-    return tb - ta;
-  });
-
-  return new Response(JSON.stringify({ items, errors }), {
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "public, max-age=600",
-    },
-  });
+  payload.items.sort((a, b) => (Date.parse(b.pubDate) || 0) - (Date.parse(a.pubDate) || 0));
+  const seen = new Set<string>(); payload.items = payload.items.filter((item: NewsItem) => { if (seen.has(item.link)) return false; seen.add(item.link); return true; });
+  const response = new Response(JSON.stringify(payload), { status: payload.items.length ? 200 : 503, headers: { ...jsonHeaders, "Cache-Control": payload.items.length ? "public, max-age=300, stale-while-revalidate=600" : "no-store" } });
+  if (payload.items.length && cache) {
+    const saving = cache.put(cacheKey, response.clone()).catch(() => {});
+    if (context.waitUntil) context.waitUntil(saving); else await saving;
+  }
+  return response;
 }

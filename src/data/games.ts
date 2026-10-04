@@ -1,0 +1,22 @@
+export type GameCategory = "益智" | "街机" | "棋类" | "反应";
+export const gameCatalog: { id: string; name: string; nameEn: string; description: string; icon: string; category: GameCategory; isNew?: boolean }[] = [
+  { id: "2048", name: "2048", nameEn: "2048", description: "滑动合并数字，挑战 2048", icon: "🔢", category: "益智" },
+  { id: "snake", name: "贪吃蛇", nameEn: "Snake", description: "吃掉食物，避开墙壁和自己", icon: "🐍", category: "街机" },
+  { id: "tetris", name: "俄罗斯方块", nameEn: "Tetris", description: "旋转方块，消除完整的一行", icon: "🟦", category: "街机" },
+  { id: "minesweeper", name: "扫雷", nameEn: "Minesweeper", description: "根据数字推理，找出安全格子", icon: "💣", category: "益智" },
+  { id: "flappy", name: "Flappy Bird", nameEn: "Flappy Bird", description: "轻点跳跃，穿过一根根管道", icon: "🐤", category: "街机" },
+  { id: "breakout", name: "打砖块", nameEn: "Breakout", description: "控制挡板，弹球击碎砖块", icon: "🧱", category: "街机" },
+  { id: "memory", name: "记忆翻牌", nameEn: "Memory", description: "翻开卡片，以最少步数找齐配对", icon: "🃏", category: "益智" },
+  { id: "tictactoe", name: "井字棋", nameEn: "Tic Tac Toe", description: "与电脑对弈，先连成三个棋子", icon: "⭕", category: "棋类" },
+  { id: "pong", name: "Pong", nameEn: "Pong", description: "经典的乒乓球对战", icon: "🏓", category: "街机" },
+  { id: "simon", name: "Simon Says", nameEn: "Simon Says", description: "记住颜色序列并依次重复", icon: "🎵", category: "反应" },
+  { id: "puzzle", name: "数字华容道", nameEn: "15 Puzzle", description: "移动数字，将 1 到 15 依次归位", icon: "🧩", category: "益智", isNew: true },
+  { id: "sudoku", name: "数独", nameEn: "Sudoku", description: "三档难度，笔记模式与每日挑战", icon: "✏️", category: "益智", isNew: true },
+  { id: "connect4", name: "四子棋", nameEn: "Connect Four", description: "与电脑或朋友轮流落子，连四获胜", icon: "🔴", category: "棋类", isNew: true },
+  { id: "gomoku", name: "五子棋", nameEn: "Gomoku", description: "人机或双人对弈，先连成五子", icon: "⚫", category: "棋类", isNew: true },
+  { id: "lights", name: "关灯挑战", nameEn: "Lights Out", description: "每次切换相邻灯光，让棋盘全暗", icon: "💡", category: "益智", isNew: true },
+  { id: "codebreaker", name: "猜数字", nameEn: "Code Breaker", description: "用 A / B 提示破解四位数字", icon: "🔐", category: "益智", isNew: true },
+  { id: "mole", name: "打地鼠", nameEn: "Whack a Mole", description: "30 秒手速挑战，支持键盘 1–9", icon: "🐹", category: "街机", isNew: true },
+  { id: "reaction", name: "反应测试", nameEn: "Reaction Time", description: "等待绿色出现，测量你的反应时间", icon: "⚡", category: "反应", isNew: true },
+  { id: "typing", name: "打字练习", nameEn: "Typing Practice", description: "中英文 30 秒练习，查看速度与准确率", icon: "⌨️", category: "反应", isNew: true },
+];

@@ -1,28 +1,29 @@
-import { useEffect } from "react";
+import { lazy, useEffect } from "react";
 import { BrowserRouter, HashRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { AppShell } from "@/components/AppShell";
-import AboutMe from "@/pages/AboutMe";
-import AdminBox from "@/pages/AdminBox";
-import AdminDashboard from "@/pages/AdminDashboard";
-import AdminPosts from "@/pages/AdminPosts";
-import Blog from "@/pages/Blog";
-import Box from "@/pages/Box";
-import Changelog from "@/pages/Changelog";
-import Dev from "@/pages/Dev";
-import Friends from "@/pages/Friends";
-import Games from "@/pages/Games";
 import Home from "@/pages/Home";
-import Lab from "@/pages/Lab";
-import Links from "@/pages/Links";
-import Login from "@/pages/Login";
-import News from "@/pages/News";
-import Notes from "@/pages/Notes";
-import NotFound from "@/pages/NotFound";
-import Register from "@/pages/Register";
-import RSS from "@/pages/RSS";
-import Rail from "@/pages/Rail";
-import Status from "@/pages/Status";
-import Uses from "@/pages/Uses";
+const AboutMe = lazy(() => import("@/pages/AboutMe"));
+const AdminBox = lazy(() => import("@/pages/AdminBox"));
+const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
+const AdminPosts = lazy(() => import("@/pages/AdminPosts"));
+const Blog = lazy(() => import("@/pages/Blog"));
+const Box = lazy(() => import("@/pages/Box"));
+const Changelog = lazy(() => import("@/pages/Changelog"));
+const Dev = lazy(() => import("@/pages/Dev"));
+const Friends = lazy(() => import("@/pages/Friends"));
+const Games = lazy(() => import("@/pages/Games"));
+const Lab = lazy(() => import("@/pages/Lab"));
+const Links = lazy(() => import("@/pages/Links"));
+const Login = lazy(() => import("@/pages/Login"));
+const News = lazy(() => import("@/pages/News"));
+const Notes = lazy(() => import("@/pages/Notes"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Register = lazy(() => import("@/pages/Register"));
+const RSS = lazy(() => import("@/pages/RSS"));
+const Rail = lazy(() => import("@/pages/Rail"));
+const Status = lazy(() => import("@/pages/Status"));
+const Uses = lazy(() => import("@/pages/Uses"));
+const Focus = lazy(() => import("@/pages/Focus"));
 import { isElectronApp } from "@/lib/runtime";
 
 const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
@@ -38,6 +39,7 @@ const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
   lab: "/lab",
   status: "/status",
   games: "/games",
+  focus: "/focus",
   news: "/news",
   cr: "/cr",
   www: "/",
@@ -83,6 +85,7 @@ export default function App() {
           <Route path="/rss" element={<RSS />} />
           <Route path="/status" element={<Status />} />
           <Route path="/games" element={<Games />} />
+          <Route path="/focus" element={<Focus />} />
           <Route path="/news" element={<News />} />
           <Route path="/cr" element={<Rail />} />
           <Route path="/uses" element={<Uses />} />

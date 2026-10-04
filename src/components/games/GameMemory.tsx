@@ -1,104 +1,30 @@
-import { useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { shuffle } from "@/lib/game-engines";
+import { GameNotice, GameStats, gameButton, useGameBest } from "./GameKit";
 
-const EMOJIS = ["", "🐶", "", "🦊", "", "🐼", "", "🦁"];
-const PAIRS = 8;
-const TOTAL = PAIRS * 2;
-
-type Card = { id: number; emoji: string; flipped: boolean; matched: boolean };
-
-function shuffle(): Card[] {
-  const cards = [...EMOJIS, ...EMOJIS].map((emoji, i) => ({ id: i, emoji, flipped: false, matched: false }));
-  for (let i = cards.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cards[i], cards[j]] = [cards[j], cards[i]]; }
-  return cards;
-}
-
+const emojis = ["🐱", "🐶", "🐰", "🦊", "🐨", "🐼", "🐸", "🦁"];
+const makeCards = () => shuffle([...emojis, ...emojis]).map((emoji, id) => ({ id, emoji, matched: false }));
 export default function GameMemory() {
-  const [cards, setCards] = useState<Card[]>(shuffle);
-  const [selected, setSelected] = useState<number[]>([]);
-  const [moves, setMoves] = useState(0);
-  const [best, setBest] = useState(() => Number(localStorage.getItem("bestMemory") || 0));
-  const [won, setWon] = useState(false);
-  const [timer, setTimer] = useState(0);
-  const [started, setStarted] = useState(false);
-
-  const reset = useCallback(() => { setCards(shuffle()); setSelected([]); setMoves(0); setWon(false); setTimer(0); setStarted(false); }, []);
-
-  useState(() => {
-    if (started && !won) { const t = setInterval(() => setTimer((s) => s + 1), 1000); return () => clearInterval(t); }
-  });
-
-  const handleClick = useCallback((id: number) => {
-    if (!started) setStarted(true);
-    if (selected.length >= 2) return;
-    const card = cards.find((c) => c.id === id);
-    if (!card || card.flipped || card.matched) return;
-
-    const newCards = cards.map((c) => c.id === id ? { ...c, flipped: true } : c);
-    setCards(newCards);
-    const newSelected = [...selected, id];
-    setSelected(newSelected);
-
-    if (newSelected.length === 2) {
-      setMoves((m) => m + 1);
-      const [a, b] = newSelected;
-      const ca = newCards.find((c) => c.id === a)!;
-      const cb = newCards.find((c) => c.id === b)!;
-      if (ca.emoji === cb.emoji) {
-        setTimeout(() => {
-          setCards((prev) => prev.map((c) => c.id === a || c.id === b ? { ...c, matched: true } : c));
-          setSelected([]);
-          const allMatched = newCards.every((c) => c.matched || c.id === a || c.id === b);
-          if (allMatched) { setWon(true); setBest((b2) => { const nb = Math.max(b2, moves + 1); localStorage.setItem("bestMemory", String(nb)); return nb; }); }
-        }, 500);
-      } else {
-        setTimeout(() => {
-          setCards((prev) => prev.map((c) => c.id === a || c.id === b ? { ...c, flipped: false } : c));
-          setSelected([]);
-        }, 800);
-      }
-    }
-  }, [cards, selected, started, moves]);
-
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="flex w-full items-center justify-between">
-        <div className="flex gap-4">
-          <div className="glass-panel rounded-xl px-4 py-2 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-stone-500">步数</p>
-            <p className="font-display text-xl text-stone-900">{moves}</p>
-          </div>
-          <div className="glass-panel rounded-xl px-4 py-2 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-stone-500">时间</p>
-            <p className="font-display text-xl text-stone-900">{timer}s</p>
-          </div>
-        </div>
-        <button onClick={reset} className="glass-panel rounded-xl px-4 py-2 text-sm text-stone-700">
-          新游戏
-        </button>
-      </div>
-
-      <div className="glass-panel grid grid-cols-4 gap-2 rounded-2xl p-3" style={{ width: "min(85vw, 360px)" }}>
-        {cards.map((card) => (
-          <button
-            key={card.id}
-            className={`aspect-square rounded-xl text-2xl font-bold transition-all duration-300 ${
-              card.flipped || card.matched ? "bg-white/40 scale-95" : "bg-white/20 hover:bg-white/30"
-            } ${card.matched ? "opacity-60" : ""}`}
-            onClick={() => handleClick(card.id)}
-          >
-            {card.flipped || card.matched ? card.emoji : "?"}
-          </button>
-        ))}
-      </div>
-
-      {won && (
-        <div className="glass-panel fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
-          <p className="font-display text-3xl text-stone-900">恭喜通关！</p>
-          <p className="mt-2 text-sm text-stone-600">步数：{moves} | 用时：{timer}秒</p>
-          <button onClick={reset} className="mt-4 glass-panel rounded-xl px-6 py-2 text-sm text-stone-700">再来一局</button>
-        </div>
-      )}
-      <p className="text-xs text-stone-500">点击卡片翻转，找到所有配对</p>
-    </div>
-  );
+  const [cards, setCards] = useState(makeCards); const [selected, setSelected] = useState<number[]>([]);
+  const [moves, setMoves] = useState(0); const [seconds, setSeconds] = useState(0); const [start, setStart] = useState(0);
+  const { best, record } = useGameBest("memory", true); const won = cards.every((c) => c.matched);
+  useEffect(() => { if (!start || won) return; const timer = setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 250); return () => clearInterval(timer); }, [start, won]);
+  useEffect(() => {
+    if (selected.length !== 2) return;
+    setMoves((n) => n + 1);
+    const [a, b] = selected; const match = cards[a].emoji === cards[b].emoji;
+    const timer = setTimeout(() => { if (match) setCards((previous) => previous.map((c) => c.id === a || c.id === b ? { ...c, matched: true } : c)); setSelected([]); }, match ? 400 : 750);
+    return () => clearTimeout(timer);
+  }, [selected, cards]);
+  useEffect(() => { if (won) record(moves); }, [won, moves, record]);
+  return <div className="game-space">
+    <GameStats values={[["步数", moves], ["用时", `${seconds}s`], ["最少步数", best || "—"]]} />
+    <div className="game-grid memory-grid" role="group" aria-label="记忆翻牌区域">{cards.map((card) => {
+      const open = selected.includes(card.id) || card.matched;
+      return <button key={card.id} aria-label={`卡片 ${card.id + 1}，${open ? card.emoji : "未翻开"}${card.matched ? "，已配对" : ""}`} disabled={card.matched || selected.includes(card.id) || selected.length === 2} className={`memory-card ${open ? "is-open" : ""} ${card.matched ? "is-matched" : ""}`} onClick={() => { if (!start) setStart(Date.now()); setSelected((previous) => [...previous, card.id]); }}>{open ? card.emoji : "?"}</button>;
+    })}</div>
+    {won && <GameNotice>恭喜通关！步数：{moves}，用时：{seconds} 秒。</GameNotice>}
+    <button className={gameButton} onClick={() => { setCards(makeCards()); setSelected([]); setMoves(0); setSeconds(0); setStart(0); }}>新游戏</button>
+    <p className="game-help">每次翻开两张卡片，找到所有八组配对。最低步数为最佳成绩。</p>
+  </div>;
 }

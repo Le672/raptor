@@ -1,6 +1,8 @@
-import { ArrowLeft, Rss, Globe, ExternalLink } from "lucide-react";
+import { ArrowLeft, Rss, Globe, ExternalLink, Download } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { NEWS_FEEDS } from "@/lib/news";
+import { getApiBase } from "@/lib/runtime";
 
 const feeds = [
   {
@@ -61,7 +63,8 @@ const feeds = [
   },
 ];
 
-const categories = [...new Set(feeds.map((f) => f.category))];
+const allFeeds = [...feeds, ...NEWS_FEEDS.filter((source) => !feeds.some((feed) => feed.feedUrl === source.url || feed.url.replace(/\/$/, "") === source.website.replace(/\/$/, ""))).map((source) => ({ title: source.label, url: source.website, feedUrl: source.url, category: source.category, desc: `${source.category}资讯 · ${source.language === "zh" ? "中文" : "English"}` }))];
+const categories = [...new Set(allFeeds.map((f) => f.category))];
 
 export default function RSS() {
   useDocumentMeta("订阅源", "给长期关注的人一个稳定、清爽的订阅入口。");
@@ -86,6 +89,7 @@ export default function RSS() {
         <p className="mt-3 max-w-xl text-sm leading-7 text-stone-600">
           给长期关注的人一个稳定、清爽的订阅入口，汇总值得订阅的 RSS 源。
         </p>
+        <a className="pill-button mt-4" href={`${getApiBase()}/news?format=opml`} download="yukino-news.opml"><Download size={15} />导出新闻源 OPML</a>
       </div>
 
       {categories.map((cat) => (
@@ -95,7 +99,7 @@ export default function RSS() {
             {cat}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            {feeds
+            {allFeeds
               .filter((f) => f.category === cat)
               .map((feed) => (
                 <div

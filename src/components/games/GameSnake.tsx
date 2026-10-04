@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { ignoreGameKey } from "@/lib/game-keyboard";
 
 type Point = { x: number; y: number };
 type Dir = "up" | "down" | "left" | "right";
@@ -40,6 +41,7 @@ export default function GameSnake() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (ignoreGameKey(e)) return;
       const map: Record<string, Dir> = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
       const d = map[e.key];
       if (!d) return;

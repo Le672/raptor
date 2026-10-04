@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { isElectronApp } from '@/lib/runtime'
 import './index.css'
+import './enhancements.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

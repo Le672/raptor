@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { ignoreGameKey } from "@/lib/game-keyboard";
 
 const COLS = 10;
 const ROWS = 20;
@@ -94,6 +95,7 @@ export default function GameTetris() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (ignoreGameKey(e)) return;
       if (!running) return;
       if (e.key === "ArrowLeft") { e.preventDefault(); moveLeft(); }
       if (e.key === "ArrowRight") { e.preventDefault(); moveRight(); }

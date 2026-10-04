@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Footer } from "@/components/Footer";
 import { TopNav } from "@/components/TopNav";
+import { PageUtilities } from "@/components/PageUtilities";
 import { useSiteStore } from "@/hooks/useSiteStore";
 
 export function AppShell() {
@@ -26,9 +27,10 @@ export function AppShell() {
         className="relative"
         tabIndex={-1}
       >
-        <Outlet />
+        <Suspense fallback={<p className="game-notice mx-auto my-10 max-w-md" role="status">正在打开页面…</p>}><Outlet /></Suspense>
       </main>
       {!isRailPage && <Footer />}
+      <PageUtilities />
     </div>
   );
 }

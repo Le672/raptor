@@ -2,16 +2,12 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { domainLinks, postPreviews } from "@/data/site";
+import { siteNavigation } from "@/data/navigation";
+import { gameCatalog } from "@/data/games";
 
 type QuickSearchProps = { open: boolean; onClose: () => void };
 
-const pages = [
-  { title: "首页", description: "Yukino 的个人入口站", href: "/" },
-  { title: "笔记", description: "开发记录、随笔与收藏", href: "/notes" },
-  { title: "开发工具", description: "JSON、时间戳和编码工具", href: "/dev" },
-  { title: "关于", description: "认识 Yukino", href: "/about-me" },
-  { title: "更新日志", description: "查看小站近期变化", href: "/changelog" },
-];
+const pages = siteNavigation.map((page) => ({ title: page.label, description: page.description, href: page.to }));
 
 export function QuickSearch({ open, onClose }: QuickSearchProps) {
   const [query, setQuery] = useState("");
@@ -41,6 +37,8 @@ export function QuickSearch({ open, onClose }: QuickSearchProps) {
         .filter((post) => matches(`${post.title} ${post.summary} ${post.tag}`))
         .map((post) => ({ title: post.title, description: `${post.tag} · ${post.date}`, href: post.href })),
       ...pages.filter((page) => matches(`${page.title} ${page.description}`)),
+      ...gameCatalog.filter((game) => matches(`${game.name} ${game.nameEn} ${game.description}`))
+        .map((game) => ({ title: game.name, description: `小游戏 · ${game.description}`, href: `/games?game=${game.id}` })),
       ...domainLinks
         .filter((item) => matches(`${item.title} ${item.hostname} ${item.description}`))
         .map((item) => ({ title: item.title, description: item.hostname, href: item.href, external: true })),

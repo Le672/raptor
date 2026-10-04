@@ -1,6 +1,6 @@
 // Yukino PWA Service Worker
 // 策略：导航请求 network-first（保证内容新鲜），静态资源 cache-first
-const CACHE_VERSION = "yukino-v1";
+const CACHE_VERSION = "yukino-v2";
 const PRECACHE = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/favicon.png"];
 
 self.addEventListener("install", (event) => {
@@ -14,7 +14,7 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))),
+        Promise.all(keys.filter((k) => k.startsWith("yukino-") && k !== CACHE_VERSION).map((k) => caches.delete(k))),
       )
       .then(() => self.clients.claim()),
   );

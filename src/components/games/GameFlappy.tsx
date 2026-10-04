@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { ignoreGameKey } from "@/lib/game-keyboard";
 
 const W = 320, H = 480;
 const BIRD_SIZE = 20;
@@ -32,7 +33,7 @@ export default function GameFlappy() {
   }, [gameOver, running, reset]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === " " || e.key === "ArrowUp") { e.preventDefault(); jump(); } };
+    const handler = (e: KeyboardEvent) => { if (!ignoreGameKey(e) && (e.key === " " || e.key === "ArrowUp")) { e.preventDefault(); jump(); } };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [jump]);
