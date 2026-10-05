@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { useRailPageNavigation } from "../hooks/useRailPageNavigation";
-import { railFeatureFromLocation, railFeatureUrl, RAIL_FEATURE_PATHS } from "../lib/rail-navigation";
+import { railFeatureFromLocation, railFeatureUrl, railPositionFromLocation, RAIL_FEATURE_PATHS } from "../lib/rail-navigation";
 import type { RailFeature } from "../lib/rail-navigation";
 import App from "../App";
 
@@ -13,6 +13,14 @@ function Controller() {
   return <><output>{feature}</output>{(Object.keys(RAIL_FEATURE_PATHS) as RailFeature[]).map(item => <button key={item} onClick={() => select(item)}>{item}</button>)}</>;
 }
 describe("rail subdomain feature URLs", () => {
+  it("keeps a board train's origin date in a reloadable live link and rejects malformed selections", () => {
+    const location = { hostname: "cr.yukino.bond", pathname: "/arrivalinfo", search: "?station=IZQ&date=2026-10-05", hash: "" } as Location;
+    const link = railFeatureUrl("position", location, { train: "K123", date: "2026-10-04", autoQuery: true });
+    expect(link).toBe("/live?station=IZQ&date=2026-10-04&train=K123");
+    expect(railPositionFromLocation({ pathname: "/live", search: link.slice(link.indexOf("?")) })).toEqual({ train: "K123", date: "2026-10-04", autoQuery: true });
+    expect(railPositionFromLocation({ pathname: "/live", search: "?train=K123&date=2026-02-30" })).toEqual({ train: "" });
+    expect(railFeatureUrl("board", { ...location, pathname: "/live", search: "?station=IZQ&date=2026-10-04&train=K123" } as Location)).toBe("/arrivalinfo?station=IZQ");
+  });
   it("maps the four stable paths and canonicalizes legacy query links", () => {
     for (const [feature, pathname] of Object.entries(RAIL_FEATURE_PATHS)) {
       expect(railFeatureFromLocation({ pathname, search: "?view=tickets" })).toBe(feature);
