@@ -121,7 +121,11 @@
 .f1-driver-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .f1-driver-grid article { background: #fffefa; padding: 23px; border: 1px solid var(--f1-line); border-top: 3px solid; border-radius: 8px; }
 .f1-driver-card-top { display: flex; align-items: start; justify-content: space-between; margin-bottom: 21px; }
-.f1-driver-card-top > span { font: italic 43px Georgia, serif; color: #ccd5bd; line-height: 1; }
+.f1-driver-number { display: inline-block; flex: none; width: 94px; height: 44px; font: italic 40px/1 Georgia, serif; color: #58704b; vertical-align: middle; }
+.f1-driver-number-art { display: block; width: 100%; height: 100%; background-color: currentColor; mask-size: contain; mask-repeat: no-repeat; mask-position: left center; -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: left center; }
+.f1-driver-number-fallback { display: none; }
+.f1-driver-number-compact { width: 31px; height: 17px; color: inherit; font-family: inherit; font-size: 12px; font-style: normal; font-weight: 600; }
+@supports not ((mask-image: url("")) or (-webkit-mask-image: url(""))) { .f1-driver-number-art { display: none; }.f1-driver-number-fallback { display: inline; } }
 .f1-driver-card-top button { border: 0; background: none; color: #9ba78c; padding: 3px; }
 .f1-driver-card-top button[aria-pressed=true] { color: var(--f1-red); }
 .f1-driver-grid article > small { font-size: 10px; color: #879678; }
