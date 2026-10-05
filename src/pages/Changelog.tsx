@@ -13,6 +13,15 @@ type ChangelogEntry = {
 const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-05",
+    type: "improvement",
+    title: "Yukino Mail 与主站统一风格",
+    changes: [
+      "邮箱站登录与注册页、侧栏、邮件列表、设置和弹窗统一采用主站的浅色纸张背景、鼠尾草绿配色、细边框及衬线标题；品牌头像和 Yukino 标识与主站一致",
+      "登录页加入信件插画与返回主站入口，邮箱导航补充主站链接；适配手机窄屏和深色模式，登录表单支持回车提交、密码显示与键盘切换注册入口",
+    ],
+  },
+  {
+    date: "2026-10-05",
     type: "fix",
     title: "列车位置地图国内访问",
     changes: [
