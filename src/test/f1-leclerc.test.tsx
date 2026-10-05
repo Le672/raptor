@@ -22,11 +22,11 @@ describe("Leclerc P4 club", () => {
     const navigate = vi.fn(); open(navigate);
     expect(await screen.findByText("YES", {exact:true})).toBeInTheDocument();
     const table = screen.getByRole("table"); expect(within(table).getAllByRole("row")).toHaveLength(4);
-    fireEvent.click(screen.getByRole("button", {name:"冲刺赛 P4",exact:true})); expect(within(table).getAllByRole("row")).toHaveLength(2);
-    fireEvent.click(within(table).getByRole("button", {name:"成绩",exact:true})); expect(navigate).toHaveBeenCalledWith({tab:"results",year:"2025",round:"16",kind:"sprint"});
+    fireEvent.click(screen.getByRole("button", {name:"冲刺赛 P4"})); expect(within(table).getAllByRole("row")).toHaveLength(2);
+    fireEvent.click(within(table).getByRole("button", {name:"成绩"})); expect(navigate).toHaveBeenCalledWith({tab:"results",year:"2025",round:"16",kind:"sprint"});
     fireEvent.change(screen.getByRole("combobox", {name:"历史赛季"}), {target:{value:"2024"}});
     expect(screen.getByText("这个筛选下，Charles 没有拿过第四。")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", {name:"正赛 P4",exact:true})); expect(screen.getByRole("cell", {name:/摩纳哥大奖赛/})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", {name:"正赛 P4"})); expect(screen.getByRole("cell", {name:/摩纳哥大奖赛/})).toBeInTheDocument();
   });
   it("shows NO for another known final placing", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({...data,current:{race,result:{...result,position:"3"}}})));
