@@ -9,7 +9,7 @@ const meta = { fetchedAt: "2026-10-05T01:00:00Z", source: "OpenF1", errors: [] }
 const live: LiveData = { ...meta, session, state: "finished", liveAccess: false, restricted: false, partial: false, rows: [
   { driver_number: 1, full_name: "Max Verstappen", name_acronym: "VER", team_name: "Red Bull Racing", position: 1, laps: 5, compound: "HARD", duration: 500 },
   { driver_number: 4, full_name: "Lando Norris", name_acronym: "NOR", team_name: "McLaren", position: 2, laps: 5, compound: "MEDIUM" },
-], stints: [{ driver_number: 1, stint_number: 1, compound: "SOFT", lap_start: 1, lap_end: 2, tyre_age_at_start: 0 }, { driver_number: 1, stint_number: 2, compound: "HARD", lap_start: 3, lap_end: 5, tyre_age_at_start: 2 }], control: [
+], stints: [{ driver_number: 1, stint_number: 1, compound: "SOFT", lap_start: 1, lap_end: 2, tyre_age_at_start: 0 }, { driver_number: 1, stint_number: 2, compound: "HARD", lap_start: 3, lap_end: 5, tyre_age_at_start: 2 }, { driver_number: 4, stint_number: 1, compound: "INTERMEDIATE", lap_start: 2, lap_end: 1 }], control: [
   { date: "2025-12-07T14:00:00Z", flag: "BLUE", scope: "Driver", driver_number: 4, message: "BLUE FLAG FOR CAR 4" },
   { date: "2025-12-07T14:01:00Z", message: "CAR 1 INCIDENT UNDER INVESTIGATION" },
 ] };
@@ -58,6 +58,8 @@ describe("F1 race dashboard interactions", () => {
     expect(screen.queryByText("0.00s")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "分段" })); expect(screen.getByRole("cell", { name: "28.000" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "轮胎策略" })); expect(screen.getByRole("cell", { name: /1 PIT.*5 圈胎龄/ })).toBeInTheDocument();
+    expect(screen.queryByText("2–1")).not.toBeInTheDocument();
+    expect(screen.getByTitle("半雨胎 · — 圈")).toHaveTextContent("—");
     expect(screen.queryByText("BLUE FLAG FOR CAR 4")).not.toBeInTheDocument(); fireEvent.click(screen.getByRole("checkbox", { name: "显示蓝旗" })); expect(screen.getByText("BLUE FLAG FOR CAR 4")).toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: "赛事控制筛选" }), { target: { value: "incidents" } }); expect(screen.queryByText("BLUE FLAG FOR CAR 4")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("checkbox", { name: "赛道布局" })); expect(screen.queryByRole("heading", { name: "赛道布局" })).not.toBeInTheDocument();
