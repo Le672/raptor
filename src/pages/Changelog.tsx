@@ -13,6 +13,15 @@ type ChangelogEntry = {
 const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-05",
+    type: "fix",
+    title: "列车位置地图国内访问",
+    changes: [
+      "2D 底图默认改用高德国内地图，保留 OpenStreetMap 备用来源；加载失败或超时可直接重试和切换底图",
+      "切换 2D 与卫星图时同步转换铁路线路、停站与设备位置坐标，保留当前视野和缩放，避免底图偏移；适配窄屏地图来源选择器",
+    ],
+  },
+  {
+    date: "2026-10-05",
     type: "feature",
     title: "Yukino F1 围场与比赛中心",
     changes: [
