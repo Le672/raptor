@@ -11,6 +11,7 @@ on:
       - 'src/desktop.css'
       - 'src/DesktopRail.tsx'
       - 'src/hooks/useRailMonitor.ts'
+      - 'src/test/rail*.test.*'
       - 'src/hooks/useJourneyStopBoard.ts'
       - 'src/lib/rail-stop-info.ts'
       - 'src/lib/rail-navigation.ts'

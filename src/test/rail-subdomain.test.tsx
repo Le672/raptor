@@ -13,9 +13,9 @@ describe("rail subdomain routes", () => {
     fireEvent.change(screen.getByLabelText("车次"), { target: { value: "G1039" } });
     const requests = vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("mode=stations")).length;
     for (const [name, pathname] of [["余票查询与监控", "/ticket"], ["中转行程", "/transfer"], ["列车位置与下一站", "/live"], ["车站大屏", "/arrivalinfo"]]) {
-      fireEvent.click(screen.getByRole("button", { name, exact: true }));
+      fireEvent.click(screen.getByRole("button", { name }));
       await waitFor(() => expect(window.location.pathname).toBe(pathname));
-      expect(screen.getByRole("button", { name, exact: true })).toHaveAttribute("aria-pressed", "true"); expect(window.location.search).toBe("");
+      expect(screen.getByRole("button", { name })).toHaveAttribute("aria-pressed", "true"); expect(window.location.search).toBe("");
     }
     act(() => window.history.back());
     await waitFor(() => expect(screen.getByRole("button", { name: "列车位置与下一站" })).toHaveAttribute("aria-pressed", "true"));
