@@ -6,7 +6,7 @@ import type { F1Lap, F1Session, LapsData, TrackDriver } from "@/lib/f1";
 import { DataStatus, Empty } from "./F1Common";
 
 const COLORS = ["#ba4438", "#4d7c61"];
-function LapChart({ series }: { series: { number: string; name: string; laps: F1Lap[] }[] }) {
+export function LapChart({ series }: { series: { number: string; name: string; laps: F1Lap[] }[] }) {
   const points = series.flatMap((entry) => entry.laps), times = points.map((lap) => lap.lap_duration!);
   if (!points.length) return <Empty>暂无有效圈速可供绘图。</Empty>;
   const minLap = Math.min(...points.map((lap) => lap.lap_number)), maxLap = Math.max(minLap + 1, ...points.map((lap) => lap.lap_number));

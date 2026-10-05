@@ -1,5 +1,5 @@
 import { latestByDriver, sessionState } from "../../src/lib/f1";
-import type { F1Session, TimingRow, TrackDriver, RaceControl, LiveData } from "../../src/lib/f1";
+import type { F1Session, TimingRow, TrackDriver, RaceControl, LiveData, F1Stint, RaceDashboardData } from "../../src/lib/f1";
 import { parseFeed } from "../_utils/news-feed";
 
 type Context = { request: Request; env?: { OPENF1_TOKEN?: string }; waitUntil?: (promise: Promise<unknown>) => void };
@@ -81,15 +81,16 @@ async function loadLive(sessionKey: string, token: string | undefined, year: num
   const parts = await Promise.allSettled([
     openf1("drivers", common, token, 3600000),
     openf1(state === "live" ? "position" : "session_result", state === "live" ? recent : common, token, ttl),
-    openf1("intervals", recent, token, ttl),
+    state === "live" ? openf1("intervals", recent, token, ttl) : Promise.resolve([]),
     openf1("stints", common, token, ttl),
     openf1("race_control", common, token, ttl),
-    openf1("weather", recent, token, ttl),
+    openf1("weather", state === "live" ? recent : common, token, ttl),
   ]);
   const drivers = settled(parts[0], errors, []) as TrackDriver[];
   const ranks = latestByDriver(settled(parts[1], errors, []));
   const intervals = latestByDriver(settled(parts[2], errors, []));
-  const stints = new Map<number, any>(); for (const stint of settled(parts[3], errors, [])) if (!stints.has(stint.driver_number) || stint.stint_number > stints.get(stint.driver_number).stint_number) stints.set(stint.driver_number, stint);
+  const stintRows = settled(parts[3], errors, []) as F1Stint[];
+  const stints = new Map<number, F1Stint>(); for (const stint of stintRows) if (!stints.has(stint.driver_number) || stint.stint_number > stints.get(stint.driver_number)!.stint_number) stints.set(stint.driver_number, stint);
   const control = array(settled(parts[4], errors, [])).sort((a, b) => a.date.localeCompare(b.date)).slice(-60) as RaceControl[];
   const weatherRows = array(settled(parts[5], errors, [])).sort((a, b) => a.date.localeCompare(b.date));
   const weather = weatherRows[weatherRows.length - 1];
@@ -102,7 +103,25 @@ async function loadLive(sessionKey: string, token: string | undefined, year: num
   // A running session with old or absent timing must never masquerade as live.
   const hasRecentTiming = state !== "live" || rows.some((row) => row.position !== undefined && row.date && Date.now() - Date.parse(row.date) < 120000);
   const restricted = parts.some((part) => part.status === "rejected" && part.reason instanceof UpstreamError && [401, 403].includes(part.reason.status));
-  return { ...base, state: state === "live" && !hasRecentTiming ? "unavailable" : state, rows, control, weather, asOf, restricted, partial: parts.some((part) => part.status === "rejected") || !hasRecentTiming };
+  return { ...base, state: state === "live" && !hasRecentTiming ? "unavailable" : state, rows, stints: stintRows, control, weather, asOf, restricted, partial: parts.some((part) => part.status === "rejected") || !hasRecentTiming };
+}
+async function loadDashboard(sessionKey: string, token?: string): Promise<Omit<RaceDashboardData, "fetchedAt"> & { unavailable?: boolean }> {
+  const errors: string[] = [];
+  const session = (await openf1("sessions", { session_key: sessionKey }, token, 3600000))[0] as F1Session | undefined;
+  const base = { session: Number(sessionKey), laps: [], pits: [], radio: [], available: { laps: false, pits: false, radio: false }, restricted: false, errors, source: "OpenF1 · 逐圈 / 进站 / 无线电" };
+  if (!session) return { ...base, unavailable: true, errors: ["该场次暂未公布"] };
+  const state = sessionState(session);
+  if (["upcoming", "cancelled", "unavailable"].includes(state)) return base;
+  if (!token && Date.now() < Date.parse(session.date_end) + 30 * 60000) return { ...base, restricted: true, errors: ["实时看板需要有效的 OpenF1 订阅凭据"] };
+  const common = { session_key: session.session_key }, ttl = state === "live" ? 25000 : 3600000;
+  const parts = await Promise.allSettled([openf1("laps", common, token, ttl), openf1("pit", common, token, ttl), openf1("team_radio", common, token, ttl)]);
+  // Independent feeds retain their records when another endpoint fails.
+  const laps = settled(parts[0], errors, []).slice(0, 12000);
+  const pits = settled(parts[1], errors, []).sort((a: Json, b: Json) => a.date.localeCompare(b.date)).slice(-500);
+  const radio = settled(parts[2], errors, []).sort((a: Json, b: Json) => a.date.localeCompare(b.date)).slice(-100);
+  const restricted = parts.some((part) => part.status === "rejected" && part.reason instanceof UpstreamError && [401, 403].includes(part.reason.status));
+  const available = { laps: parts[0].status === "fulfilled", pits: parts[1].status === "fulfilled", radio: parts[2].status === "fulfilled" };
+  return { ...base, laps, pits, radio, available, restricted, errors, unavailable: parts.every((part) => part.status === "rejected") };
 }
 async function loadLaps(session: string, numbers: string, token?: string) {
   const errors: string[] = [], drivers = await openf1("drivers", { session_key: session }, token, 3600000);
@@ -131,19 +150,19 @@ export async function onRequestGet(context: Context) {
   const round = url.searchParams.get("round") || "last", kind = url.searchParams.get("kind") || "results";
   const session = url.searchParams.get("session") || "latest", drivers = url.searchParams.get("drivers") || "";
   const headers = { "Content-Type": "application/json; charset=utf-8", "X-Content-Type-Options": "nosniff" };
-  if (!["season", "weekend", "results", "live", "laps", "drivers", "news"].includes(action) || !/^\d{4}$/.test(rawYear) || year < 1950 || year > maxYear || !/^(last|[1-9]\d?)$/.test(round) || !["results", "qualifying", "sprint"].includes(kind) || !/^(latest|[1-9]\d{0,7})$/.test(session) || !/^$|^\d{1,3}(,\d{1,3})?$/.test(drivers) || (action === "laps" && (session === "latest" || !drivers))) return new Response(JSON.stringify({ error: "查询参数无效" }), { status: 400, headers });
-  if (["weekend", "laps", "drivers"].includes(action) && year < 2023) return new Response(JSON.stringify({ error: "OpenF1 详细数据从 2023 赛季开始提供" }), { status: 400, headers });
+  if (!["season", "weekend", "results", "live", "dashboard", "laps", "drivers", "news"].includes(action) || !/^\d{4}$/.test(rawYear) || year < 1950 || year > maxYear || !/^(last|[1-9]\d?)$/.test(round) || !["results", "qualifying", "sprint"].includes(kind) || !/^(latest|[1-9]\d{0,7})$/.test(session) || !/^$|^\d{1,3}(,\d{1,3})?$/.test(drivers) || (action === "laps" && (session === "latest" || !drivers)) || (action === "dashboard" && session === "latest")) return new Response(JSON.stringify({ error: "查询参数无效" }), { status: 400, headers });
+  if (["weekend", "dashboard", "laps", "drivers"].includes(action) && year < 2023) return new Response(JSON.stringify({ error: "OpenF1 详细数据从 2023 赛季开始提供" }), { status: 400, headers });
   const token = context.env?.OPENF1_TOKEN;
   const cache = typeof caches !== "undefined" ? (caches as CacheStorage & { default?: Cache }).default : undefined;
-  const cacheUrl = new URL(`${url.origin}${url.pathname}`); cacheUrl.search = new URLSearchParams({ v: "1", action, year: String(year), round, kind, session, drivers, access: token ? "configured" : "public" }).toString();
+  const cacheUrl = new URL(`${url.origin}${url.pathname}`); cacheUrl.search = new URLSearchParams({ v: "2", action, year: String(year), round, kind, session, drivers, access: token ? "configured" : "public" }).toString();
   const cacheKey = new Request(cacheUrl.href);
   try { const cached = await cache?.match(cacheKey); if (cached) return cached; } catch { /* Edge caching is optional. */ }
   try {
-    const value = action === "season" ? await loadSeason(year) : action === "weekend" ? await loadWeekend(year, token) : action === "results" ? await loadResults(year, round, kind) : action === "live" ? await loadLive(session, token, year) : action === "laps" ? await loadLaps(session, drivers, token) : action === "drivers" ? { drivers: await openf1("drivers", { session_key: session }, token, 3600000), errors: [], source: "OpenF1" } : await loadNews();
+    const value = action === "season" ? await loadSeason(year) : action === "weekend" ? await loadWeekend(year, token) : action === "results" ? await loadResults(year, round, kind) : action === "live" ? await loadLive(session, token, year) : action === "dashboard" ? await loadDashboard(session, token) : action === "laps" ? await loadLaps(session, drivers, token) : action === "drivers" ? { drivers: await openf1("drivers", { session_key: session }, token, 3600000), errors: [], source: "OpenF1" } : await loadNews();
     const errors = [...new Set(value.errors)];
     const payload = { ...value, errors, fetchedAt: new Date().toISOString() };
     const status = "unavailable" in value && value.unavailable ? 503 : 200;
-    const seconds = errors.length || action === "live" ? 30 : action === "news" ? 300 : action === "weekend" || action === "laps" ? 3600 : 300;
+    const seconds = errors.length || action === "live" || action === "dashboard" ? 30 : action === "news" ? 300 : action === "weekend" || action === "laps" ? 3600 : 300;
     const response = new Response(JSON.stringify(payload), { status, headers: { ...headers, "Cache-Control": status === 200 ? `public, max-age=${seconds}` : "no-store" } });
     if (cache && status === 200) { const save = cache.put(cacheKey, response.clone()).catch(() => {}); if (context.waitUntil) context.waitUntil(save); else await save; }
     return response;
