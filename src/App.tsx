@@ -26,6 +26,7 @@ const Uses = lazy(() => import("@/pages/Uses"));
 const Focus = lazy(() => import("@/pages/Focus"));
 const F1 = lazy(() => import("@/pages/F1"));
 import { isElectronApp } from "@/lib/runtime";
+import { isRailHost, RAIL_FEATURE_PATHS } from "@/lib/rail-navigation";
 
 const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
   dev: "/dev",
@@ -42,7 +43,6 @@ const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
   games: "/games",
   focus: "/focus",
   news: "/news",
-  cr: "/cr",
   f1: "/f1",
   www: "/",
 };
@@ -74,7 +74,8 @@ export default function App() {
       <SubdomainRouter />
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={isRailHost() ? <Rail /> : <Home />} />
+          {isRailHost() && Object.values(RAIL_FEATURE_PATHS).map(path => <Route key={path} path={path} element={<Rail />} />)}
           <Route path="/notes" element={<Notes />} />
           <Route path="/about-me" element={<AboutMe />} />
           <Route path="/blog" element={<Blog />} />

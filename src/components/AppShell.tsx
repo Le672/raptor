@@ -4,10 +4,11 @@ import { Footer } from "@/components/Footer";
 import { TopNav } from "@/components/TopNav";
 import { PageUtilities } from "@/components/PageUtilities";
 import { useSiteStore } from "@/hooks/useSiteStore";
+import { isRailPath } from "@/lib/rail-navigation";
 
 export function AppShell() {
   const location = useLocation();
-  const isRailPage = location.pathname.replace(/\/+$/, "").toLowerCase() === "/cr";
+  const isRailPage = isRailPath(location.pathname);
   const isF1Page = location.pathname.replace(/\/+$/, "").toLowerCase() === "/f1";
   const closeMobileMenu = useSiteStore((state) => state.closeMobileMenu);
 
@@ -24,7 +25,7 @@ export function AppShell() {
       <TopNav />
       <main
         id="main-content"
-        key={location.pathname}
+        key={isRailPage ? "rail" : location.pathname}
         className="relative"
         tabIndex={-1}
       >

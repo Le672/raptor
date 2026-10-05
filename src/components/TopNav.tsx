@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Search } from "lucide-react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { HomeLink } from "@/components/HomeLink";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { api } from "@/lib/api";
 import { QuickSearch } from "@/components/QuickSearch";
 import { siteNavigation } from "@/data/navigation";
+import { isRailHost, isRailPath } from "@/lib/rail-navigation";
 
 export function TopNav() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -47,6 +49,8 @@ export function TopNav() {
         </div>
         <nav className="site-navigation" aria-label="主导航">
           {siteNavigation.map((item) => (
+            isRailHost() && item.to === "/" ? <a key={item.to} href="https://www.yukino.bond/" title={item.description}>{item.label}</a> :
+            isRailHost() && item.to === "/cr" ? <Link key={item.to} to="/ticket" title={item.description} className={isRailPath(location.pathname) ? "active" : undefined} aria-current={isRailPath(location.pathname) ? "page" : undefined}>{item.label}</Link> :
             <NavLink key={item.to} end={item.to === "/"} to={item.to} title={item.description}>{item.label}</NavLink>
           ))}
           <a href="https://mail.yukino.bond/" target="_blank" rel="noreferrer" title="Yukino Mail，打开新标签页">邮箱 <ArrowUpRight size={11} /></a>
