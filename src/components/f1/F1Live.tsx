@@ -29,8 +29,23 @@ export function StreamPlayer() {
     const video = media.current; if (!active || !video) return;
     let stopped = false, instance: HlsInstance | undefined;
     setError("");
-    if (active.mode === "mp4" || video.canPlayType("application/vnd.apple.mpegurl")) video.src = active.url;
-    else void loadHls().then((Hls) => { if (stopped) return; if (!Hls.isSupported()) { setError("当前浏览器不支持该直播格式，请打开来源平台观看"); return; } instance = new Hls({ enableWorker: true, lowLatencyMode: true, maxBufferLength: 30 }); instance.on(Hls.Events.ERROR, (_event, detail) => { if (detail?.fatal && !stopped) setError("直播源无法播放或需要来源方允许跨域访问。可直接在来源平台观看。"); }); instance.loadSource(active.url); instance.attachMedia(video); }).catch((e) => { if (!stopped) setError(e.message); });
+    if (active.mode === "mp4") video.src = active.url;
+    else void loadHls().then((Hls) => {
+      if (stopped) return;
+      // Chromium can report native HLS support while failing on some streams.
+      if (!Hls.isSupported()) {
+        if (video.canPlayType("application/vnd.apple.mpegurl")) video.src = active.url;
+        else setError("当前浏览器不支持该直播格式，请打开来源平台观看");
+        return;
+      }
+      instance = new Hls({ enableWorker: true, lowLatencyMode: true, maxBufferLength: 30 });
+      instance.on(Hls.Events.ERROR, (_event, detail) => { if (detail?.fatal && !stopped) setError("直播源无法播放或需要来源方允许跨域访问。可直接在来源平台观看。"); });
+      instance.loadSource(active.url); instance.attachMedia(video);
+    }).catch((e) => {
+      if (stopped) return;
+      if (video.canPlayType("application/vnd.apple.mpegurl")) video.src = active.url;
+      else setError(e.message);
+    });
     return () => { stopped = true; instance?.destroy(); video.pause(); video.removeAttribute("src"); video.load(); };
   }, [active]);
   function open() {

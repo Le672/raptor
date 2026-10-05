@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import F1 from "../pages/F1";
+import { StreamPlayer } from "../components/f1/F1Live";
 
 const driver = { driverId: "antonelli", givenName: "Andrea Kimi", familyName: "Antonelli", code: "ANT", permanentNumber: "12", nationality: "Italian", dateOfBirth: "2006-08-25" };
 const team = { constructorId: "mercedes", name: "Mercedes", nationality: "German" };
@@ -59,5 +60,21 @@ describe("Yukino F1 interactions", () => {
     }));
     open("&tab=live"); expect(await screen.findByText("计时暂不可用")).toBeInTheDocument();
     expect(screen.queryByText("计时更新中")).not.toBeInTheDocument(); expect(document.querySelector(".f1-live-label.is-live")).toBeNull();
+  });
+  it("uses the HLS engine when native capability claims support and releases it on exit", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("maybe");
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
+    const loadSource = vi.fn(), attachMedia = vi.fn(), destroy = vi.fn();
+    const FakeHls = vi.fn(function () { return { loadSource, attachMedia, destroy, on: vi.fn() }; });
+    Object.assign(FakeHls, { isSupported: () => true, Events: { ERROR: "hlsError" } });
+    vi.stubGlobal("Hls", FakeHls);
+    const page = render(<StreamPlayer/>);
+    fireEvent.change(screen.getByRole("textbox", { name: "直播源地址" }), { target: { value: "https://example.com/stream.m3u8" } });
+    fireEvent.submit(screen.getByRole("textbox", { name: "直播源地址" }).closest("form")!);
+    await waitFor(() => expect(loadSource).toHaveBeenCalledWith("https://example.com/stream.m3u8"));
+    expect(attachMedia).toHaveBeenCalledWith(document.querySelector("video"));
+    expect(document.querySelector("video")).not.toHaveAttribute("src");
+    page.unmount(); expect(destroy).toHaveBeenCalledOnce();
   });
 });
