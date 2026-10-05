@@ -1,5 +1,5 @@
 import { latestByDriver, sessionState } from "../../src/lib/f1";
-import type { F1Session, TimingRow, TrackDriver, RaceControl, LiveData, F1Stint, RaceDashboardData } from "../../src/lib/f1";
+import type { F1Session, TimingRow, TrackDriver, RaceControl, LiveData, F1Stint, RaceDashboardData, F1Race, F1Result, LeclercFourth } from "../../src/lib/f1";
 import { parseFeed } from "../_utils/news-feed";
 
 type Context = { request: Request; env?: { OPENF1_TOKEN?: string }; waitUntil?: (promise: Promise<unknown>) => void };
@@ -58,6 +58,39 @@ async function loadResults(year: number, round: string, kind: string) {
   const race = value.MRData?.RaceTable?.Races?.[0];
   const key = kind === "qualifying" ? "QualifyingResults" : kind === "sprint" ? "SprintResults" : "Results";
   return { race, results: array(race?.[key]), kind, errors: [], source: "Jolpica F1" };
+}
+
+async function leclercCareer(kind: "results" | "sprint") {
+  const field = kind === "results" ? "Results" : "SprintResults";
+  const entries: LeclercFourth[] = [];
+  let offset = 0, total = 0;
+  do {
+    const page = await upstream(`https://api.jolpi.ca/ergast/f1/drivers/leclerc/${kind}.json?limit=100&offset=${offset}`, undefined, 300000);
+    total = Number(page.MRData.total);
+    if (!Number.isSafeInteger(total) || total < 0 || total > 1000 || Number(page.MRData.offset) !== offset) throw new Error("勒克莱尔历史记录分页格式异常");
+    const races = array(page.MRData?.RaceTable?.Races);
+    let received = 0;
+    for (const race of races) for (const result of array(race[field])) {
+      received++;
+      if (result.Driver?.driverId === "leclerc") {
+        const { Results: _results, SprintResults: _sprint, ...metadata } = race;
+        entries.push({ race: metadata as F1Race, result: result as F1Result, kind });
+      }
+    }
+    if (received === 0 && offset < total) throw new Error("勒克莱尔历史记录分页不完整，请稍后重试");
+    offset += received;
+  } while (offset < total);
+  return entries;
+}
+
+async function loadLeclerc(year: number) {
+  const errors: string[] = [];
+  const parts = await Promise.allSettled([loadResults(year, "last", "results"), leclercCareer("results"), leclercCareer("sprint")]);
+  const latest = settled(parts[0], errors, undefined), races = settled(parts[1], errors, []), sprints = settled(parts[2], errors, []);
+  const unique = new Map<string, LeclercFourth>();
+  for (const entry of [...races, ...sprints]) if (entry.result.position === "4") unique.set(`${entry.race.season}:${entry.race.round}:${entry.kind}`, entry);
+  const fourths = [...unique.values()].sort((a, b) => Number(b.race.season) - Number(a.race.season) || Number(b.race.round) - Number(a.race.round) || (a.kind === b.kind ? 0 : a.kind === "results" ? -1 : 1));
+  return { year, current: latest?.race ? { race: latest.race as F1Race, result: latest.results.find((result: F1Result) => result.Driver?.driverId === "leclerc") as F1Result | undefined } : undefined, fourths, available: { current: parts[0].status === "fulfilled", results: parts[1].status === "fulfilled", sprint: parts[2].status === "fulfilled" }, starts: { results: races.length, sprint: sprints.length }, errors, source: "Jolpica F1 · 勒克莱尔成绩", unavailable: parts.every(part => part.status === "rejected") };
 }
 async function loadLive(sessionKey: string, token: string | undefined, year: number): Promise<Omit<LiveData, "fetchedAt">> {
   const errors: string[] = [];
@@ -150,7 +183,7 @@ export async function onRequestGet(context: Context) {
   const round = url.searchParams.get("round") || "last", kind = url.searchParams.get("kind") || "results";
   const session = url.searchParams.get("session") || "latest", drivers = url.searchParams.get("drivers") || "";
   const headers = { "Content-Type": "application/json; charset=utf-8", "X-Content-Type-Options": "nosniff" };
-  if (!["season", "weekend", "results", "live", "dashboard", "laps", "drivers", "news"].includes(action) || !/^\d{4}$/.test(rawYear) || year < 1950 || year > maxYear || !/^(last|[1-9]\d?)$/.test(round) || !["results", "qualifying", "sprint"].includes(kind) || !/^(latest|[1-9]\d{0,7})$/.test(session) || !/^$|^\d{1,3}(,\d{1,3})?$/.test(drivers) || (action === "laps" && (session === "latest" || !drivers)) || (action === "dashboard" && session === "latest")) return new Response(JSON.stringify({ error: "查询参数无效" }), { status: 400, headers });
+  if (!["season", "weekend", "results", "leclerc", "live", "dashboard", "laps", "drivers", "news"].includes(action) || !/^\d{4}$/.test(rawYear) || year < 1950 || year > maxYear || !/^(last|[1-9]\d?)$/.test(round) || !["results", "qualifying", "sprint"].includes(kind) || !/^(latest|[1-9]\d{0,7})$/.test(session) || !/^$|^\d{1,3}(,\d{1,3})?$/.test(drivers) || (action === "laps" && (session === "latest" || !drivers)) || (action === "dashboard" && session === "latest")) return new Response(JSON.stringify({ error: "查询参数无效" }), { status: 400, headers });
   if (["weekend", "dashboard", "laps", "drivers"].includes(action) && year < 2023) return new Response(JSON.stringify({ error: "OpenF1 详细数据从 2023 赛季开始提供" }), { status: 400, headers });
   const token = context.env?.OPENF1_TOKEN;
   const cache = typeof caches !== "undefined" ? (caches as CacheStorage & { default?: Cache }).default : undefined;
@@ -158,7 +191,7 @@ export async function onRequestGet(context: Context) {
   const cacheKey = new Request(cacheUrl.href);
   try { const cached = await cache?.match(cacheKey); if (cached) return cached; } catch { /* Edge caching is optional. */ }
   try {
-    const value = action === "season" ? await loadSeason(year) : action === "weekend" ? await loadWeekend(year, token) : action === "results" ? await loadResults(year, round, kind) : action === "live" ? await loadLive(session, token, year) : action === "dashboard" ? await loadDashboard(session, token) : action === "laps" ? await loadLaps(session, drivers, token) : action === "drivers" ? { drivers: await openf1("drivers", { session_key: session }, token, 3600000), errors: [], source: "OpenF1" } : await loadNews();
+    const value = action === "season" ? await loadSeason(year) : action === "weekend" ? await loadWeekend(year, token) : action === "results" ? await loadResults(year, round, kind) : action === "leclerc" ? await loadLeclerc(year) : action === "live" ? await loadLive(session, token, year) : action === "dashboard" ? await loadDashboard(session, token) : action === "laps" ? await loadLaps(session, drivers, token) : action === "drivers" ? { drivers: await openf1("drivers", { session_key: session }, token, 3600000), errors: [], source: "OpenF1" } : await loadNews();
     const errors = [...new Set(value.errors)];
     const payload = { ...value, errors, fetchedAt: new Date().toISOString() };
     const status = "unavailable" in value && value.unavailable ? 503 : 200;

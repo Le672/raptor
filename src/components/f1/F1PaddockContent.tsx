@@ -18,7 +18,7 @@ export function F1PaddockContent({ year, drivers, shownDrivers, teams, teamFilte
           <button aria-label={`${favorites.includes(row.Driver.driverId) ? "取消关注" : "关注"}${driverName(row.Driver)}`} aria-pressed={favorites.includes(row.Driver.driverId)} onClick={() => toggleFavorite(row.Driver.driverId)}><Heart size={18} fill={favorites.includes(row.Driver.driverId) ? "currentColor" : "none"}/></button>
         </div>
         <div className="f1-driver-teams">{row.Constructors.map(team => <F1TeamName key={team.constructorId} year={year} team={team} compact/>)}</div>
-        <h2><F1DriverName driver={row.Driver}/></h2>
+        <h2><F1DriverName year={year} driver={row.Driver}/></h2>
         <div className="f1-driver-nationality"><F1CountryFlag nationality={row.Driver.nationality}/>{row.Driver.dateOfBirth && <span>{row.Driver.dateOfBirth}</span>}</div>
         <div className="f1-driver-stats"><span><strong>P{row.position}</strong>赛季排名</span><span><strong>{row.points}</strong>积分</span><span><strong>{row.wins}</strong>胜场</span></div>
         <External href={row.Driver.url}>车手资料</External>
@@ -36,7 +36,7 @@ export function F1PaddockContent({ year, drivers, shownDrivers, teams, teamFilte
             <strong className="f1-team-card-points">{row.points}<small>PTS</small></strong>
           </div>
           {brand && <img className="f1-team-car" src={`/f1/brands/2026/${brand.slug}-car.webp`} alt={`${year} ${brand.name} 赛车`} loading="lazy" width={700} height={224}/>}
-          <div className="f1-team-roster">{roster.length ? roster.map(driver => <F1DriverName key={driver.Driver.driverId} driver={driver.Driver} compact/>) : <span>车手资料待更新</span>}</div>
+          <div className="f1-team-roster">{roster.length ? roster.map(driver => <F1DriverName key={driver.Driver.driverId} year={year} driver={driver.Driver} compact/>) : <span>车手资料待更新</span>}</div>
           <External href={row.Constructor.url}>车队资料</External>
         </article>;
       })}
