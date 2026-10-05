@@ -124,6 +124,11 @@ const linkGroups = [
     icon: Music,
     links: [
       {
+        label: "f1.yukino.bond",
+        url: "https://f1.yukino.bond",
+        desc: "Formula 1 赛历、成绩、积分、计时与观赛入口",
+      },
+      {
         label: "jm.yukino.bond",
         url: "https://jm.yukino.bond",
         desc: "漫画搜索、阅读、收藏与章节导出",

@@ -1,0 +1,55 @@
+import { useEffect, useRef, useState } from "react";
+import { Radio, Play, Tv, Thermometer, Wind, Droplets, Flag, ExternalLink } from "lucide-react";
+import { useF1Data } from "@/hooks/useF1Data";
+import { BROADCAST_INFO, F1_TIMING, SESSION_NAMES, formatF1Date, gapTime, lapTime, sessionState } from "@/lib/f1";
+import type { F1Session, LiveData } from "@/lib/f1";
+import { DataStatus, Empty, External } from "./F1Common";
+
+const TYRES: Record<string, { label: string; color: string }> = { SOFT: { label: "S", color: "#c8473d" }, MEDIUM: { label: "M", color: "#a18724" }, HARD: { label: "H", color: "#6e7a70" }, INTERMEDIATE: { label: "I", color: "#2e9263" }, WET: { label: "W", color: "#527ec7" } };
+const STATE_NAMES = { live: "计时更新中", finished: "已结束 · 历史记录", upcoming: "尚未开始", unavailable: "计时暂不可用", cancelled: "场次已取消" };
+type HlsInstance = { loadSource: (url: string) => void; attachMedia: (media: HTMLVideoElement) => void; destroy: () => void; on: (event: string, callback: (...args: any[]) => void) => void };
+type HlsClass = { new(options?: object): HlsInstance; isSupported: () => boolean; Events: { ERROR: string } };
+let hlsLoading: Promise<HlsClass> | undefined;
+function loadHls(): Promise<HlsClass> {
+  const get = () => (window as unknown as { Hls?: HlsClass }).Hls;
+  if (get()) return Promise.resolve(get()!);
+  if (!hlsLoading) hlsLoading = new Promise((resolve, reject) => {
+    const script = document.createElement("script"); script.src = "/f1-player/hls-1.6.13.min.js";
+    const timer = setTimeout(() => { script.remove(); hlsLoading = undefined; reject(new Error("播放器加载超时，请检查网络")); }, 12000);
+    script.onload = () => { clearTimeout(timer); const Hls = get(); if (Hls) resolve(Hls); else { hlsLoading = undefined; reject(new Error("播放器暂时无法加载")); } };
+    script.onerror = () => { clearTimeout(timer); script.remove(); hlsLoading = undefined; reject(new Error("播放器组件无法加载，请检查网络")); };
+    document.head.appendChild(script);
+  });
+  return hlsLoading;
+}
+export function StreamPlayer() {
+  const [input, setInput] = useState(""), [mode, setMode] = useState("hls"), [active, setActive] = useState<{ url: string; mode: string } | null>(null), [error, setError] = useState("");
+  const media = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const video = media.current; if (!active || !video) return;
+    let stopped = false, instance: HlsInstance | undefined;
+    setError("");
+    if (active.mode === "mp4" || video.canPlayType("application/vnd.apple.mpegurl")) video.src = active.url;
+    else void loadHls().then((Hls) => { if (stopped) return; if (!Hls.isSupported()) { setError("当前浏览器不支持该直播格式，请打开来源平台观看"); return; } instance = new Hls({ enableWorker: true, lowLatencyMode: true, maxBufferLength: 30 }); instance.on(Hls.Events.ERROR, (_event, detail) => { if (detail?.fatal && !stopped) setError("直播源无法播放或需要来源方允许跨域访问。可直接在来源平台观看。"); }); instance.loadSource(active.url); instance.attachMedia(video); }).catch((e) => { if (!stopped) setError(e.message); });
+    return () => { stopped = true; instance?.destroy(); video.pause(); video.removeAttribute("src"); video.load(); };
+  }, [active]);
+  function open() {
+    try { const url = new URL(input.trim()); if (url.protocol !== "https:" || url.username || url.password) throw new Error(); setError(""); setActive({ url: url.href, mode }); }
+    catch { setError("请输入有效的 HTTPS 播放地址"); }
+  }
+  return <div className="f1-stream"><div className="f1-stream-head"><Tv size={19}/><div><h3>站内直播播放器</h3><p>播放你拥有观看权限的 HLS / MP4 地址</p></div></div>{active ? <video ref={media} controls playsInline aria-label="直播视频播放器" onError={() => setError("播放地址无法读取，请检查来源、格式和观看权限")}/> : <div className="f1-video-empty"><Play size={32}/><span>选择下方官方平台观看，或接入自己的播放源</span></div>}<form onSubmit={(event) => { event.preventDefault(); open(); }} className="f1-stream-form"><input aria-label="直播源地址" type="url" placeholder="https://…/stream.m3u8" value={input} onChange={(event) => setInput(event.target.value)} required/><select aria-label="直播源格式" value={mode} onChange={(event) => setMode(event.target.value)}><option value="hls">HLS</option><option value="mp4">MP4</option></select><button type="submit" className="f1-button f1-button-dark"><Play size={14}/>加载</button></form>{error && <p className="f1-warning" role="alert">{error}</p>}<p className="f1-footnote">播放地址仅在当前页面使用。F1 官方转播请在授权平台登录；本站未提供赛事视频信号。</p></div>;
+}
+export function WatchLinks() {
+  return <div className="f1-watch-links"><External href="https://f1tv.formula1.com/"><Tv size={18}/><span><strong>F1 TV</strong><small>官方直播、车载视角与回放 · 地区及订阅限制</small></span></External><External href="https://sports.qq.com/"><Play size={18}/><span><strong>腾讯体育</strong><small>中国大陆 · F1 转播与节目安排</small></span></External><External href="https://connect-sg.beinsports.com/"><Play size={18}/><span><strong>beIN SPORTS</strong><small>新加坡 · 赛事直播与回放</small></span></External><External href={BROADCAST_INFO}><ExternalLink size={18}/><span><strong>全球转播查询</strong><small>按所在地查找官方授权平台</small></span></External></div>;
+}
+export function F1Live({ year, sessions, sessionKey, timezone, onSelect }: { year: number; sessions: F1Session[]; sessionKey: string; timezone: string; onSelect: (key: string) => void }) {
+  const selected = sessions.find((session) => String(session.session_key) === sessionKey);
+  const poll = sessionKey === "latest" || selected && ["live", "upcoming"].includes(sessionState(selected)) ? 30 : 0;
+  const result = useF1Data<LiveData>(`action=live&year=${year}&session=${sessionKey}`, poll);
+  const [filter, setFilter] = useState(""), [hideFinished, setHideFinished] = useState(false), [highlight, setHighlight] = useState(false);
+  const live = result.data;
+  const recent = sessions.filter((s) => !s.is_cancelled).sort((a, b) => b.date_start.localeCompare(a.date_start));
+  const rows = (live?.rows || []).filter((row) => `${row.full_name} ${row.team_name} ${row.driver_number}`.toLowerCase().includes(filter.toLowerCase()));
+  const messages = [...(live?.control || [])].reverse().filter((row) => !hideFinished || !/CHEQUERED|SESSION FINISHED/.test(row.message));
+  return <section className="f1-section"><div className="f1-section-heading"><div><p className="f1-eyebrow">THE RACE, AS IT HAPPENS</p><h2>比赛中心</h2></div><label className="f1-session-select">场次<select value={sessionKey} onChange={(event) => onSelect(event.target.value)}><option value="latest">最新 / 当前场次</option>{recent.map((session) => <option key={session.session_key} value={session.session_key}>{session.location} · {SESSION_NAMES[session.session_name] || session.session_name} · {formatF1Date(session.date_start, timezone)}</option>)}</select></label></div><div className="f1-live-banner"><div><span className={`f1-live-label ${live?.state === "live" && !result.error ? "is-live" : ""}`}><Radio size={14}/>{live ? result.error ? "更新中断 · 上次记录" : STATE_NAMES[live.state] : "连接计时源"}</span>{live?.session && <h3>{live.session.location} · {SESSION_NAMES[live.session.session_name] || live.session.session_name}</h3>}<p>{live?.session ? `${formatF1Date(live.session.date_start, timezone)} · ${live.session.circuit_short_name}` : "选择比赛周末场次，查看计时、旗帜与天气"}</p></div><External href={F1_TIMING} className="f1-button">官方实时计时</External></div><DataStatus {...result} timezone={timezone}/>{live?.asOf && <p className="f1-footnote">赛道数据时间：{formatF1Date(live.asOf, timezone, { second: "2-digit" })}。页面检查时间与赛道数据时间分别显示。</p>}{live?.restricted && <div className="f1-warning">实时数据通道尚未取得有效订阅授权。官方计时和视频入口可继续使用；本站计时面板将在接入服务端凭据后更新。</div>}<div className="f1-timing-layout"><div><div className="f1-timing-toolbar"><h3>计时与轮胎</h3><input aria-label="筛选计时车手" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="车手 / 车队 / 号码"/></div>{rows.length ? <div className="f1-table-wrap"><table className="f1-table f1-timing-table"><caption className="sr-only">场次计时与最终排名</caption><thead><tr><th>P</th><th>车手 / 车队</th><th>距领跑</th><th>{live?.state === "finished" ? "时间" : "前车间隔"}</th><th>轮胎</th><th>圈数</th></tr></thead><tbody>{rows.map((row) => <tr key={row.driver_number}><td>{row.position ?? "—"}</td><td><span className="f1-driver-name"><i style={{ background: row.team_colour && /^[a-f0-9]{6}$/i.test(row.team_colour) ? `#${row.team_colour}` : "#748a6b" }}/><strong>{row.name_acronym || row.full_name}</strong><small>#{row.driver_number}</small></span><small>{row.team_name}</small>{(row.dnf || row.dns || row.dsq) && <span className="f1-dnf">{row.dsq ? "DSQ" : row.dns ? "DNS" : "DNF"}</span>}</td><td className="f1-mono">{gapTime(row.gap)}</td><td className="f1-mono">{live?.state === "finished" ? lapTime(row.duration) : gapTime(row.interval)}</td><td><span className="f1-tyre" style={{ color: TYRES[row.compound || ""]?.color }} title={row.compound || "轮胎未知"}>{TYRES[row.compound || ""]?.label || "?"}</span></td><td>{row.laps ?? "—"}</td></tr>)}</tbody></table></div> : !result.loading && <Empty>{filter ? "没有符合筛选的车手。" : live?.state === "upcoming" ? "这场比赛尚未开始。" : live?.state === "cancelled" ? "这一场次已取消。" : "暂未收到此场次计时，请使用官方实时计时入口。"}</Empty>}<p className="f1-footnote">S 软胎 · M 中性胎 · H 硬胎 · I 半雨胎 · W 全雨胎。未收到的间隔、圈数及轮胎显示“—”或“?”。最新场次每 30 秒检查一次，后台标签页暂停请求。</p></div><aside className="f1-race-control"><div className="f1-weather"><h3>赛道天气</h3>{live?.weather ? <><span><Thermometer size={16}/>气温 {live.weather.air_temperature}°C · 赛道 {live.weather.track_temperature}°C</span><span><Wind size={16}/>风速 {live.weather.wind_speed} m/s</span><span><Droplets size={16}/>湿度 {live.weather.humidity}% · {live.weather.rainfall ? "检测到降雨" : "未检测到降雨"}</span></> : <p>等待天气记录</p>}</div><div className="f1-control-heading"><h3><Flag size={16}/>赛事控制</h3><label><input type="checkbox" checked={hideFinished} onChange={(event) => setHideFinished(event.target.checked)}/>只看事件</label></div><div className="f1-control-messages">{messages.length ? messages.map((message, index) => <article key={`${message.date}-${index}`}><small>{formatF1Date(message.date, timezone, { month: undefined, day: undefined, second: "2-digit" })}{message.lap_number ? ` · L${message.lap_number}` : ""}</small>{message.flag && <span className={`f1-flag flag-${message.flag.toLowerCase()}`}>{message.flag}</span>}<p>{message.message}</p></article>) : <p className="f1-footnote">暂无赛事控制消息。</p>}</div></aside></div><div className="f1-section-heading"><div><p className="f1-eyebrow">WATCH YOUR WAY</p><h2>找到你的观赛席</h2></div><External href={BROADCAST_INFO}>转播信息来源</External></div><WatchLinks/><div className="f1-video-layout"><StreamPlayer/><div className="f1-highlight"><h3>经典回看 · 新加坡 2025</h3><p>FORMULA 1 官方正赛集锦</p>{highlight ? <iframe title="2025 新加坡大奖赛官方集锦" src="https://www.youtube-nocookie.com/embed/XZhXFbFCOu4" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen/> : <button className="f1-highlight-play" onClick={() => setHighlight(true)}><Play size={30}/><span>加载官方视频</span></button>}<External href="https://www.youtube.com/watch?v=XZhXFbFCOu4">在 YouTube 上观看</External><External href="https://www.formula1.com/en/video">更多官方视频与集锦</External><p className="f1-footnote">这是历史集锦。视频嵌入与播放受来源平台和地区网络影响。</p></div></div></section>;
+}

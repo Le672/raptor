@@ -16,6 +16,7 @@ dist-ssr
 .wrangler
 .rail-art-work
 .rail-position-work
+.f1-work
 
 # Electron / Capacitor 构建产物
 release

@@ -8,6 +8,7 @@ import { useSiteStore } from "@/hooks/useSiteStore";
 export function AppShell() {
   const location = useLocation();
   const isRailPage = location.pathname.replace(/\/+$/, "").toLowerCase() === "/cr";
+  const isF1Page = location.pathname.replace(/\/+$/, "").toLowerCase() === "/f1";
   const closeMobileMenu = useSiteStore((state) => state.closeMobileMenu);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function AppShell() {
       >
         <Suspense fallback={<p className="game-notice mx-auto my-10 max-w-md" role="status">正在打开页面…</p>}><Outlet /></Suspense>
       </main>
-      {!isRailPage && <Footer />}
+      {!isRailPage && !isF1Page && <Footer />}
       <PageUtilities />
     </div>
   );

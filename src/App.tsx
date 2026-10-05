@@ -24,6 +24,7 @@ const Rail = lazy(() => import("@/pages/Rail"));
 const Status = lazy(() => import("@/pages/Status"));
 const Uses = lazy(() => import("@/pages/Uses"));
 const Focus = lazy(() => import("@/pages/Focus"));
+const F1 = lazy(() => import("@/pages/F1"));
 import { isElectronApp } from "@/lib/runtime";
 
 const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
@@ -42,6 +43,7 @@ const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
   focus: "/focus",
   news: "/news",
   cr: "/cr",
+  f1: "/f1",
   www: "/",
 };
 
@@ -55,7 +57,7 @@ function SubdomainRouter() {
       const subdomain = parts[0];
       const targetPath = SUBDOMAIN_ROUTE_MAP[subdomain];
       if (targetPath && window.location.pathname === "/") {
-        navigate(targetPath, { replace: true });
+        navigate({ pathname: targetPath, search: window.location.search, hash: window.location.hash }, { replace: true });
       }
     }
   }, [navigate]);
@@ -88,6 +90,7 @@ export default function App() {
           <Route path="/focus" element={<Focus />} />
           <Route path="/news" element={<News />} />
           <Route path="/cr" element={<Rail />} />
+          <Route path="/f1" element={<F1 />} />
           <Route path="/uses" element={<Uses />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
