@@ -51,4 +51,13 @@ describe("Yukino F1 interactions", () => {
     expect(screen.getByRole("heading", { name: "最快圈不再加分" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "排位赛" })).not.toBeInTheDocument();
   });
+  it("does not show a connected live indicator when the timing subscription is missing", async () => {
+    const otherRequests = fetch;
+    vi.stubGlobal("fetch", vi.fn(async (address: string, options?: RequestInit) => {
+      if (new URL(address, "https://f1.yukino.bond").searchParams.get("action") === "live") return Response.json({ ...meta, state: "live", restricted: true, liveAccess: false, rows: [], control: [], errors: ["需要订阅凭据"] });
+      return otherRequests(address, options);
+    }));
+    open("&tab=live"); expect(await screen.findByText("计时暂不可用")).toBeInTheDocument();
+    expect(screen.queryByText("计时更新中")).not.toBeInTheDocument(); expect(document.querySelector(".f1-live-label.is-live")).toBeNull();
+  });
 });

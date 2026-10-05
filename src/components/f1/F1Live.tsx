@@ -47,7 +47,7 @@ export function F1Live({ year, sessions, sessionKey, timezone, onSelect }: { yea
   const poll = sessionKey === "latest" || selected && ["live", "upcoming"].includes(sessionState(selected)) ? 30 : 0;
   const result = useF1Data<LiveData>(`action=live&year=${year}&session=${sessionKey}`, poll);
   const [filter, setFilter] = useState(""), [hideFinished, setHideFinished] = useState(false), [highlight, setHighlight] = useState(false);
-  const live = result.data;
+  const live = result.data?.restricted && result.data.state === "live" ? { ...result.data, state: "unavailable" as const } : result.data;
   const recent = sessions.filter((s) => !s.is_cancelled).sort((a, b) => b.date_start.localeCompare(a.date_start));
   const rows = (live?.rows || []).filter((row) => `${row.full_name} ${row.team_name} ${row.driver_number}`.toLowerCase().includes(filter.toLowerCase()));
   const messages = [...(live?.control || [])].reverse().filter((row) => !hideFinished || !/CHEQUERED|SESSION FINISHED/.test(row.message));
