@@ -23,7 +23,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 function open(query = "") { return render(<MemoryRouter initialEntries={[`/f1?year=2026${query}`]}><F1/></MemoryRouter>); }
 describe("Yukino F1 interactions", () => {
   it("opens the real season data and shares navigable calendar/results state", async () => {
-    open(); await screen.findByText("Andrea Kimi Antonelli");
+    open(); await screen.findByLabelText("Andrea Kimi Antonelli");
     fireEvent.click(screen.getByRole("button", { name: "赛历与赛道" }));
     expect(await screen.findByRole("heading", { name: "新加坡大奖赛" })).toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox", { name: "搜索赛历" }), { target: { value: "Monza" } }); expect(screen.getByText("没有符合筛选的赛事。")).toBeInTheDocument();

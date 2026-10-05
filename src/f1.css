@@ -1,3 +1,6 @@
+@font-face { font-family: "Yukino F1 Handwriting"; src: url("/f1/fonts/northwell-clean-alt.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Yukino F1"; src: url("/f1/fonts/formula1-black.woff2") format("woff2"); font-weight: 900; font-display: swap; }
+@font-face { font-family: "Yukino F1"; src: url("/f1/fonts/formula1-bold.woff2") format("woff2"); font-weight: 500; font-display: swap; }
 .f1-page { --f1-red: #b54438; --f1-ink: #293e32; --f1-muted: #73806c; --f1-line: #dfe5d7; max-width: 1184px; padding: 30px 32px 0; margin: auto; color: var(--f1-ink); }
 .f1-page button, .f1-page select, .f1-page input, .f1-page summary { font-family: inherit; }
 .f1-masthead { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0 26px; }
@@ -69,6 +72,7 @@
 .f1-mini-standings > div > div { position: relative; flex: 1; padding-bottom: 8px; }
 .f1-mini-standings strong { display: inline-block; font-size: 12px; font-weight: 500; }
 .f1-mini-standings small { color: #8a967f; font-size: 10px; display: block; }
+.f1-mini-teams { display: flex; gap: 8px; margin-top: 6px; }
 .f1-mini-standings i { position: absolute; left: 0; bottom: 1px; height: 2px; opacity: .6; }
 .f1-mini-standings b { font: 20px Georgia, serif; text-align: right; min-width: 42px; }
 .f1-mini-standings b small { font: 8px "Segoe UI", sans-serif; letter-spacing: 1px; }
@@ -112,6 +116,7 @@
 .f1-driver-name i { display: block; width: 3px; height: 17px; border-radius: 2px; flex: none; }
 .f1-table td small { display: block; color: #909d82; font-size: 10px; margin-top: 4px; }
 .f1-table .f1-driver-name small { display: inline; margin: 0; }
+.f1-table-teams { display: flex; gap: 12px; align-items: center; }
 .f1-table td .f1-fastest { color: #9663a2; }
 .f1-mono { font: 11px ui-monospace, "Cascadia Code", Consolas, monospace; font-variant-numeric: tabular-nums; }
 .f1-points { font: 21px Georgia, serif; color: #466039; }
@@ -128,24 +133,39 @@
 @supports not ((mask-image: url("")) or (-webkit-mask-image: url(""))) { .f1-driver-number-art { display: none; }.f1-driver-number-fallback { display: inline; } }
 .f1-driver-card-top button { border: 0; background: none; color: #9ba78c; padding: 3px; }
 .f1-driver-card-top button[aria-pressed=true] { color: var(--f1-red); }
-.f1-driver-grid article > small { font-size: 10px; color: #879678; }
-.f1-driver-grid article h2 { font: 22px/1.5 Georgia, serif; margin: 6px 0; }
-.f1-driver-grid article p { font-size: 11px; color: #89967a; }
+.f1-driver-grid article h2 { margin: 13px 0 18px; }
+.f1-name-lockup { display: inline-flex; flex-direction: column; align-items: flex-start; max-width: 100%; vertical-align: middle; }
+.f1-name-given { display: block; font: 400 52px/.9 "Yukino F1 Handwriting", "Segoe Print", cursive; color: #617953; padding: 1px 6px 3px 0; }
+.f1-name-family { display: block; font: 900 clamp(17px, 1.8vw, 23px)/1.35 "Yukino F1", "Arial Black", sans-serif; text-transform: uppercase; letter-spacing: -.5px; color: var(--f1-ink); overflow-wrap: anywhere; }
+.f1-name-lockup-compact .f1-name-given { font-size: 27px; line-height: .95; padding-bottom: 0; }
+.f1-name-lockup-compact .f1-name-family { font-size: 11px; line-height: 1.4; letter-spacing: 0; }
+.f1-driver-teams { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.f1-driver-nationality, .f1-team-nationality { display: flex; align-items: center; gap: 10px; color: #839077; font-size: 10px; }
+.f1-country-flag { display: inline-block; flex: none; width: 24px; height: 24px; object-fit: cover; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 1px #dce2d5; vertical-align: middle; }
+.f1-country-unknown { color: #89967a; font-size: 11px; }
+.f1-team-identity { display: inline-flex; align-items: center; gap: 13px; min-width: 0; max-width: 100%; font: 500 16px/1.4 "Yukino F1", "Segoe UI", sans-serif; }
+.f1-team-identity > span:last-child { min-width: 0; }
+.f1-team-logo { display: inline-block; flex: none; width: 45px; height: 45px; object-fit: contain; padding: 7px; border-radius: 7px; box-sizing: border-box; }
+.f1-team-identity-compact { gap: 7px; font-size: 10px; color: #728267; }
+.f1-team-identity-compact .f1-team-logo { width: 23px; height: 23px; padding: 3px; border-radius: 4px; }
+.f1-timing-team { margin-top: 6px; }
 .f1-driver-stats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #e6ecdc; border-bottom: 1px solid #e6ecdc; gap: 10px; padding: 14px 0; margin: 19px 0 15px; }
 .f1-driver-stats span { font-size: 9px; color: #919c83; }
 .f1-driver-stats strong { display: block; font: 20px Georgia, serif; color: #58704b; margin-bottom: 3px; }
 .f1-driver-grid article > a { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #5d7a4c; }
 .f1-subheading { margin: 36px 0 19px !important; }
 .f1-team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.f1-team-grid article { display: flex; align-items: start; gap: 15px; padding: 20px; border: 1px solid var(--f1-line); border-radius: 8px; background: #fffefa; }
-.f1-team-grid article > i { height: 58px; width: 4px; border-radius: 2px; flex: none; }
-.f1-team-grid article > div { flex: 1; min-width: 0; }
-.f1-team-grid small { font-size: 10px; color: #89957b; }
-.f1-team-grid h3 { font: 21px Georgia, serif; margin: 5px 0; }
-.f1-team-grid p { font-size: 11px; line-height: 1.7; color: #7e8f6e; }
+.f1-team-grid article { padding: 22px; border: 1px solid var(--f1-line); border-top: 3px solid; border-radius: 8px; background: #fffefa; min-width: 0; }
+.f1-team-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.f1-team-card-heading > div { min-width: 0; }
+.f1-team-nationality { gap: 8px; margin-bottom: 14px; }
+.f1-team-nationality .f1-country-flag { width: 20px; height: 20px; }
+.f1-team-grid h3 { margin: 0; }
+.f1-team-card-points { font: 30px/1 Georgia, serif; color: #678158; text-align: right; flex: none; }
+.f1-team-card-points small { display: block; font: 8px/1.8 "Segoe UI", sans-serif; letter-spacing: 1px; margin-top: 6px; }
+.f1-team-car { display: block; width: 100%; height: 155px; object-fit: contain; margin: 15px 0 4px; }
+.f1-team-roster { display: flex; flex-wrap: wrap; gap: 12px 24px; border-top: 1px solid #e6ecdc; padding: 15px 0; margin-top: 15px; }
 .f1-team-grid a { display: inline-flex; gap: 4px; font-size: 10px; color: #5d7c48; }
-.f1-team-grid article > strong { font: 23px Georgia, serif; color: #678158; text-align: right; }
-.f1-team-grid article > strong > small { display: block; font: 8px "Segoe UI", sans-serif; letter-spacing: 1px; }
 .f1-live-banner { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 23px 25px; background: #edf3e3; border: 1px solid #d5dfc6; border-radius: 10px; }
 .f1-live-label { display: inline-flex; gap: 6px; align-items: center; font-size: 11px; color: #7b8c6b; }
 .f1-live-label.is-live { color: var(--f1-red); }
