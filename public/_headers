@@ -1,0 +1,9 @@
+/rail-network/*
+  Access-Control-Allow-Origin: *
+  X-Content-Type-Options: nosniff
+
+/rail-network/20*
+  Cache-Control: public, max-age=31536000, immutable
+
+/rail-network/manifest.json
+  Cache-Control: public, max-age=300, must-revalidate

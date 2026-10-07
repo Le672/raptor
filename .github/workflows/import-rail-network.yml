@@ -1,0 +1,49 @@
+name: Import nationwide railway cache
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/railway-cache-import]
+    paths:
+      - '.github/workflows/import-rail-network.yml'
+      - 'scripts/build-rail-network.py'
+      - 'scripts/requirements-rail-network.txt'
+      - 'src/data/rail-network-stations.json'
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r scripts/requirements-rail-network.txt
+      - name: Download and verify the pinned OSM snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .rail-network-import
+          cd .rail-network-import
+          for file in china-261004.osm.pbf laos-261003.osm.pbf; do
+            curl --fail --location --retry 5 --retry-all-errors --connect-timeout 30 --max-time 1500 --output "$file" "https://download.geofabrik.de/asia/$file"
+            curl --fail --location --retry 5 --output "$file.md5" "https://download.geofabrik.de/asia/$file.md5"
+            md5sum --check "$file.md5"
+          done
+      - name: Build the complete railway network and station coverage audit
+        run: >-
+          python scripts/build-rail-network.py
+          --pbf .rail-network-import/china-261004.osm.pbf .rail-network-import/laos-261003.osm.pbf
+          --stations src/data/rail-network-stations.json
+          --version 20261004-v1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: railway-network-20261004-v1
+          path: public/rail-network/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6

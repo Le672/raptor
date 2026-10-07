@@ -4,7 +4,7 @@
   "productName": "Yukino Rail Watch",
   "extraMetadata": {
     "main": "electron/rail-main.cjs",
-    "version": "1.10.3"
+    "version": "1.10.4"
   },
   "artifactName": "Yukino-Rail-Watch-${version}-portable.${ext}",
   "directories": {
@@ -12,6 +12,7 @@
   },
   "files": [
     "dist/**/*",
+    "!dist/rail-network/**/*",
     "electron/rail-main.cjs",
     "electron/rail-preload.cjs",
     "electron/rail-location.cjs",

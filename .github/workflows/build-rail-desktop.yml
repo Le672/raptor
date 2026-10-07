@@ -23,6 +23,8 @@ on:
       - 'src/lib/train-art.ts'
       - 'src/lib/train-position.ts'
       - 'src/lib/rail-position-data.ts'
+      - 'src/lib/rail-network.ts'
+      - 'public/rail-network/**'
       - 'src/lib/rail-gps.ts'
       - 'src/lib/rail-speed.ts'
       - 'src/lib/rail-motion.ts'
