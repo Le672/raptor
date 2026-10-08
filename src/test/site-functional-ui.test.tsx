@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { webcrypto } from "node:crypto";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -26,6 +26,7 @@ import { useAuthStore } from "../hooks/useAuthStore";
 import { api } from "../lib/api";
 import { gameCatalog } from "../data/games";
 import { seededRandom } from "../lib/game-engines";
+import { useRailMonitor } from "../hooks/useRailMonitor";
 
 const article = { id: 91, title: "云端新增笔记", slug: "cloud-note", summary: "更新内容立即公开", content: "## 第一部分\n\n你好，读者。\n\n## 第二部分\n\n```js\nconst n = 1;\n```", tag: "新分类", published: 1, created_at: "2026-10-08 01:00:00", updated_at: "2026-10-08 02:00:00", author_name: "Yukino" };
 beforeEach(() => {
@@ -80,6 +81,22 @@ describe("cloud content on public and admin pages", () => {
   });
 });
 describe("tools and small experiments", () => {
+  it("keeps rail queries usable when storage is blocked or stored settings are damaged", async () => {
+    const request = vi.fn().mockImplementation(async (url: string) => new Response(JSON.stringify(String(url).includes("mode=stations") ? { stations: [] } : { checkedAt: "2026-10-08T01:00:00Z", date: "2026-10-08", from: "北京南", to: "上海虹桥", trains: [] }), { headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", request);
+    localStorage.setItem("yukino-rail-monitor-v1", JSON.stringify({ queryMode: "train", train: 42, intervalMinutes: "oops", date: {}, seat: null, enabled: true }));
+    const damaged = renderHook(() => useRailMonitor());
+    expect(damaged.result.current.settings).toMatchObject({ train: "", intervalMinutes: 5, seat: "任意席别" }); damaged.unmount();
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("storage blocked"); });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("storage blocked"); });
+    const view = renderHook(() => useRailMonitor());
+    expect(view.result.current.storageError).toBe(true);
+    act(() => view.result.current.update({ train: "G101" }));
+    await act(async () => { await view.result.current.runCheck(false); });
+    expect(view.result.current.result?.from).toBe("北京南");
+    expect(view.result.current.error).toBeNull();
+    expect(request.mock.calls.some(call => String(call[0]).includes("train=G101"))).toBe(true);
+  });
   it("keeps inputs across tool switches and reports extreme timestamps without crashing", async () => {
     mount(<Dev />); const base = screen.getByRole("tabpanel"); fireEvent.change(within(base).getByLabelText("原始文本"), { target: { value: " " } }); expect(within(base).getByLabelText("Base64 结果")).toHaveValue("IA==");
     fireEvent.click(screen.getByRole("tab", { name: "时间戳" })); fireEvent.change(screen.getByLabelText("时间戳输入"), { target: { value: "999999999999999999999999999999999" } }); expect(await screen.findByText("时间戳超出有效日期范围")).toBeVisible();

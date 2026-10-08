@@ -14,7 +14,7 @@ import { useRailPageNavigation } from "../hooks/useRailPageNavigation";
 
 export default function Rail() {
   useDocumentMeta("余票提醒", "查询 12306 余票，按自定间隔监控意向车次并提醒。");
-  const { desktop, settings, stations, result, error, checking, feature, setFeature: setScreen, positionSelection, setPositionSelection, permission, knownStations, matched, update, runCheck, toggleMonitor } = useRailMonitor();
+  const { desktop, settings, stations, result, error, storageError, checking, feature, setFeature: setScreen, positionSelection, setPositionSelection, permission, knownStations, matched, update, runCheck, toggleMonitor } = useRailMonitor();
   const setFeature = useRailPageNavigation(setScreen, useNavigate(), setPositionSelection);
   const { filters, setFilters, visibleTrains } = useTrainListing(result?.trains, settings.seat);
   return (
@@ -39,6 +39,7 @@ export default function Rail() {
           <button type="button" aria-pressed={feature === "board"} onClick={() => setFeature("board")}>车站大屏</button>
         </div>
         <div hidden={feature !== "tickets"}>
+        {storageError && <p role="status" className="rail-note mb-4">浏览器无法保存查询条件，本次查询和监控仍可使用；刷新页面后需要重新填写。</p>}
         <div className="rail-layout">
           <section className="rail-card rail-form" aria-labelledby="rail-settings-title">
             <div className="rail-card-heading"><div><span className="rail-overline">01 / SEARCH</span><h2 id="rail-settings-title">查询条件</h2></div><span className="rail-small">数据来自 12306</span></div>

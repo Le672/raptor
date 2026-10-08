@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { createPortalDb } from "./fixtures/portal-db";
 import { signJWT } from "../../functions/_utils/auth";
 import * as posts from "../../functions/api/posts/[[path]]";
@@ -115,5 +117,40 @@ describe("honest HTTP service checks", () => {
     expect(await checkService({ name: "测试", url: "https://example.com" })).toMatchObject({ code: null, state: "unknown" });
     const fetcher = vi.fn().mockResolvedValueOnce(new Response(null, { status: 405 })).mockResolvedValueOnce(new Response("ok")); vi.stubGlobal("fetch", fetcher);
     expect((await checkService({ name: "测试", url: "https://example.com" })).state).toBe("reachable"); expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("focus subdomain deployment guard", () => {
+  async function deployment(domains: unknown[], records: unknown[] = []) {
+    const actions: { url: string; method: string; body?: any }[] = [], warnings: string[] = [];
+    const source = readFileSync(new URL("../../scripts/ensure-focus-domain.mjs", import.meta.url), "utf8").replace(/^import .*;\r?\n/m, "");
+    await runInNewContext(`(async () => { ${source} })()`, {
+      process: { env: { CLOUDFLARE_ACCOUNT_ID: "test-account", CLOUDFLARE_API_TOKEN: "test-only-token" } },
+      console: { log: () => {}, warn: (message: string) => warnings.push(message) },
+      AbortSignal, appendFile: async () => {},
+      fetch: async (url: string, options: any) => {
+        actions.push({ url, method: options.method ?? "GET", body: options.body ? JSON.parse(options.body) : undefined });
+        const result = url.includes("dns_records") ? records : url.endsWith("/domains") ? options.method === "POST" ? { name: "focus.yukino.bond", status: "pending", zone_tag: "test-zone" } : domains : { subdomain: "raptor-20g.pages.dev" };
+        return { ok: true, status: 200, json: async () => ({ success: true, result }) };
+      },
+    });
+    return { actions, warnings };
+  }
+  it("preserves the DNS of an active focus domain", async () => {
+    const { actions } = await deployment([{ name: "focus.yukino.bond", status: "active" }]);
+    expect(actions.every(action => action.method === "GET")).toBe(true);
+    expect(actions.some(action => action.url.includes("dns_records"))).toBe(false);
+  });
+  it("attaches a missing focus domain and creates only its missing CNAME", async () => {
+    const { actions } = await deployment([]);
+    const writes = actions.filter(action => action.method !== "GET");
+    expect(writes).toHaveLength(2);
+    expect(writes[0].body).toEqual({ name: "focus.yukino.bond" });
+    expect(writes[1].body).toEqual({ type: "CNAME", name: "focus.yukino.bond", content: "raptor-20g.pages.dev", proxied: true });
+  });
+  it("reports conflicting DNS and does not replace the existing record", async () => {
+    const { actions, warnings } = await deployment([{ name: "focus.yukino.bond", status: "pending", zone_tag: "test-zone" }], [{ type: "A", content: "192.0.2.1" }]);
+    expect(actions.every(action => action.method === "GET")).toBe(true);
+    expect(warnings.join(" ")).toContain("existing records were preserved");
   });
 });

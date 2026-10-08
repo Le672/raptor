@@ -93,12 +93,17 @@ export default function AdminPosts() {
   };
 
   const handleDelete = async (id: number) => {
+    if (saving) return;
     if (!confirm("确定要删除这篇文章吗？")) return;
+    setSaving(true);
+    setError("");
     try {
       await api.deletePost(id);
       await loadPosts();
     } catch (err: any) {
       setError(err.message || "删除失败");
+    } finally {
+      setSaving(false);
     }
   };
 

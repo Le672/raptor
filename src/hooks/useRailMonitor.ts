@@ -37,11 +37,16 @@ export const SEAT_OPTIONS = ["任意席别", "商务座", "特等座", "优选�
 function loadSettings(): Settings {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") as Partial<Settings> | null;
-    return saved ? {
-      ...DEFAULT_SETTINGS, ...saved,
-      date: saved.date || DEFAULT_SETTINGS.date,
+    return saved && typeof saved === "object" && !Array.isArray(saved) ? {
+      ...DEFAULT_SETTINGS,
+      date: typeof saved.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(saved.date) ? saved.date : DEFAULT_SETTINGS.date,
+      from: typeof saved.from === "string" ? saved.from.slice(0, 100) : "",
+      to: typeof saved.to === "string" ? saved.to.slice(0, 100) : "",
+      train: typeof saved.train === "string" ? saved.train.slice(0, 20) : "",
+      seat: typeof saved.seat === "string" && SEAT_OPTIONS.includes(saved.seat) ? saved.seat : DEFAULT_SETTINGS.seat,
+      intervalMinutes: Number.isInteger(saved.intervalMinutes) && Number(saved.intervalMinutes) >= 1 && Number(saved.intervalMinutes) <= 60 ? Number(saved.intervalMinutes) : DEFAULT_SETTINGS.intervalMinutes,
       queryMode: saved.queryMode === "train" || saved.queryMode === "route" ? saved.queryMode : saved.from || saved.to ? "route" : "train",
-      enabled: saved.queryMode ? Boolean(saved.enabled) : false,
+      enabled: saved.queryMode ? saved.enabled === true : false,
     } : DEFAULT_SETTINGS;
   } catch { return DEFAULT_SETTINGS; }
 }
@@ -88,6 +93,7 @@ export function useRailMonitor() {
   const [stations, setStations] = useState<Station[]>([]);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [storageError, setStorageError] = useState(false);
   const [checking, setChecking] = useState(false);
   const [feature, setFeature] = useState<RailFeature>(railFeatureFromLocation);
   const [positionSelection, setPositionSelection] = useState<RailPositionSelection>(railPositionFromLocation);
@@ -118,7 +124,9 @@ export function useRailMonitor() {
   }, [desktop]);
 
   useEffect(() => {
-    if (!desktop) localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    if (desktop) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); setStorageError(false); }
+    catch { setStorageError(true); }
   }, [desktop, settings]);
 
   useEffect(() => {
@@ -196,5 +204,5 @@ export function useRailMonitor() {
   const knownStations = useMemo(() => new Set(stations.map((station) => station.name)), [stations]);
   const matched = result?.trains.filter((train) => matchingSeats(train, settings.seat).length > 0) || [];
 
-  return { desktop, settings, stations, result, error, checking, feature, setFeature, positionSelection, setPositionSelection, permission, knownStations, matched, update, runCheck, toggleMonitor };
+  return { desktop, settings, stations, result, error, storageError, checking, feature, setFeature, positionSelection, setPositionSelection, permission, knownStations, matched, update, runCheck, toggleMonitor };
 }
