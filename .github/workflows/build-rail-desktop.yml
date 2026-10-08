@@ -62,7 +62,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - run: npm run build:desktop
       - run: node node_modules/electron-builder/out/cli/cli.js --config rail-electron-builder.json --win portable
       - uses: actions/upload-artifact@v4
         with:

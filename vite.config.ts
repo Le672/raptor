@@ -3,9 +3,9 @@ import react from '@vitejs/plugin-react'
 import tsconfigPaths from "vite-tsconfig-paths";
 
 // https://vite.dev/config/
-export default defineConfig({
-  // 使用相对路径，保证 Electron (file://) 和 Capacitor (https://localhost) 都能正确加载资源
-  base: './',
+export default defineConfig(({ mode }) => ({
+  // Web deep links need root assets; file:// desktop builds need relative assets.
+  base: mode === 'desktop' ? './' : '/',
   server: { proxy: { '/api/rail': { target: 'https://www.yukino.bond', changeOrigin: true }, '/api/f1': { target: 'http://127.0.0.1:8788', changeOrigin: true } } },
   build: {
     sourcemap: 'hidden',
@@ -26,4 +26,4 @@ export default defineConfig({
     }),
     tsconfigPaths()
   ],
-})
+}))

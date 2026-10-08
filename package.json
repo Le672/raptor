@@ -8,15 +8,16 @@
   "description": "Yukino 的个人博客应用",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/check-build-assets.mjs web",
+    "build:desktop": "tsc -b && vite build --mode desktop && node scripts/check-build-assets.mjs desktop",
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc -b --noEmit",
     "test": "vitest run",
     "cap:sync": "npm run build && npx cap sync android",
     "cap:android": "npm run build && npx cap sync android && npx cap open android",
-    "electron:dev": "npm run build && electron electron/main.cjs",
-    "electron:build": "npm run build && electron-builder --config electron-builder.json"
+    "electron:dev": "npm run build:desktop && electron electron/main.cjs",
+    "electron:build": "npm run build:desktop && electron-builder --config electron-builder.json"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",
