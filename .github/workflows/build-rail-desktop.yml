@@ -29,6 +29,8 @@ on:
       - 'src/lib/rail-speed.ts'
       - 'src/lib/rail-motion.ts'
       - 'src/hooks/useRailLocation.ts'
+      - 'src/hooks/useRailTrainDetection.ts'
+      - 'src/lib/rail-train-detection.ts'
       - 'src/types/coordtransform.d.ts'
       - 'src/components/RailMap.tsx'
       - 'src/components/RailSpeed.tsx'
