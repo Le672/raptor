@@ -5,6 +5,7 @@ import { formatRaceDate, raceName } from "@/lib/f1";
 import type { LeclercData } from "@/lib/f1";
 import { DataStatus, Empty, External } from "./F1Common";
 import { F1DriverName, F1TeamName } from "./F1Identity";
+import { F1LeclercVote } from "./F1LeclercVote";
 
 const CHARLES = { driverId: "leclerc", givenName: "Charles", familyName: "Leclerc" };
 export function F1Leclerc({ year, timezone, onResult }: { year: number; timezone: string; onResult: (values: Record<string, string>) => void }) {
@@ -38,6 +39,7 @@ export function F1Leclerc({ year, timezone, onResult }: { year: number; timezone
       <div><span>冲刺赛 P4</span><strong>{data?.available.sprint ? sprintFourths.length : "—"}</strong><small>冲刺赛单独统计</small></div>
       <div><span>周末双 P4</span><strong>{complete ? sprintFourths.filter(entry => dual.has(`${entry.race.season}:${entry.race.round}`)).length : "—"}</strong><small>同一站正赛与冲刺都第四</small></div>
     </div>
+    <F1LeclercVote timezone={timezone}/>
     <div className="f1-section-heading f1-leclerc-history-heading"><div><p className="f1-eyebrow">EVERY FOURTH PLACE, ON RECORD</p><h2>第四名收藏册</h2><p className="f1-footnote">{complete ? "已完整读取职业生涯正赛与冲刺赛成绩" : query.loading ? "正在读取职业生涯记录…" : "部分记录暂不可用，以下展示已读取的场次"} · {fourths.length} 条 P4 记录</p></div><Trophy size={22}/></div>
     <div className="f1-controls f1-leclerc-history-controls"><div className="f1-switch" aria-label="第四名场次类别">{[{value:"all",label:"全部场次"},{value:"results",label:"正赛 P4"},{value:"sprint",label:"冲刺赛 P4"}].map(option => <button key={option.value} aria-pressed={filter === option.value} onClick={() => setFilter(option.value)}>{option.label}</button>)}</div><label>历史赛季<select value={historyYear} onChange={event => setHistoryYear(event.target.value)}><option value="all">全部赛季</option>{years.map(value => <option key={value} value={value}>{value}</option>)}</select></label><span className="f1-footnote">{entries.length} 条符合筛选</span></div>
     {entries.length ? <div className="f1-table-wrap"><table className="f1-table f1-leclerc-history"><caption className="sr-only">勒克莱尔正赛与冲刺赛第四名全部场次</caption><thead><tr><th>赛季 / 站次</th><th>大奖赛</th><th>场次</th><th>车队</th><th>成绩</th><th>回看</th></tr></thead><tbody>{entries.map(entry => <tr key={`${entry.race.season}-${entry.race.round}-${entry.kind}`}><td className="f1-mono">{entry.race.season}<small>R{entry.race.round}</small></td><td><strong>{raceName(entry.race.raceName)}</strong><small>{entry.race.Circuit.circuitName}</small></td><td><span className={`f1-leclerc-kind kind-${entry.kind}`}>{entry.kind === "results" ? "正赛" : "冲刺赛"}</span></td><td><F1TeamName year={Number(entry.race.season)} team={entry.result.Constructor} compact/></td><td><b className="f1-leclerc-p4">P4</b><small>{entry.result.points ?? "—"} PTS · {entry.result.Time?.time || entry.result.status || "—"}</small></td><td><button className="f1-text-button" onClick={() => onResult({ tab: "results", year: entry.race.season, round: entry.race.round, kind: entry.kind })}>成绩<ArrowRight size={13}/></button></td></tr>)}</tbody></table></div> : !query.loading && <Empty>{complete ? "这个筛选下，Charles 没有拿过第四。" : "完整记录暂不可用，请刷新重试。"}</Empty>}

@@ -33,8 +33,8 @@ async function upstream(address: string, token?: string, ttl = 60000) {
   pending.set(key, task);
   try { return await task; } finally { pending.delete(key); }
 }
-const jolpica = (path: string) => upstream(`https://api.jolpi.ca/ergast/f1/${path}.json?limit=100`);
-const openf1 = (endpoint: string, params: Record<string, string | number>, token?: string, ttl = 60000) => upstream(`https://api.openf1.org/v1/${endpoint}?${new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]))}`, token, ttl);
+export const jolpica = (path: string) => upstream(`https://api.jolpi.ca/ergast/f1/${path}.json?limit=100`);
+export const openf1 = (endpoint: string, params: Record<string, string | number>, token?: string, ttl = 60000) => upstream(`https://api.openf1.org/v1/${endpoint}?${new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]))}`, token, ttl);
 function settled<T>(result: PromiseSettledResult<T>, errors: string[], fallback: T): T { if (result.status === "fulfilled") return result.value; errors.push(result.reason instanceof Error ? result.reason.message : "数据源暂时不可用"); return fallback; }
 function array(value: unknown): any[] { return Array.isArray(value) ? value : []; }
 

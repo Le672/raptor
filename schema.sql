@@ -61,6 +61,30 @@ CREATE TABLE IF NOT EXISTS site_content (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS f1_leclerc_votes (
+  poll_key TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  choice TEXT NOT NULL CHECK (choice IN ('yes', 'no')),
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (poll_key, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS f1_radio_text (
+  recording_key TEXT PRIMARY KEY,
+  transcript TEXT NOT NULL DEFAULT '',
+  translation TEXT NOT NULL DEFAULT '',
+  language TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL CHECK (status IN ('working', 'ready', 'error')),
+  lease_until INTEGER NOT NULL DEFAULT 0,
+  error TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS f1_radio_limits (
+  bucket TEXT PRIMARY KEY,
+  calls INTEGER NOT NULL
+);
+
 -- Insert default admin user (password: admin123, change after first login!)
 -- password_hash is bcrypt hash of 'admin123'
 INSERT OR IGNORE INTO users (email, password_hash, name, role)

@@ -4,6 +4,7 @@ import type { UsesDocument, UsesResponse } from "@/lib/uses";
 import type { Post, PostSummary, PostInput, BoxItem, BoxInput } from "@/lib/content";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import type { StatusReport } from "@/lib/status";
+import type { P4Choice, P4Poll, RadioText, RadioTextRequest } from "@/lib/f1-community";
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -25,6 +26,7 @@ async function request<T>(
   path: string,
   body?: unknown,
   params?: Record<string, string>,
+  timeoutMs = 15000,
 ): Promise<T> {
   let url = `${BASE}${path}`;
   if (params) {
@@ -33,7 +35,7 @@ async function request<T>(
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, { method, headers: getHeaders(), body: body === undefined ? undefined : JSON.stringify(body), signal: controller.signal });
     let data;
@@ -50,6 +52,10 @@ async function request<T>(
 }
 
 export const api = {
+  getLeclercPoll: () => request<P4Poll>("GET", "/f1/leclerc-vote"),
+  voteLeclerc: (pollKey: string, choice: P4Choice) => request<P4Poll>("POST", "/f1/leclerc-vote", { pollKey, choice }),
+  getRadioText: (entry: RadioTextRequest) => request<RadioText>("GET", "/f1/radio-text", undefined, { session: String(entry.session), driver: String(entry.driver), date: entry.date }),
+  transcribeRadio: (entry: RadioTextRequest) => request<RadioText>("POST", "/f1/radio-text", entry, undefined, 90000),
   getStatus: () => request<StatusReport>("GET", "/status"),
   getMe: () => request<{ user: User }>("GET", "/auth/me"),
   login: (email: string, password: string, source: "mail" | "local" = "mail") =>
