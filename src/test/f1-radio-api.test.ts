@@ -13,7 +13,7 @@ beforeEach(async () => {
   vi.resetModules(); vi.useFakeTimers({toFake:["Date"]}); vi.setSystemTime(new Date("2026-10-08T12:00:00Z"));
   db = createPortalDb();
   address = "https://livetiming.formula1.com/static/2025/Race/TeamRadio/VER.mp3"; sessionEnd = "2025-12-07T15:00:00Z";
-  run = vi.fn(async (model: string) => model.includes("whisper") ? {text:"Box, box. Switch to hard tyres.",transcription_info:{language:"en"}} : {translated_text:"进站，进站。换上硬胎。"});
+  run = vi.fn(async (model: string) => model.includes("whisper") ? {text:"Box, box. Switch to hard tyres.",transcription_info:{language:"en"}} : {choices:[{message:{content:"进站，进站。换上硬胎。"}}]});
   env = {DB:db,AI:{run}};
   vi.stubGlobal("fetch",vi.fn(async (url: string) => {
     if (url.includes("/sessions?")) return Response.json([{session_key:entry.session,date_end:sessionEnd}]);
@@ -30,7 +30,8 @@ describe("verified team radio transcription and translation", () => {
     const result = await (await post()).json();
     expect(result).toMatchObject({status:"ready",transcript:"Box, box. Switch to hard tyres.",translation:"进站，进站。换上硬胎。",language:"en",error:""});
     expect(run.mock.calls[0][1]).toMatchObject({audio:"SUQzAQID",task:"transcribe"});
-    expect(run.mock.calls[1][1]).toMatchObject({source_lang:"en",target_lang:"zh"});
+    expect(run.mock.calls[1][0]).toBe("@cf/qwen/qwen3-30b-a3b-fp8");
+    expect(run.mock.calls[1][1].messages[0].content).toContain("box/box box = 进站");
     await post(); expect(run).toHaveBeenCalledTimes(2);
     expect((await (await get()).json()).transcript).toBe(result.transcript);
   });
@@ -38,7 +39,7 @@ describe("verified team radio transcription and translation", () => {
     run.mockImplementation(async (model: string) => { if(model.includes("whisper")) return {text:"Stay out.",transcription_info:{language:"en"}}; throw new Error("private provider diagnostic"); });
     const partial = await (await post()).json();
     expect(partial.transcript).toBe("Stay out."); expect(partial.translation).toBe(""); expect(partial.error).toContain("已保留");
-    run.mockImplementation(async () => ({translated_text:"留在赛道上。"}));
+    run.mockImplementation(async () => ({response:"留在赛道上。"}));
     expect((await (await post()).json()).translation).toBe("留在赛道上。");
     expect(run.mock.calls.filter(([model])=>model.includes("whisper"))).toHaveLength(1);
   });
@@ -93,5 +94,24 @@ describe("verified team radio transcription and translation", () => {
     const mediaCall=vi.mocked(fetch).mock.calls.find(([url])=>String(url).includes("/TeamRadio/"));
     expect(mediaCall?.[1]?.redirect).toBe("manual");
     expect(vi.mocked(fetch).mock.calls.some(([url])=>String(url).includes("internal.example.test"))).toBe(false);
+  });
+  it("preserves a previous recognition when improving an older translation", async () => {
+    await ensureF1Schema(db);
+    const oldKey=`${entry.session}:${entry.driver}:${new Date(entry.date).toISOString()}`;
+    await db.prepare("INSERT INTO f1_radio_text (recording_key,transcript,translation,language,status,updated_at) VALUES (?, ?, ?, 'en', 'ready', ?)").bind(oldKey,"Hold your head up high, mate.","保持你的头高,伴侣。",new Date().toISOString()).run();
+    run.mockResolvedValue({choices:[{message:{content:"<think>translation reasoning</think>抬起头来，伙计。"}}]});
+    const result=await (await post()).json();
+    expect(result.transcript).toBe("Hold your head up high, mate."); expect(result.translation).toBe("抬起头来，伙计。");
+    expect(run).toHaveBeenCalledTimes(1); expect(fetch).not.toHaveBeenCalled();
+    await post(); expect(run).toHaveBeenCalledTimes(1);
+  });
+  it("uses the translation fallback when the contextual model is unavailable", async () => {
+    run.mockImplementation(async (model: string) => {
+      if(model.includes("whisper")) return {text:"Box now.",transcription_info:{language:"en"}};
+      if(model.includes("qwen")) throw new Error("temporarily unavailable");
+      return {translated_text:"现在进站。"};
+    });
+    expect((await (await post()).json()).translation).toBe("现在进站。");
+    expect(run.mock.calls.map(([model])=>model)).toEqual(["@cf/openai/whisper-large-v3-turbo","@cf/qwen/qwen3-30b-a3b-fp8","@cf/meta/m2m100-1.2b"]);
   });
 });
