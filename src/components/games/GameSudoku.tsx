@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { dailyGameKey } from "@/lib/daily-game";
 import { useSearchParams } from "react-router-dom";
 import { makeSudoku, seededRandom, sudokuCandidates } from "@/lib/game-engines";
 import { GameNotice, GameStats, gameButton } from "./GameKit";
 
 export default function GameSudoku() {
-  const [params] = useSearchParams(); const daily = params.get("daily");
+  const [params] = useSearchParams(); const daily = dailyGameKey(params.get("daily"));
   const [difficulty, setDifficulty] = useState(42);
   const generate = (blanks = difficulty) => makeSudoku(blanks, daily ? seededRandom(`sudoku:${daily}:${blanks}`) : Math.random);
   const [puzzle, setPuzzle] = useState(generate); const [board, setBoard] = useState(puzzle.board);

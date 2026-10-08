@@ -1,3 +1,4 @@
+import { readScore, writeScore } from "@/lib/game-storage";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ignoreGameKey } from "@/lib/game-keyboard";
 
@@ -105,7 +106,7 @@ const TILE_COLORS: Record<number, string> = {
 export default function Game2048() {
   const [grid, setGrid] = useState<Grid>(() => addRandom(addRandom(createEmpty())));
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(() => Number(localStorage.getItem("best2048") || 0));
+  const [best, setBest] = useState(() => readScore("best2048"));
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
   const touchRef = useRef<{ x: number; y: number } | null>(null);
@@ -119,7 +120,7 @@ export default function Game2048() {
       setGrid(withNew);
       const newScore = score + gained;
       setScore(newScore);
-      if (newScore > best) { setBest(newScore); localStorage.setItem("best2048", String(newScore)); }
+      if (newScore > best) { setBest(newScore); writeScore("best2048", newScore); }
       if (hasWon(withNew) && !won) setWon(true);
       if (isGameOver(withNew)) setGameOver(true);
     },
@@ -139,7 +140,7 @@ export default function Game2048() {
   const reset = () => { setGrid(addRandom(addRandom(createEmpty()))); setScore(0); setGameOver(false); setWon(false); };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="relative flex flex-col items-center gap-4">
       <div className="flex w-full items-center justify-between">
         <div className="flex gap-4">
           <div className="glass-panel rounded-xl px-4 py-2 text-center">

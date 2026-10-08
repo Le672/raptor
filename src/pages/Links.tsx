@@ -11,6 +11,12 @@ import {
   Smartphone,
   Wrench,
 } from "lucide-react";
+import { useState } from "react";
+import { Star, Download } from "lucide-react";
+import { SearchField } from "@/components/SearchField";
+import { useStoredState } from "@/hooks/useStoredState";
+import { downloadText } from "@/lib/browser-actions";
+import { xmlEscape } from "@/lib/rss-catalog";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
@@ -155,6 +161,13 @@ const linkGroups = [
 export default function Links() {
   useDocumentMeta("快速导航", "移动端友好的极简入口页，适合作为轻量书签首页。");
 
+  const [query, setQuery] = useState(""), [category, setCategory] = useState("全部"), [favoritesOnly, setFavoritesOnly] = useState(false);
+  const urls = linkGroups.flatMap(group => group.links.map(link => link.url));
+  const [favorites, setFavorites, persistent] = useStoredState<string[]>("yukino.links.favorites", [], (value): value is string[] => Array.isArray(value) && value.length <= urls.length && value.every(url => typeof url === "string" && urls.includes(url)));
+  const groups = linkGroups.filter(group => category === "全部" || group.title === category).map(group => ({ ...group, links: group.links.filter(link => (!favoritesOnly || favorites.includes(link.url)) && (link.label + " " + link.desc + " " + group.title).toLowerCase().includes(query.trim().toLowerCase())) })).filter(group => group.links.length);
+  const count = groups.reduce((total, group) => total + group.links.length, 0);
+  const exportLinks = () => downloadText("yukino-bookmarks.html", '<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Yukino 导航书签</TITLE><H1>Yukino 导航书签</H1><DL><p>' + groups.map(group => '<DT><H3>' + xmlEscape(group.title) + '</H3><DL><p>' + group.links.map(link => '<DT><A HREF="' + xmlEscape(link.url) + '">' + xmlEscape(link.label) + '</A>').join("\n") + '</DL><p>').join("\n") + '</DL><p>', "text/html;charset=utf-8");
+
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
       <div>
@@ -177,8 +190,13 @@ export default function Links() {
         </p>
       </div>
 
+      <SearchField value={query} onChange={setQuery} label="搜索导航名称或说明" />
+      <div className="flex flex-wrap gap-2">{["全部", ...linkGroups.map(group => group.title)].map(value => <button type="button" key={value} aria-pressed={category === value} className="pill-button" onClick={() => setCategory(value)}>{value}</button>)}<button type="button" className="pill-button" aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly(value => !value)}><Star size={14} />我的收藏 {favorites.length}</button><button type="button" className="pill-button" disabled={!count} onClick={exportLinks}><Download size={14} />导出当前书签</button></div>
+      <p className="text-xs text-stone-500" aria-live="polite">{count} 个链接 · 收藏保存在当前浏览器</p>
+      {!persistent && <p role="alert" className="text-xs text-amber-800">收藏暂时无法写入浏览器存储，请导出书签保存。</p>}
+      {!count && <p className="empty-notes">没有匹配的链接。<button type="button" className="ml-3 underline" onClick={() => { setQuery(""); setCategory("全部"); setFavoritesOnly(false); }}>重置筛选</button></p>}
       <div className="grid gap-6 sm:grid-cols-2">
-        {linkGroups.map((group) => (
+        {groups.map((group) => (
           <div key={group.title} className="glass-panel rounded-[28px] p-6">
             <div className="mb-4 flex items-center gap-2">
               <group.icon className="size-4 text-stone-500" />
@@ -188,9 +206,8 @@ export default function Links() {
             </div>
             <div className="space-y-2">
               {group.links.map((link) => (
-                <a
-                  key={link.label}
-                  className="flex items-center justify-between gap-4 rounded-2xl border border-white/30 bg-white/20 px-4 py-3 backdrop-blur-xl transition hover:border-white/50 hover:bg-white/30"
+                <div key={link.url} className="flex items-center gap-2"><a
+                  className="min-w-0 flex-1 flex items-center justify-between gap-4 rounded-2xl border border-white/30 bg-white/20 px-4 py-3 backdrop-blur-xl transition hover:border-white/50 hover:bg-white/30"
                   href={link.url}
                   rel="noreferrer"
                   target="_blank"
@@ -202,7 +219,7 @@ export default function Links() {
                     </p>
                   </div>
                   <ArrowUpRight className="size-4 shrink-0 text-stone-400" />
-                </a>
+                </a><button type="button" className="rounded-xl p-2 text-stone-500" aria-label={(favorites.includes(link.url) ? "取消收藏 " : "收藏 ") + link.label} aria-pressed={favorites.includes(link.url)} onClick={() => setFavorites(current => current.includes(link.url) ? current.filter(url => url !== link.url) : [...current, link.url])}><Star size={17} fill={favorites.includes(link.url) ? "currentColor" : "none"} /></button></div>
               ))}
             </div>
           </div>

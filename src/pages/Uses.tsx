@@ -7,6 +7,8 @@ import { useAuthStore } from "@/hooks/useAuthStore";
 import { api, ApiError } from "@/lib/api";
 import { DEFAULT_USES, USES_ICONS, validateUsesDocument } from "@/lib/uses";
 import type { UsesCategory, UsesDocument, UsesIcon, UsesItem } from "@/lib/uses";
+import { SearchField } from "@/components/SearchField";
+import { contentDate } from "@/lib/content";
 
 const icons = { monitor: Monitor, keyboard: Keyboard, code: Code2, globe: Globe, drive: HardDrive };
 const iconNames = { monitor: "设备", keyboard: "外设", code: "开发", globe: "服务", drive: "软件" };
@@ -30,6 +32,19 @@ export default function Uses() {
   const [message, setMessage] = useState("");
   const [reload, setReload] = useState(0);
   const canEdit = Boolean(token && serverCanEdit);
+  const [query, setQuery] = useState("");
+  const dirty = editing && JSON.stringify(draft) !== JSON.stringify(content);
+  useEffect(() => {
+    if (!dirty) return;
+    const protect = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", protect);
+    return () => window.removeEventListener("beforeunload", protect);
+  }, [dirty]);
+  const filteredCategories = content.categories.map(category => {
+    const match = (value: string) => value.toLowerCase().includes(query.trim().toLowerCase());
+    return { ...category, items: match(category.title) ? category.items : category.items.filter(item => match(`${item.label} ${item.value} ${item.detail}`)) };
+  }).filter(category => !query.trim() || category.items.length);
+  const move = <T,>(items: T[], index: number, offset: number) => { const next = [...items]; const target = index + offset; if (target < 0 || target >= items.length) return next; [next[index], next[target]] = [next[target], next[index]]; return next; };
 
   useEffect(() => {
     let active = true;
@@ -97,13 +112,15 @@ export default function Uses() {
         </div>
         {!editing && <p className="mt-3 max-w-xl whitespace-pre-wrap text-sm leading-7 text-stone-600">{content.description}</p>}
         {!token && <Link to="/login?next=/uses" className="mt-3 inline-block text-xs text-stone-500 underline underline-offset-4">管理员登录</Link>}
-        {updatedAt && !editing && <p className="mt-3 text-xs text-stone-400">最近更新：<time dateTime={updatedAt}>{new Date(updatedAt).toLocaleDateString("zh-CN")}</time></p>}
+        {updatedAt && !editing && <p className="mt-3 text-xs text-stone-400">最近更新：<time dateTime={updatedAt}>{contentDate(updatedAt)}</time></p>}
       </div>
 
       {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         {error}{!editing && <button className="ml-3 underline" onClick={() => setReload((value) => value + 1)}>重新加载</button>}
       </div>}
       {message && <p role="status" className="rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-800">{message}</p>}
+      {loaded && !editing && <><SearchField value={query} onChange={setQuery} label="搜索设备、软件或说明" /><p className="text-xs text-stone-500" aria-live="polite">{filteredCategories.reduce((count, category) => count + category.items.length, 0)} 项 · {filteredCategories.length} 个分类</p></>}
+      {dirty && <p role="status" className="text-xs text-amber-800">有尚未保存的修改，请保存后再离开此页。</p>}
 
       {loading ? <p role="status" className="inline-flex items-center gap-2 text-sm text-stone-500"><Loader2 size={16} className="animate-spin" />正在读取清单…</p> : editing && canEdit ? (
         <form onSubmit={save} className="space-y-6">
@@ -117,6 +134,7 @@ export default function Uses() {
             </div>
             {draft.categories.map((category, categoryIndex) => (
               <section key={category.id} aria-label={`编辑分类 ${categoryIndex + 1}`} className="glass-panel min-w-0 space-y-4 rounded-[28px] p-5 sm:p-6">
+                <div className="flex flex-wrap gap-2"><button type="button" className={buttonClass} disabled={categoryIndex === 0} aria-label={`上移分类 ${category.title}`} onClick={() => setDraft(current => ({ ...current, categories: move(current.categories, categoryIndex, -1) }))}>↑ 上移</button><button type="button" className={buttonClass} disabled={categoryIndex === draft.categories.length - 1} aria-label={`下移分类 ${category.title}`} onClick={() => setDraft(current => ({ ...current, categories: move(current.categories, categoryIndex, 1) }))}>↓ 下移</button></div>
                 <div className="grid min-w-0 items-end gap-3 sm:grid-cols-[1fr_120px_auto]">
                   <label className="min-w-0 text-xs text-stone-600">分类名称
                     <input className={inputClass} maxLength={80} required value={category.title} onChange={(event) => changeCategory(category.id, { title: event.target.value })} />
@@ -135,6 +153,7 @@ export default function Uses() {
                   <div key={item.id} className="min-w-0 rounded-2xl border border-stone-200 bg-white/40 p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <span className="text-xs text-stone-500">条目 {itemIndex + 1}</span>
+                      <div className="flex gap-1"><button type="button" aria-label={`上移条目 ${item.label}`} disabled={itemIndex === 0} className="rounded-lg px-2 text-sm disabled:opacity-30" onClick={() => changeCategory(category.id, { items: move(category.items, itemIndex, -1) })}>↑</button><button type="button" aria-label={`下移条目 ${item.label}`} disabled={itemIndex === category.items.length - 1} className="rounded-lg px-2 text-sm disabled:opacity-30" onClick={() => changeCategory(category.id, { items: move(category.items, itemIndex, 1) })}>↓</button></div>
                       <button type="button" aria-label={`删除条目 ${item.label || itemIndex + 1}`} className="rounded-lg p-2 text-stone-500 hover:bg-red-50 hover:text-red-700"
                         onClick={() => changeCategory(category.id, { items: category.items.filter((entry) => entry.id !== item.id) })}><Trash2 size={15} /></button>
                     </div>
@@ -171,7 +190,7 @@ export default function Uses() {
         </form>
       ) : loaded && (
         <div className="grid gap-6 sm:grid-cols-2">
-          {content.categories.map((category) => {
+          {filteredCategories.map((category) => {
             const Icon = icons[category.icon];
             return <section key={category.id} className="glass-panel min-w-0 rounded-[28px] p-6">
               <div className="mb-5 flex items-center gap-2"><Icon className="size-4 shrink-0 text-stone-500" /><h2 className="break-words text-sm tracking-[0.16em] text-stone-500">{category.title}</h2></div>
@@ -187,6 +206,7 @@ export default function Uses() {
             </section>;
           })}
           {!content.categories.length && <p className="text-sm text-stone-500">设备清单正在整理中。</p>}
+          {!!content.categories.length && !filteredCategories.length && <p className="text-sm text-stone-500">没有匹配的设备。<button type="button" className="ml-3 underline" onClick={() => setQuery("")}>清除搜索</button></p>}
         </div>
       )}
     </div>

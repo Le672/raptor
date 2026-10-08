@@ -5,6 +5,7 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { useStoredState } from "@/hooks/useStoredState";
 import { getApiBase } from "@/lib/runtime";
 import { isNewsItem, isNewsList, NEWS_FEEDS, NewsCategory, NewsResponse } from "@/lib/news";
+import { downloadText } from "@/lib/browser-actions";
 
 function isSnapshot(value: unknown): value is NewsResponse | null {
   if (value === null) return true;
@@ -25,6 +26,8 @@ export default function News() {
   const [saveMessage, setSaveMessage] = useState(""); const pending = useRef<AbortController | null>(null);
   const load = useCallback(async (refresh = false) => {
     pending.current?.abort(); const controller = new AbortController(); pending.current = controller;
+    let timedOut = false;
+    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 20000);
     setLoading(true); setError(""); if (refresh) setCooldown(true);
     try {
       const response = await fetch(`${getApiBase()}/news?version=2${refresh ? "&refresh=1" : ""}`, { signal: controller.signal, cache: "no-store" });
@@ -32,8 +35,8 @@ export default function News() {
       const result: unknown = await response.json(); if (!isSnapshot(result) || !result) throw new Error("新闻内容暂时不可用，请稍后重试。");
       if (pending.current !== controller) return;
       setData(result); setSnapshot(result); setCachedView(false);
-    } catch { if (!controller.signal.aborted) { setError("暂时无法更新新闻。已有内容和稍后阅读仍可查看。"); setCachedView(true); } }
-    finally { if (pending.current === controller) setLoading(false); }
+    } catch { if (pending.current === controller && (!controller.signal.aborted || timedOut)) { setError(timedOut ? "新闻更新超时，可稍后重试；已有内容和稍后阅读仍可查看。" : "暂时无法更新新闻。已有内容和稍后阅读仍可查看。"); setCachedView(true); } }
+    finally { clearTimeout(timeout); if (pending.current === controller) setLoading(false); }
   }, [setSnapshot]);
   useEffect(() => {
     void load();
@@ -55,6 +58,7 @@ export default function News() {
     <div className="news-filter-row"><div className="filter-chips" aria-label="新闻类别">{(["全部", "科技", "开发", "科学", "国际"] as const).map((cat) => <button key={cat} aria-pressed={cat === category} onClick={() => setCategory(cat)}>{cat}</button>)}</div><div className="filter-chips" aria-label="新闻列表"><button aria-pressed={view === "all"} onClick={() => setView("all")}>全部新闻</button><button aria-pressed={view === "saved"} onClick={() => setView("saved")}><Bookmark size={13} />稍后阅读 {saved.length}</button></div></div>
     {error && <p className="feature-warning" role="alert">{error}{!data && <button className="pill-button" disabled={loading} onClick={() => void load()}>重试</button>}</p>}
     {cachedView && data && <p className="local-note">当前展示的是上次保存的资讯快照，抓取时间为 {time(data.fetchedAt)}，不代表实时更新。</p>}
+    <div className="game-actions">{(query || source !== "all" || category !== "全部" || language !== "all") && <button className="pill-button" type="button" onClick={() => { setQuery(""); setSource("all"); setCategory("全部"); setLanguage("all"); }}>重置新闻筛选</button>}<button className="pill-button" type="button" disabled={!saved.length} onClick={() => downloadText("yukino-saved-news.json", JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), items: saved }, null, 2), "application/json")}><Download size={14} />导出稍后阅读</button></div>
     {!persistent && <p className="feature-warning" role="status">当前浏览器无法保存稍后阅读，关闭页面后可能丢失。</p>}
     {data?.errors.length ? <p className="local-note">暂时不可用：{data.errors.map((e) => e.label).join("、")}。其他来源仍可正常阅读，下次更新会重新尝试。</p> : null}
     <p className="news-result-count" role="status">{view === "saved" ? "稍后阅读" : "筛选结果"} · {items.length} 条<span className="sr-only">{saveMessage}</span></p>

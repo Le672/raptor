@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { dailyGameKey } from "@/lib/daily-game";
 import { useSearchParams } from "react-router-dom";
 import { isPuzzleSolved, makePuzzle, puzzleNeighbors, seededRandom } from "@/lib/game-engines";
 import { GameNotice, GameStats, gameButton, useGameBest } from "./GameKit";
 
 export default function GamePuzzle() {
-  const [params] = useSearchParams(); const daily = params.get("daily");
+  const [params] = useSearchParams(); const daily = dailyGameKey(params.get("daily"));
   const make = () => makePuzzle(daily ? seededRandom(`puzzle:${daily}`) : Math.random, 80);
   const [board, setBoard] = useState(make); const [history, setHistory] = useState<number[][]>([]);
   const [moves, setMoves] = useState(0); const [seconds, setSeconds] = useState(0); const [start, setStart] = useState(0);

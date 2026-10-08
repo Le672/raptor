@@ -1,127 +1,40 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-
-const COLORS = [
-  { bg: "bg-red-400/70", active: "bg-red-300/90", sound: 261.63 },
-  { bg: "bg-blue-400/70", active: "bg-blue-300/90", sound: 329.63 },
-  { bg: "bg-green-400/70", active: "bg-green-300/90", sound: 392.00 },
-  { bg: "bg-yellow-400/70", active: "bg-yellow-300/90", sound: 523.25 },
-];
-
+import { useCallback, useEffect, useRef, useState } from "react";
+import { readScore, writeScore } from "@/lib/game-storage";
+const colors = [{ name: "红色", background: "#e87876", tone: 261.63 }, { name: "蓝色", background: "#78a9df", tone: 329.63 }, { name: "绿色", background: "#7cb68e", tone: 392 }, { name: "黄色", background: "#e7c666", tone: 523.25 }];
 type Phase = "idle" | "showing" | "input" | "gameover";
-
 export default function GameSimon() {
-  const [sequence, setSequence] = useState<number[]>([]);
-  const [playerSeq, setPlayerSeq] = useState<number[]>([]);
-  const [activeIdx, setActiveIdx] = useState(-1);
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [level, setLevel] = useState(0);
-  const [best, setBest] = useState(() => Number(localStorage.getItem("bestSimon") || 0));
-  const audioRef = useRef<AudioContext | null>(null);
-
-  const playTone = useCallback((freq: number, duration: number) => {
-    if (!audioRef.current) audioRef.current = new AudioContext();
-    const ctx = audioRef.current;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = freq;
-    gain.gain.value = 0.3;
-    osc.start();
-    osc.stop(ctx.currentTime + duration / 1000);
-  }, []);
-
-  const showSequence = useCallback(async (seq: number[]) => {
-    setPhase("showing");
-    for (let i = 0; i < seq.length; i++) {
-      await new Promise((r) => setTimeout(r, 500));
-      setActiveIdx(seq[i]);
-      playTone(COLORS[seq[i]].sound, 400);
-      await new Promise((r) => setTimeout(r, 400));
-      setActiveIdx(-1);
-    }
-    await new Promise((r) => setTimeout(r, 300));
-    setPhase("input");
-    setPlayerSeq([]);
-  }, [playTone]);
-
-  const start = useCallback(() => {
-    const first = Math.floor(Math.random() * 4);
-    const seq = [first];
-    setSequence(seq);
-    setLevel(1);
-    showSequence(seq);
-  }, [showSequence]);
-
-  const handlePress = useCallback((idx: number) => {
+  const [sequence, setSequence] = useState<number[]>([]), [pressed, setPressed] = useState<number[]>([]), [active, setActive] = useState(-1), [phase, setPhase] = useState<Phase>("idle"), [best, setBest] = useState(() => readScore("bestSimon")), [sound, setSound] = useState(true);
+  const audio = useRef<AudioContext | null>(null), run = useRef(0);
+  const tone = useCallback((index: number) => {
+    if (!sound) return;
+    try {
+      audio.current ??= new AudioContext();
+      const context = audio.current; if (context.state === "suspended") void context.resume().catch(() => {});
+      const oscillator = context.createOscillator(), gain = context.createGain();
+      oscillator.connect(gain); gain.connect(context.destination); oscillator.frequency.value = colors[index].tone; gain.gain.value = .12;
+      oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); }; oscillator.start(); oscillator.stop(context.currentTime + .22);
+    } catch { setSound(false); }
+  }, [sound]);
+  useEffect(() => () => { run.current++; void audio.current?.close().catch(() => {}); audio.current = null; }, []);
+  useEffect(() => {
+    if (phase !== "showing") return;
+    const identity = ++run.current, timers: ReturnType<typeof setTimeout>[] = [];
+    setPressed([]); setActive(-1);
+    sequence.forEach((value, index) => {
+      timers.push(setTimeout(() => { if (identity === run.current) { setActive(value); tone(value); } }, 500 + index * 800));
+      timers.push(setTimeout(() => { if (identity === run.current) setActive(-1); }, 850 + index * 800));
+    });
+    timers.push(setTimeout(() => { if (identity === run.current) setPhase("input"); }, 500 + sequence.length * 800));
+    return () => { run.current++; timers.forEach(clearTimeout); };
+  }, [phase, sequence, tone]);
+  useEffect(() => { if (phase !== "input" || active < 0) return; const timer = setTimeout(() => setActive(-1), 180); return () => clearTimeout(timer); }, [active, phase, pressed]);
+  const start = () => { run.current++; setSequence([Math.floor(Math.random() * 4)]); setPressed([]); setPhase("showing"); };
+  const press = (value: number) => {
     if (phase !== "input") return;
-    playTone(COLORS[idx].sound, 200);
-    setActiveIdx(idx);
-    setTimeout(() => setActiveIdx(-1), 200);
-
-    const newPlayerSeq = [...playerSeq, idx];
-    setPlayerSeq(newPlayerSeq);
-
-    const currentStep = newPlayerSeq.length - 1;
-    if (newPlayerSeq[currentStep] !== sequence[currentStep]) {
-      setPhase("gameover");
-      setBest((b) => { const nb = Math.max(b, level - 1); localStorage.setItem("bestSimon", String(nb)); return nb; });
-      return;
-    }
-
-    if (newPlayerSeq.length === sequence.length) {
-      const next = Math.floor(Math.random() * 4);
-      const newSeq = [...sequence, next];
-      setSequence(newSeq);
-      setLevel((l) => l + 1);
-      setTimeout(() => showSequence(newSeq), 800);
-    }
-  }, [phase, playerSeq, sequence, level, playTone, showSequence]);
-
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="flex w-full items-center justify-between">
-        <div className="flex gap-4">
-          <div className="glass-panel rounded-xl px-4 py-2 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-stone-500">关卡</p>
-            <p className="font-display text-xl text-stone-900">{level}</p>
-          </div>
-          <div className="glass-panel rounded-xl px-4 py-2 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-stone-500">最佳</p>
-            <p className="font-display text-xl text-stone-900">{best}</p>
-          </div>
-        </div>
-        <button onClick={start} className="glass-panel rounded-xl px-4 py-2 text-sm text-stone-700">
-          {phase === "gameover" ? "重新开始" : phase === "idle" ? "开始" : "重置"}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3" style={{ width: "min(80vw, 300px)" }}>
-        {COLORS.map((color, i) => (
-          <button
-            key={i}
-            className={`aspect-square rounded-2xl transition-all duration-150 ${activeIdx === i ? color.active + " scale-95" : color.bg} ${phase === "input" ? "cursor-pointer hover:scale-[1.02]" : ""}`}
-            onClick={() => handlePress(i)}
-          />
-        ))}
-      </div>
-
-      {phase === "showing" && <p className="text-sm text-stone-600">观察序列...</p>}
-      {phase === "input" && <p className="text-sm text-stone-600">你的回合！重复序列</p>}
-      {phase === "gameover" && (
-        <div className="glass-panel fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
-          <p className="font-display text-3xl text-stone-900">游戏结束</p>
-          <p className="mt-2 text-sm text-stone-600">到达第 {level} 关</p>
-          <button onClick={start} className="mt-4 glass-panel rounded-xl px-6 py-2 text-sm text-stone-700">再来一局</button>
-        </div>
-      )}
-      {phase === "idle" && (
-        <div className="glass-panel fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
-          <p className="font-display text-3xl text-stone-900">Simon Says</p>
-          <p className="mt-2 text-sm text-stone-600">记住颜色序列并重复</p>
-          <button onClick={start} className="mt-4 glass-panel rounded-xl px-6 py-2 text-sm text-stone-700">开始游戏</button>
-        </div>
-      )}
-    </div>
-  );
+    tone(value); setActive(value);
+    const next = [...pressed, value]; setPressed(next);
+    if (sequence[next.length - 1] !== value) { const score = sequence.length - 1; setBest(current => Math.max(current, score)); writeScore("bestSimon", Math.max(best, score)); setPhase("gameover"); return; }
+    if (next.length === sequence.length) { setBest(current => Math.max(current, sequence.length)); writeScore("bestSimon", Math.max(best, sequence.length)); setSequence(current => [...current, Math.floor(Math.random() * 4)]); setPhase("showing"); }
+  };
+  return <div className="game-space"><div className="game-stats"><div><span>关卡</span><strong>{sequence.length}</strong></div><div><span>最佳完成关卡</span><strong>{best}</strong></div></div><div className="game-actions"><button type="button" className="game-button" onClick={start}>{phase === "idle" ? "开始游戏" : "重置游戏"}</button><button type="button" className="game-button" aria-pressed={sound} onClick={() => setSound(value => !value)}>{sound ? "声音开" : "声音关"}</button></div><div className="mx-auto grid w-full max-w-[300px] grid-cols-2 gap-3" role="group" aria-label="Simon 颜色按钮">{colors.map((color, index) => <button key={color.name} type="button" disabled={phase !== "input"} aria-label={color.name} className="aspect-square rounded-2xl text-sm font-medium text-stone-800 transition-transform" style={{ background: color.background, opacity: active === index ? 1 : .62, transform: active === index ? "scale(.94)" : undefined, boxShadow: active === index ? "0 0 0 4px #fff" : undefined }} onClick={() => press(index)}>{color.name}</button>)}</div><p className="game-notice" role="status">{phase === "idle" ? "先开始游戏，观察颜色顺序，再依次重复。" : phase === "showing" ? "观察序列…" : phase === "input" ? "你的回合：" + pressed.length + " / " + sequence.length : "顺序不对，本轮结束。完成 " + Math.max(0, sequence.length - 1) + " 关，重新开始试试。"}{phase === "showing" && active >= 0 && <span className="sr-only">当前 {colors[active].name}</span>}</p><p className="game-help">支持点击、触屏或用 Tab 聚焦颜色后按 Enter。重置游戏会取消旧序列和定时器。</p></div>;
 }

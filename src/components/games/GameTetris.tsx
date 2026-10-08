@@ -1,3 +1,4 @@
+import { readScore, writeScore } from "@/lib/game-storage";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ignoreGameKey } from "@/lib/game-keyboard";
 
@@ -20,7 +21,7 @@ function createBoard(): Board { return Array.from({ length: ROWS }, () => Array(
 
 function randomPiece() {
   const i = Math.floor(Math.random() * SHAPES.length);
-  return { shape: SHAPES[i], color: COLORS[i], x: Math.floor(COLS / 2) - 1, y: 0 };
+  return { type: i, shape: SHAPES[i], color: COLORS[i], x: Math.floor(COLS / 2) - 1, y: 0 };
 }
 
 function rotate(shape: number[][]): number[][] {
@@ -43,7 +44,7 @@ export default function GameTetris() {
   const [board, setBoard] = useState<Board>(createBoard);
   const [piece, setPiece] = useState(randomPiece);
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(() => Number(localStorage.getItem("bestTetris") || 0));
+  const [best, setBest] = useState(() => readScore("bestTetris"));
   const [gameOver, setGameOver] = useState(false);
   const [running, setRunning] = useState(false);
   const boardRef = useRef(board);
@@ -56,23 +57,24 @@ export default function GameTetris() {
     const p = pieceRef.current;
     for (let r = 0; r < p.shape.length; r++)
       for (let c = 0; c < p.shape[r].length; c++)
-        if (p.shape[r][c]) { const ny = p.y + r; if (ny >= 0 && ny < ROWS) b[ny][p.x + c] = SHAPES.indexOf(p.shape); }
+        if (p.shape[r][c]) { const ny = p.y + r; if (ny >= 0 && ny < ROWS) b[ny][p.x + c] = p.type; }
     const cleared: number[] = [];
     b.forEach((row, i) => { if (row.every((c) => c !== null)) cleared.push(i); });
-    cleared.forEach((i) => b.splice(i, 1));
+    cleared.reverse().forEach((i) => b.splice(i, 1));
     while (b.length < ROWS) b.unshift(Array(COLS).fill(null));
     const lines = cleared.length;
     const pts = [0, 100, 300, 500, 800][lines] || 0;
-    setScore((s) => { const ns = s + pts; setBest((b2) => { const nb = Math.max(b2, ns); localStorage.setItem("bestTetris", String(nb)); return nb; }); return ns; });
+    setScore((s) => { const ns = s + pts; setBest((b2) => { const nb = Math.max(b2, ns); writeScore("bestTetris", nb); return nb; }); return ns; });
+    boardRef.current = b;
     setBoard(b);
     const next = randomPiece();
     if (collides(b, next.shape, next.x, next.y)) { setGameOver(true); setRunning(false); }
-    else setPiece(next);
+    else { pieceRef.current = next; setPiece(next); }
   }, []);
 
   const moveDown = useCallback(() => {
     const p = pieceRef.current;
-    if (!collides(boardRef.current, p.shape, p.x, p.y + 1)) setPiece({ ...p, y: p.y + 1 });
+    if (!collides(boardRef.current, p.shape, p.x, p.y + 1)) { pieceRef.current = { ...p, y: p.y + 1 }; setPiece(pieceRef.current); }
     else lock();
   }, [lock]);
 
@@ -87,8 +89,8 @@ export default function GameTetris() {
     const p = pieceRef.current;
     let dy = 0;
     while (!collides(boardRef.current, p.shape, p.x, p.y + dy + 1)) dy++;
-    setPiece({ ...p, y: p.y + dy });
-    setTimeout(lock, 0);
+    pieceRef.current = { ...p, y: p.y + dy };
+    lock();
   }, [lock]);
 
   const reset = useCallback(() => { setBoard(createBoard()); setPiece(randomPiece()); setScore(0); setGameOver(false); setRunning(true); }, []);
@@ -114,10 +116,10 @@ export default function GameTetris() {
   }, [running, gameOver, moveDown, score]);
 
   const display = board.map((r) => [...r]);
-  piece.shape.forEach((row, r) => row.forEach((v, c) => { if (v) { const y = piece.y + r; if (y >= 0 && y < ROWS) display[y][piece.x + c] = SHAPES.indexOf(piece.shape); } }));
+  piece.shape.forEach((row, r) => row.forEach((v, c) => { if (v) { const y = piece.y + r; if (y >= 0 && y < ROWS) display[y][piece.x + c] = piece.type; } }));
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="relative flex flex-col items-center gap-4">
       <div className="flex w-full items-center justify-between">
         <div className="flex gap-4">
           <div className="glass-panel rounded-xl px-4 py-2 text-center">

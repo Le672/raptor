@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, Boxes, LogOut, User, Monitor } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useAuthStore } from "@/hooks/useAuthStore";
@@ -9,8 +9,7 @@ export default function AdminDashboard() {
   const { user, logout } = useAuthStore();
 
   if (user?.role !== "admin") {
-    navigate("/");
-    return null;
+    return <Navigate to="/login?next=%2Fadmin" replace />;
   }
 
   const handleLogout = () => {

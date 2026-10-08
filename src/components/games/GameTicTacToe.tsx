@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 type Player = "X" | "O" | null;
 type Board = Player[];
@@ -61,8 +61,10 @@ export default function GameTicTacToe() {
   const [winner, setWinner] = useState<Player>(null);
   const [draw, setDraw] = useState(false);
   const [score, setScore] = useState({ player: 0, ai: 0, draw: 0 });
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(timer.current), []);
 
-  const reset = useCallback(() => { setBoard(Array(9).fill(null)); setIsPlayerTurn(true); setWinner(null); setDraw(false); }, []);
+  const reset = useCallback(() => { clearTimeout(timer.current); setBoard(Array(9).fill(null)); setIsPlayerTurn(true); setWinner(null); setDraw(false); }, []);
 
   const handleClick = useCallback((i: number) => {
     if (board[i] || winner || draw || !isPlayerTurn) return;
@@ -75,7 +77,7 @@ export default function GameTicTacToe() {
     if (newBoard.every((c) => c !== null)) { setDraw(true); setScore((s) => ({ ...s, draw: s.draw + 1 })); return; }
 
     setIsPlayerTurn(false);
-    setTimeout(() => {
+    timer.current = setTimeout(() => {
       const ai = aiMove([...newBoard]);
       if (ai === -1) return;
       const afterAi = [...newBoard];
@@ -89,7 +91,7 @@ export default function GameTicTacToe() {
   }, [board, winner, draw, isPlayerTurn]);
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="relative flex flex-col items-center gap-4">
       <div className="flex w-full items-center justify-between">
         <div className="flex gap-3">
           <div className="glass-panel rounded-xl px-3 py-2 text-center">
@@ -114,6 +116,8 @@ export default function GameTicTacToe() {
         {board.map((cell, i) => (
           <button
             key={i}
+            aria-label={`井字棋格子 ${i + 1}${cell ? ` ${cell}` : ""}`}
+            disabled={!!cell || !!winner || draw || !isPlayerTurn}
             className={`aspect-square rounded-xl text-4xl font-bold transition-all ${
               cell ? "bg-white/30" : "bg-white/20 hover:bg-white/30"
             } ${cell === "X" ? "text-blue-600" : "text-red-500"}`}
@@ -125,7 +129,7 @@ export default function GameTicTacToe() {
       </div>
 
       {(winner || draw) && (
-        <div className="glass-panel fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
+        <div className="glass-panel absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
           <p className="font-display text-3xl text-stone-900">
             {winner === "X" ? "你赢了！" : winner === "O" ? "AI 赢了" : "平局"}
           </p>

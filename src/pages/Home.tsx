@@ -13,7 +13,10 @@ import {
   FlagTriangleRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { postPreviews, siteProfile } from "@/data/site";
+import { siteProfile } from "@/data/site";
+import { usePublicPosts } from "@/hooks/usePublicContent";
+import { ContentNotice } from "@/components/ContentNotice";
+import { contentDate, postHref } from "@/lib/content";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 const corners = [
   {
@@ -43,6 +46,7 @@ const corners = [
   { icon: FlagTriangleRight, title: "Formula 1 围场", en: "YUKINO MOTORSPORT", text: "每一圈，都值得期待。赛历、计时与观赛入口。", to: "/f1" },
 ];
 export default function Home() {
+  const published = usePublicPosts();
   useDocumentMeta(
     "首页",
     "Yukino 的个人空间，记录开发日常、折腾笔记和一些值得留下来的东西。",
@@ -126,14 +130,16 @@ export default function Home() {
         </div>
         <div className="writing-layout">
           <div className="writing-list">
-            {postPreviews.map((post, index) => (
-              <Link className="writing-row" to={post.href} key={post.title}>
+            <ContentNotice {...published} hasData={published.data.length > 0} />
+            {!published.loading && !published.error && !published.data.length && <p className="empty-notes">还没有公开笔记，之后再来看看。</p>}
+            {published.data.slice(0, 4).map((post, index) => (
+              <Link className="writing-row" to={postHref(post.slug)} key={post.id}>
                 <span className="writing-number">0{index + 1}</span>
                 <div>
                   <div className="writing-meta">
                     <span>{post.tag}</span>
-                    <time dateTime={post.date}>
-                      {post.date.replace(/-/g, ".")}
+                    <time dateTime={post.created_at}>
+                      {contentDate(post.created_at)}
                     </time>
                   </div>
                   <h3>{post.title}</h3>

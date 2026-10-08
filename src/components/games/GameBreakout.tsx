@@ -1,3 +1,4 @@
+import { readScore, writeScore } from "@/lib/game-storage";
 import { useState, useEffect, useRef, useCallback } from "react";
 
 const W = 400, H = 500;
@@ -13,7 +14,7 @@ type Ball = { x: number; y: number; dx: number; dy: number };
 export default function GameBreakout() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(() => Number(localStorage.getItem("bestBreakout") || 0));
+  const [best, setBest] = useState(() => readScore("bestBreakout"));
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
   const [running, setRunning] = useState(false);
@@ -69,7 +70,7 @@ export default function GameBreakout() {
 
       if (b.x < BALL_R || b.x > W - BALL_R) b.dx = -b.dx;
       if (b.y < BALL_R) b.dy = -b.dy;
-      if (b.y > H) { setGameOver(true); setRunning(false); setBest((best) => { const nb = Math.max(best, s.score); localStorage.setItem("bestBreakout", String(nb)); return nb; }); return; }
+      if (b.y > H) { setGameOver(true); setRunning(false); setBest((best) => { const nb = Math.max(best, s.score); writeScore("bestBreakout", nb); return nb; }); return; }
 
       if (b.y + BALL_R > H - 30 && b.y - BALL_R < H - 30 + PADDLE_H && b.x > s.paddleX && b.x < s.paddleX + PADDLE_W) {
         b.dy = -Math.abs(b.dy);
@@ -83,6 +84,7 @@ export default function GameBreakout() {
           b.dy = -b.dy;
           s.score += 10;
           setScore(s.score);
+          setBest(current => { const value = Math.max(current, s.score); writeScore("bestBreakout", value); return value; });
           break;
         }
       }
@@ -109,7 +111,7 @@ export default function GameBreakout() {
   }, [running, gameOver, won]);
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="relative flex flex-col items-center gap-4">
       <div className="flex w-full items-center justify-between">
         <div className="flex gap-4">
           <div className="glass-panel rounded-xl px-4 py-2 text-center">
@@ -135,14 +137,14 @@ export default function GameBreakout() {
       />
 
       {(gameOver || won) && (
-        <div className="glass-panel fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
+        <div className="glass-panel absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
           <p className="font-display text-3xl text-stone-900">{won ? "你赢了！" : "游戏结束"}</p>
           <p className="mt-2 text-sm text-stone-600">得分：{score}</p>
           <button onClick={reset} className="mt-4 glass-panel rounded-xl px-6 py-2 text-sm text-stone-700">再来一局</button>
         </div>
       )}
       {!running && !gameOver && !won && (
-        <div className="glass-panel fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
+        <div className="glass-panel absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
           <p className="font-display text-3xl text-stone-900">打砖块</p>
           <p className="mt-2 text-sm text-stone-600">移动鼠标/触摸控制挡板</p>
           <button onClick={reset} className="mt-4 glass-panel rounded-xl px-6 py-2 text-sm text-stone-700">开始游戏</button>

@@ -1,3 +1,4 @@
+import { readScore, writeScore } from "@/lib/game-storage";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ignoreGameKey } from "@/lib/game-keyboard";
 
@@ -14,7 +15,7 @@ type Pipe = { x: number; gapY: number; scored: boolean };
 export default function GameFlappy() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(() => Number(localStorage.getItem("bestFlappy") || 0));
+  const [best, setBest] = useState(() => readScore("bestFlappy"));
   const [gameOver, setGameOver] = useState(false);
   const [running, setRunning] = useState(false);
   const stateRef = useRef({ birdY: H / 2, birdV: 0, pipes: [] as Pipe[], frame: 0, score: 0 });
@@ -85,7 +86,7 @@ export default function GameFlappy() {
       if (dead) {
         setGameOver(true);
         setRunning(false);
-        setBest((b) => { const nb = Math.max(b, s.score); localStorage.setItem("bestFlappy", String(nb)); return nb; });
+        setBest((b) => { const nb = Math.max(b, s.score); writeScore("bestFlappy", nb); return nb; });
         return;
       }
       animId = requestAnimationFrame(loop);
@@ -95,7 +96,7 @@ export default function GameFlappy() {
   }, [running, gameOver]);
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="relative flex flex-col items-center gap-4">
       <div className="flex w-full items-center justify-between">
         <div className="flex gap-4">
           <div className="glass-panel rounded-xl px-4 py-2 text-center">
@@ -123,14 +124,14 @@ export default function GameFlappy() {
       />
 
       {(!running && !gameOver) && (
-        <div className="glass-panel fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
+        <div className="glass-panel absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
           <p className="font-display text-3xl text-stone-900">Flappy Bird</p>
           <p className="mt-2 text-sm text-stone-600">点击或按空格跳跃</p>
           <button onClick={reset} className="mt-4 glass-panel rounded-xl px-6 py-2 text-sm text-stone-700">开始游戏</button>
         </div>
       )}
       {gameOver && (
-        <div className="glass-panel fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
+        <div className="glass-panel absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
           <p className="font-display text-3xl text-stone-900">游戏结束</p>
           <p className="mt-2 text-sm text-stone-600">得分：{score}</p>
           <button onClick={reset} className="mt-4 glass-panel rounded-xl px-6 py-2 text-sm text-stone-700">再来一局</button>

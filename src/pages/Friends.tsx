@@ -1,4 +1,8 @@
 import { ArrowLeft, Heart, Star } from "lucide-react";
+import { useState } from "react";
+import { SearchField } from "@/components/SearchField";
+import { CopyButton } from "@/components/CopyButton";
+import { siteProfile } from "@/data/site";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
@@ -56,6 +60,9 @@ const friends = [
 export default function Friends() {
   useDocumentMeta("友情链接", "朋友站点、收藏链接和长期想保留的推荐页面。");
 
+  const [query, setQuery] = useState("");
+  const filtered = friends.filter(friend => (friend.name + " " + friend.desc + " " + friend.note).toLowerCase().includes(query.trim().toLowerCase()));
+  const exchange = `站点：${siteProfile.name}\n地址：https://www.yukino.bond/\n简介：${siteProfile.intro}\n联系：${siteProfile.email}`;
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
       <div>
@@ -78,8 +85,11 @@ export default function Friends() {
         </p>
       </div>
 
+      <SearchField value={query} onChange={setQuery} label="搜索友链或推荐站点" />
+      <p className="text-xs text-stone-500" aria-live="polite">{filtered.length} 个站点</p>
+      {!filtered.length && <p className="empty-notes">没有匹配的站点，试试其他关键词。</p>}
       <div className="grid gap-4 sm:grid-cols-2">
-        {friends.map((friend) => (
+        {filtered.map((friend) => (
           <a
             key={friend.name}
             className="glass-panel group flex flex-col gap-4 rounded-[28px] p-6 transition hover:-translate-y-1"
@@ -115,11 +125,12 @@ export default function Friends() {
           想交换友链？发送邮件到{" "}
           <a
             className="text-stone-900 underline underline-offset-2"
-            href="mailto:Raptor@yukino.bond"
+            href={`mailto:${siteProfile.email}?subject=${encodeURIComponent("交换友链")}&body=${encodeURIComponent("你好，我想交换友链。\n\n我的站点名称：\n网址：\n简介：\n联系方式：\n")}`}
           >
             Raptor@yukino.bond
           </a>
         </p>
+        <div className="mt-4"><CopyButton text={exchange} label="复制本站友链信息" /></div>
       </div>
     </div>
   );

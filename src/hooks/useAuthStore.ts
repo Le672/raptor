@@ -26,41 +26,40 @@ const USER_KEY = "yukino_auth_user";
 function loadStoredUser(): User | null {
   try {
     const raw = localStorage.getItem(USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const user = raw ? JSON.parse(raw) : null;
+    return user && Number.isSafeInteger(user.id) && typeof user.email === "string" && typeof user.name === "string" && ["admin", "user"].includes(user.role) ? user : null;
   } catch {
     return null;
   }
 }
 
 function loadStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
 }
 
+function store(key: string, value: string | null) {
+  try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); } catch { /* Keep this session usable in memory. */ }
+}
+
+const storedToken = loadStoredToken();
+
 export const useAuthStore = create<AuthStore>((set, get) => ({
-  user: loadStoredUser(),
-  token: loadStoredToken(),
+  user: storedToken ? loadStoredUser() : null,
+  token: storedToken,
   isLoading: false,
   setUser: (user) => {
-    if (user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(USER_KEY);
-    }
+    store(USER_KEY, user ? JSON.stringify(user) : null);
     set({ user });
   },
   setToken: (token) => {
-    if (token) {
-      localStorage.setItem(TOKEN_KEY, token);
-    } else {
-      localStorage.removeItem(TOKEN_KEY);
-    }
+    store(TOKEN_KEY, token);
     set({ token });
   },
   setLoading: (isLoading) => set({ isLoading }),
   logout: () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    set({ user: null, token: null });
+    store(TOKEN_KEY, null);
+    store(USER_KEY, null);
+    set({ user: null, token: null, isLoading: false });
   },
   isAdmin: () => get().user?.role === "admin",
 }));

@@ -1,4 +1,7 @@
 import { ArrowLeft, Github, Mail, MapPin, Globe } from "lucide-react";
+import { CopyButton } from "@/components/CopyButton";
+import { downloadText } from "@/lib/browser-actions";
+import { siteProfile } from "@/data/site";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
@@ -70,7 +73,7 @@ export default function AboutMe() {
       <div className="glass-panel rounded-[32px] p-6 sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
           <div className="inline-flex size-24 shrink-0 items-center justify-center rounded-3xl bg-stone-200 text-stone-500">
-            <span className="font-display text-3xl">YK</span>
+            <img src="/favicon.png" alt="Yukino 头像" className="size-24 rounded-full object-contain" />
           </div>
           <div className="space-y-4">
             <div>
@@ -79,6 +82,7 @@ export default function AboutMe() {
                 全栈开发者，喜欢折腾各种技术工具，热衷于将想法变成可用的产品。这个站点是我在互联网上的一小块自留地，记录学习、思考和创作。
               </p>
             </div>
+            <div className="flex flex-wrap gap-3"><CopyButton text={siteProfile.email} label="复制联系邮箱" /><button type="button" className="pill-button" onClick={() => downloadText("Yukino.vcf", `BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Yukino\r\nEMAIL:${siteProfile.email}\r\nURL:https://www.yukino.bond/\r\nEND:VCARD\r\n`, "text/vcard;charset=utf-8")}>保存联系名片</button></div>
             <div className="flex flex-wrap gap-4 text-sm text-stone-600">
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="size-3.5 text-stone-400" />

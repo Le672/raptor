@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { shuffle } from "@/lib/game-engines";
 
 const SIZE = 9;
 const MINES = 10;
@@ -9,12 +10,8 @@ function createBoard(firstClick: number): Cell[][] {
   const board: Cell[][] = Array.from({ length: SIZE }, () =>
     Array.from({ length: SIZE }, () => ({ mine: false, revealed: false, flagged: false, adjacent: 0 })),
   );
-  let placed = 0;
-  while (placed < MINES) {
-    const i = Math.floor(Math.random() * SIZE * SIZE);
-    if (i === firstClick || board[Math.floor(i / SIZE)][i % SIZE].mine) continue;
+  for (const i of shuffle(Array.from({ length: SIZE * SIZE }, (_, index) => index).filter(index => index !== firstClick)).slice(0, MINES)) {
     board[Math.floor(i / SIZE)][i % SIZE].mine = true;
-    placed++;
   }
   for (let r = 0; r < SIZE; r++)
     for (let c = 0; c < SIZE; c++)
@@ -55,15 +52,16 @@ export default function GameMinesweeper() {
   const [flagMode, setFlagMode] = useState(false);
   const [timer, setTimer] = useState(0);
   const [started, setStarted] = useState(false);
+  const startedAt = useRef(0);
 
   const reset = useCallback(() => { setBoard(null); setGameOver(false); setWon(false); setTimer(0); setStarted(false); }, []);
 
   const handleClick = useCallback((r: number, c: number) => {
     if (gameOver || won) return;
     let b = board;
-    if (!b) { b = createBoard(r * SIZE + c); setStarted(true); }
+    if (!b) { b = createBoard(r * SIZE + c); startedAt.current = Date.now(); setStarted(true); }
     const cell = b[r][c];
-    if (cell.revealed || cell.flagged) return;
+    if (cell.revealed || cell.flagged && !flagMode) return;
     if (flagMode) {
       const nb = b.map((row) => row.map((cell) => ({ ...cell })));
       nb[r][c].flagged = !nb[r][c].flagged;
@@ -90,17 +88,17 @@ export default function GameMinesweeper() {
     setBoard(nb);
   }, [board, gameOver, won]);
 
-  useState(() => {
+  useEffect(() => {
     if (started && !gameOver && !won) {
-      const t = setInterval(() => setTimer((s) => s + 1), 1000);
+      const t = setInterval(() => setTimer(Math.floor((Date.now() - startedAt.current) / 1000)), 250);
       return () => clearInterval(t);
     }
-  });
+  }, [started, gameOver, won]);
 
   const flags = board?.flat().filter((c) => c.flagged).length || 0;
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="relative flex flex-col items-center gap-4">
       <div className="flex w-full items-center justify-between">
         <div className="flex gap-4">
           <div className="glass-panel rounded-xl px-4 py-2 text-center">
@@ -113,7 +111,7 @@ export default function GameMinesweeper() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setFlagMode(!flagMode)} className={`glass-panel rounded-xl px-3 py-2 text-sm ${flagMode ? "bg-amber-200/40" : ""}`}>
+          <button aria-pressed={flagMode} onClick={() => setFlagMode(!flagMode)} className={`glass-panel rounded-xl px-3 py-2 text-sm ${flagMode ? "bg-amber-200/40" : ""}`}>
             {flagMode ? "🚩 标记中" : "🚩 标记"}
           </button>
           <button onClick={reset} className="glass-panel rounded-xl px-4 py-2 text-sm text-stone-700">
@@ -132,6 +130,8 @@ export default function GameMinesweeper() {
           return (
             <button
               key={i}
+              aria-label={`扫雷格子 ${i + 1}，${isRevealed ? isMine ? "地雷" : `${cell!.adjacent} 个相邻地雷` : isFlagged ? "已标记" : "未翻开"}`}
+              disabled={gameOver || won || isRevealed}
               className={`aspect-square rounded-md text-xs font-bold transition ${
                 isRevealed
                   ? isMine ? "bg-red-400/60" : "bg-white/20"
@@ -147,7 +147,7 @@ export default function GameMinesweeper() {
       </div>
 
       {(gameOver || won) && board && (
-        <div className="glass-panel fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
+        <div className="glass-panel absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
           <p className="font-display text-3xl text-stone-900">{won ? "你赢了！" : "踩到雷了！"}</p>
           {won && <p className="mt-2 text-sm text-stone-600">用时：{timer}秒</p>}
           <button onClick={reset} className="mt-4 glass-panel rounded-xl px-6 py-2 text-sm text-stone-700">再来一局</button>

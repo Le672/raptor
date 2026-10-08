@@ -1,3 +1,4 @@
+import { safeHttpUrl } from "./content";
 export type NewsCategory = "科技" | "开发" | "科学" | "国际";
 export type FeedSource = { key: string; label: string; url: string; fallbackUrls?: string[]; website: string; category: NewsCategory; language: "zh" | "en" };
 export const NEWS_FEEDS: FeedSource[] = [
@@ -22,7 +23,7 @@ export type NewsResponse = { items: NewsItem[]; errors: { source: string; label:
 export function isNewsItem(value: unknown): value is NewsItem {
   if (!value || typeof value !== "object") return false;
   const item = value as NewsItem;
-  return typeof item.title === "string" && !!item.title.trim() && item.title.length <= 500 && typeof item.link === "string" && /^https?:\/\//i.test(item.link) && item.link.length <= 2048 && typeof item.pubDate === "string" && item.pubDate.length <= 50 && NEWS_FEEDS.some((feed) => feed.key === item.source && feed.category === item.category && feed.language === item.language) && typeof item.sourceLabel === "string" && item.sourceLabel.length <= 80;
+  return typeof item.title === "string" && !!item.title.trim() && item.title.length <= 500 && typeof item.link === "string" && !!safeHttpUrl(item.link) && item.link.length <= 2048 && typeof item.pubDate === "string" && item.pubDate.length <= 50 && NEWS_FEEDS.some((feed) => feed.key === item.source && feed.category === item.category && feed.language === item.language) && typeof item.sourceLabel === "string" && item.sourceLabel.length <= 80;
 }
 export const isNewsList = (value: unknown): value is NewsItem[] => Array.isArray(value) && value.length <= 200 && value.every(isNewsItem);
 export function feedsToOpml(feeds = NEWS_FEEDS) {

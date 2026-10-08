@@ -1,11 +1,13 @@
 import { Component, ComponentType, lazy, ReactNode, Suspense, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check, Copy, Dices, Gamepad2, Loader2, Search, Star } from "lucide-react";
+import { ArrowLeft, Dices, Gamepad2, Loader2, Search, Star } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { HomeLink } from "@/components/HomeLink";
 import { gameCatalog, GameCategory } from "@/data/games";
 import { useStoredState } from "@/hooks/useStoredState";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { todayKey } from "@/lib/game-engines";
+import { dailyGameKey } from "@/lib/daily-game";
+import { CopyButton } from "@/components/CopyButton";
 
 const components: Record<string, ComponentType> = {
   "2048": lazy(() => import("@/components/games/Game2048")),
@@ -39,21 +41,23 @@ export default function Games() {
   const [params, setParams] = useSearchParams(); const activeGame = params.get("game");
   const [query, setQuery] = useState(""); const [category, setCategory] = useState<GameCategory | "全部" | "收藏">("全部");
   const [favorites, setFavorites, persistent] = useStoredState("yukino.games.favorites", [], isIds);
-  const [recent, setRecent] = useStoredState("yukino.games.recent", [], isIds); const [copied, setCopied] = useState(false);
+  const [recent, setRecent] = useStoredState("yukino.games.recent", [], isIds);
   const game = gameCatalog.find((g) => g.id === activeGame); const GameComponent = game && components[game.id];
-  const daily = params.get("daily") && /^\d{4}-\d{2}-\d{2}$/.test(params.get("daily")!) ? params.get("daily") : null;
-  useEffect(() => { window.scrollTo(0, 0); setCopied(false); }, [activeGame, daily]);
+  const daily = game && ["sudoku", "puzzle"].includes(game.id) ? dailyGameKey(params.get("daily")) : null;
+  useEffect(() => { window.scrollTo(0, 0); if (game) setRecent(previous => previous[0] === game.id ? previous : [game.id, ...previous.filter(id => id !== game.id)].slice(0, 5)); }, [game, daily, setRecent]);
   useDocumentMeta(game ? `${game.name}${daily ? " · 每日挑战" : ""}` : "小游戏中心", "19 个小游戏：数独、华容道、四子棋、五子棋、街机与反应练习。无需安装，打开即玩。");
   const filtered = useMemo(() => gameCatalog.filter((g) => (category === "全部" || (category === "收藏" ? favorites.includes(g.id) : g.category === category)) && `${g.name} ${g.nameEn} ${g.description}`.toLowerCase().includes(query.trim().toLowerCase())), [query, category, favorites]);
   const open = (id: string, challenge = false) => { setRecent((previous) => [id, ...previous.filter((n) => n !== id)].slice(0, 5)); setParams({ game: id, ...(challenge ? { daily: todayKey() } : {}) }); };
   const favorite = (id: string) => setFavorites((previous) => previous.includes(id) ? previous.filter((n) => n !== id) : [...previous, id]);
   if (GameComponent && game) return <div className="feature-page game-detail">
     <div className="feature-heading"><button className="pill-button" onClick={() => setParams({})}><ArrowLeft size={15} />返回游戏列表</button><span className="feature-eyebrow">{game.nameEn}{daily ? ` · ${daily}` : ""}</span></div>
-    <div className="game-title-row"><div><h1>{game.name}</h1><p>{game.description}</p></div><div className="game-actions"><button className="pill-button" aria-label={favorites.includes(game.id) ? "取消收藏游戏" : "收藏游戏"} aria-pressed={favorites.includes(game.id)} onClick={() => favorite(game.id)}><Star size={15} fill={favorites.includes(game.id) ? "currentColor" : "none"} />收藏</button><button className="pill-button" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); setCopied(true); } catch { setCopied(false); } }}>{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "已复制" : "复制链接"}</button></div></div>
+    <div className="game-title-row"><div><h1>{game.name}</h1><p>{game.description}</p></div><div className="game-actions"><button className="pill-button" aria-label={favorites.includes(game.id) ? "取消收藏游戏" : "收藏游戏"} aria-pressed={favorites.includes(game.id)} onClick={() => favorite(game.id)}><Star size={15} fill={favorites.includes(game.id) ? "currentColor" : "none"} />收藏</button><CopyButton text={"https://www.yukino.bond/games?game=" + game.id + (daily ? "&daily=" + daily : "")} label="复制游戏链接" /></div></div>
+    {params.get("daily") && !daily && ["sudoku", "puzzle"].includes(game.id) && <p role="status" className="game-notice">挑战日期无效，当前为普通模式。</p>}
     <GameBoundary key={`${game.id}:${daily}`}><Suspense fallback={<p className="game-notice" role="status"><Loader2 className="animate-spin" size={18} />正在加载游戏…</p>}><GameComponent /></Suspense></GameBoundary>
     <p className="local-note">成绩和收藏保存在当前浏览器。<Link to="/focus">玩够了？去专注一会儿 ↗</Link></p>
   </div>;
   return <div className="feature-page">
+    {activeGame && !game && <p role="alert" className="game-notice">没有找到这个游戏，可以从下方重新选择。<button type="button" className="ml-3 underline" onClick={() => setParams({})}>清除无效链接</button></p>}
     <div><div className="feature-heading"><HomeLink className="pill-button"><ArrowLeft size={15} />返回首页</HomeLink><span className="feature-eyebrow">PLAY A LITTLE</span></div><h1 className="feature-title">小游戏中心<span>{gameCatalog.length} 个小乐趣</span></h1><p className="feature-description">换个节奏，开一局。益智、棋类、街机和手速练习，打开即玩。</p></div>
     <div className="daily-challenge"><div><span className="feature-eyebrow">DAILY CHALLENGE · {todayKey()}</span><h2>每天两道新题目</h2><p>同一天打开的是同一题，可以复制链接和朋友一起挑战。</p></div><div className="game-actions"><button className="pill-button" onClick={() => open("sudoku", true)}>每日数独</button><button className="pill-button" onClick={() => open("puzzle", true)}>每日华容道</button></div></div>
     <div className="feature-toolbar"><label className="feature-search"><Search size={17} /><input aria-label="搜索小游戏" placeholder="找个游戏玩…" value={query} onChange={(event) => setQuery(event.target.value)} /></label><button className="pill-button" disabled={!filtered.length} onClick={() => open(filtered[Math.floor(Math.random() * filtered.length)].id)}><Dices size={16} />随机一局</button></div>

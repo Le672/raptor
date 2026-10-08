@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, FlaskConical, Sparkles } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { CopyButton } from "@/components/CopyButton";
 
 /* A small interactive experiment: particle text effect */
 
 function ParticleText() {
   const [text, setText] = useState("Yukino Lab");
   const [sparkles, setSparkles] = useState<
-    { id: number; x: number; y: number; color: string }[]
+    { id: number; x: number; y: number; color: string; createdAt: number }[]
   >([]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const sequence = useRef(0);
+  useEffect(() => { const timer = setInterval(() => setSparkles(previous => previous.filter(point => Date.now() - point.createdAt < 650)), 150); return () => clearInterval(timer); }, []);
+  const handlePointer = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -25,7 +29,8 @@ function ParticleText() {
       "#EC4899",
     ];
     const newSparkle = {
-      id: Date.now(),
+      id: ++sequence.current,
+      createdAt: Date.now(),
       x,
       y,
       color: colors[Math.floor(Math.random() * colors.length)],
@@ -38,7 +43,9 @@ function ParticleText() {
       <div className="flex items-center gap-3">
         <input
           className="flex-1 rounded-2xl border border-white/40 bg-white/30 px-4 py-3 text-sm text-stone-800 backdrop-blur-xl focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
-          onChange={(e) => setText(e.target.value || "Yukino Lab")}
+          onChange={(e) => setText(e.target.value)}
+          maxLength={60}
+          aria-label="粒子文字"
           placeholder="输入文字..."
           type="text"
           value={text}
@@ -46,9 +53,10 @@ function ParticleText() {
       </div>
       <div
         className="relative flex h-40 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/20 backdrop-blur-xl"
-        onMouseMove={handleMouseMove}
+        onPointerMove={event => { if (event.pointerType !== "touch") handlePointer(event); }}
+        onPointerDown={handlePointer}
       >
-        <span className="relative z-10 font-display text-4xl text-stone-800 select-none">
+        <span className="relative z-10 break-all p-5 text-center font-display text-4xl text-stone-800 select-none">
           {text}
         </span>
         {sparkles.map((s) => (
@@ -75,20 +83,16 @@ function ParticleText() {
 function Counter() {
   const [count, setCount] = useState(0);
   const [clicks, setClicks] = useState<number[]>([]);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 100); return () => clearInterval(timer); }, []);
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setClicks((prev) => [...prev.slice(-10), Date.now()]);
+  const handleClick = () => {
+    const time = Date.now(); setNow(time);
+    setClicks((prev) => [...prev.filter(value => time - value < 1000).slice(-99), time]);
     setCount((c) => c + 1);
   };
 
-  const cps =
-    clicks.length >= 2
-      ? (
-          clicks.length /
-          ((clicks[clicks.length - 1] - clicks[0]) / 1000)
-        ).toFixed(1)
-      : "0";
+  const cps = clicks.filter(time => now - time < 1000).length;
 
   return (
     <div className="space-y-4">
@@ -96,6 +100,7 @@ function Counter() {
         <button
           className="inline-flex size-20 items-center justify-center rounded-full bg-stone-900 text-2xl text-white transition active:scale-95"
           onClick={handleClick}
+          aria-label="增加点击计数"
           type="button"
         >
           {count}
@@ -105,10 +110,11 @@ function Counter() {
             点击次数: <span className="text-stone-900">{count}</span>
           </p>
           <p>
-            点击速度: <span className="text-stone-900">{cps} 次/秒</span>
+            最近一秒: <span className="text-stone-900">{cps} 次/秒</span>
           </p>
         </div>
       </div>
+      <button type="button" className="pill-button" onClick={() => { setCount(0); setClicks([]); }}>重置计数</button>
     </div>
   );
 }
@@ -139,7 +145,7 @@ function RandomGradient() {
         style={{ background: gradient }}
       />
       <div className="flex items-center gap-3">
-        <code className="flex-1 truncate rounded-2xl border border-white/30 bg-white/20 px-4 py-3 backdrop-blur-xl text-xs text-stone-600">
+        <code className="min-w-0 flex-1 break-all rounded-2xl border border-white/30 bg-white/20 px-4 py-3 backdrop-blur-xl text-xs text-stone-600">
           {gradient}
         </code>
         <button
@@ -151,6 +157,7 @@ function RandomGradient() {
           随机生成
         </button>
       </div>
+      <CopyButton text={`background: ${gradient};`} label="复制渐变 CSS" />
     </div>
   );
 }
@@ -189,7 +196,7 @@ export default function Lab() {
             </h2>
           </div>
           <p className="mb-5 text-sm text-stone-600">
-            鼠标在文字上移动时会产生彩色粒子效果。
+            移动鼠标或轻触文字区域，留下短暂的彩色粒子。
           </p>
           <ParticleText />
         </div>

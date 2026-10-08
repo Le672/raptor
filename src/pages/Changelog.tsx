@@ -1,6 +1,10 @@
 import { ArrowLeft, GitCommit, Plus, Wrench, Zap } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { useSearchParams } from "react-router-dom";
+import { SearchField } from "@/components/SearchField";
+import { CopyButton } from "@/components/CopyButton";
+import { useEffect } from "react";
 
 type ChangelogEntry = {
   date: string;
@@ -11,6 +15,20 @@ type ChangelogEntry = {
 };
 
 const changelog: ChangelogEntry[] = [
+  {
+    date: "2026-10-08",
+    type: "improvement",
+    title: "全站功能审查与内容联通",
+    changes: [
+      "首页、笔记、博客、全站搜索和资源站读取管理台的云端内容，保留旧文章链接；文章增加目录、代码复制与前后篇导航，管理台补齐草稿列表、正文读取和保存校验",
+      "状态页改为真实 HTTPS 检测，显示响应码、耗时与检测时间；本站新增文章 RSS，订阅页支持搜索、复制和完整 OPML 导出",
+      "七个开发工具补齐输入校验、MD5、颜色双向转换和工具链接，修复极端时间戳、空白编码、中文命名及复制反馈；实验室支持触屏粒子、可重置计数与渐变 CSS 复制",
+      "专注页支持校验后导入备份，撤销删除保留新任务；设备清单增加搜索、分类与条目排序；导航支持本机收藏和书签导出，友链与更新日志增加搜索，联系信息可复制或保存名片",
+      "修复扫雷计时与触屏取消标记、贪吃蛇快速转向与满盘处理、俄罗斯方块旋转颜色与消行、井字棋和 Simon 重置后的旧定时器；游戏成绩在浏览器存储不可用时仍能使用",
+      "全站搜索支持方向键与焦点回退，增加页面错误恢复和登录状态重新校验，完善未知页面入口及登录表单",
+      "F1 页面可复制当前赛季与标签页链接，修复车队积分空列表与官方核对入口，并统一去除搜索首尾空格；铁路余票、中转、位置和车站大屏继续使用独立来源状态与回归验证",
+    ],
+  },
   {
     date: "2026-10-08",
     type: "improvement",
@@ -415,9 +433,15 @@ const typeConfig = {
     className: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
   },
 };
+const entryAnchor = (entry: ChangelogEntry) => `change-${entry.date}-${entry.title.replace(/[^\p{L}\p{N}]+/gu, "-")}`;
 
 export default function Changelog() {
   useDocumentMeta("更新日志", "汇总站点、工具和页面的持续更新记录。");
+  const [params, setParams] = useSearchParams();
+  const query = params.get("q") ?? "", type = params.get("type") ?? "all";
+  const update = (key: string, value: string) => setParams(previous => { const next = new URLSearchParams(previous); if (value) next.set(key, value); else next.delete(key); return next; }, { replace: true });
+  const entries = changelog.filter(entry => (type === "all" || entry.type === type) && `${entry.date} ${entry.title} ${entry.version ?? ""} ${entry.changes.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase()));
+  useEffect(() => { try { const id = decodeURIComponent(window.location.hash.slice(1)); if (id) document.getElementById(id)?.scrollIntoView(); } catch { /* Ignore malformed fragments. */ } }, [query, type]);
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
@@ -441,17 +465,21 @@ export default function Changelog() {
         </p>
       </div>
 
+      <SearchField value={query} onChange={value => update("q", value)} label="搜索日期、版本或改动" />
+      <div className="flex flex-wrap gap-2"><button type="button" className="pill-button" aria-pressed={type === "all"} onClick={() => update("type", "")}>全部类型</button>{Object.entries(typeConfig).map(([key, config]) => <button type="button" className="pill-button" key={key} aria-pressed={type === key} onClick={() => update("type", key)}>{config.label}</button>)}</div>
+      <p className="text-xs text-stone-500" aria-live="polite">{entries.length} 条记录 · 按实际变更日期排列</p>
+      {!entries.length && <p className="empty-notes">没有匹配的更新。<button type="button" className="ml-3 underline" onClick={() => setParams({})}>重置筛选</button></p>}
       <div className="space-y-1">
-        {changelog.map((entry, index) => {
+        {entries.map((entry, index) => {
           const config = typeConfig[entry.type];
           const Icon = config.icon;
           return (
-            <div key={`${entry.date}-${entry.title}`} className="flex gap-6">
+            <div key={`${entry.date}-${entry.title}`} id={entryAnchor(entry)} className="flex scroll-mt-32 gap-6">
               <div className="flex flex-col items-center">
                 <div className="flex size-10 items-center justify-center rounded-full border-2 border-white/40 bg-white/30 backdrop-blur-xl">
                   <GitCommit className="size-4 text-stone-500" />
                 </div>
-                {index < changelog.length - 1 && (
+                {index < entries.length - 1 && (
                   <div className="mt-1 w-px flex-1 bg-stone-200" />
                 )}
               </div>
@@ -471,6 +499,7 @@ export default function Changelog() {
                   <span className="text-xs text-stone-500">{entry.date}</span>
                 </div>
                 <h3 className="mt-2 text-lg text-stone-900">{entry.title}</h3>
+                <div className="mt-3"><CopyButton text={`https://www.yukino.bond/changelog#${encodeURIComponent(entryAnchor(entry))}`} label="复制这条更新链接" /></div>
                 <ul className="mt-3 space-y-1.5">
                   {entry.changes.map((change) => (
                     <li

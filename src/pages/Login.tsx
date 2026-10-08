@@ -5,8 +5,10 @@ import { HomeLink } from "@/components/HomeLink";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 export default function Login() {
+  useDocumentMeta("登录", "使用 Yukino Mail 账号或原主站账号登录。");
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { setUser, setToken } = useAuthStore();
@@ -15,14 +17,16 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [source, setSource] = useState<"mail" | "local">("mail");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
     setLoading(true);
 
     try {
-      const res = await api.login(email, password, source);
+      const res = await api.login(email.trim().toLowerCase(), password, source);
       setToken(res.token);
       setUser(res.user);
       const next = params.get("next");
@@ -86,7 +90,7 @@ export default function Login() {
             <label htmlFor="login-password" className="text-sm font-medium text-stone-700">密码</label>
             <input
               className="w-full rounded-2xl border border-white/40 bg-white/30 px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 backdrop-blur-xl focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
-              type="password"
+              type={showPassword ? "text" : "password"}
               id="login-password"
               autoComplete="current-password"
               value={password}
@@ -94,6 +98,7 @@ export default function Login() {
               placeholder={source === "mail" ? "邮箱账号的密码" : "原主站账号的密码"}
               required
             />
+            <button type="button" className="text-xs text-stone-500 underline" aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? "隐藏密码" : "显示密码"}</button>
           </div>
 
           <button
