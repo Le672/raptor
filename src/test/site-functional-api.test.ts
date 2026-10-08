@@ -14,6 +14,7 @@ import { parseFocusBackup, restoreDeletedTasks } from "../lib/focus-data";
 import { randomSnakeFood, stepSnake } from "../lib/snake";
 import { dailyGameKey } from "../lib/daily-game";
 import { SUBSCRIPTIONS, subscriptionsOpml } from "../lib/rss-catalog";
+import { canonicalSlug, postHref } from "../lib/content";
 
 let db: ReturnType<typeof createPortalDb>, env: any, admin: string, reader: string;
 const article = { title: "测试笔记", slug: "test-note", summary: "摘要", content: "## 正文\n\n不要丢失这段正文", tag: "新分类", published: false };
@@ -58,13 +59,29 @@ describe("published content and administrator editing", () => {
     expect((await posts.onRequestDelete(context("posts?id=1", "DELETE", undefined, admin))).status).toBe(403);
   });
   it("maintains old article URLs and prevents private articles entering RSS", async () => {
-    await posts.onRequestPost(context("posts", "POST", { ...article, slug: "domain-portal", published: true }, admin));
+    await posts.onRequestPost(context("posts", "POST", { ...article, slug: "domain-structure", published: true }, admin));
     await posts.onRequestPost(context("posts", "POST", { ...article, title: "私密草稿", slug: "private" }, admin));
-    expect((await (await posts.onRequestGet(context("posts?slug=personal-domain"))).json()).post.slug).toBe("domain-portal");
-    const xml = await (await feed(context("feed"))).text(); expect(xml).not.toContain("私密草稿"); expect(xml).toContain("post=domain-portal");
+    expect((await (await posts.onRequestGet(context("posts?slug=personal-domain"))).json()).post.slug).toBe("domain-structure");
+    const xml = await (await feed(context("feed"))).text(); expect(xml).not.toContain("私密草稿"); expect(xml).toContain("post=domain-structure");
     const escaped = renderSiteFeed([{ ...article, id: 3, published: true, title: "<script>&标题", created_at: "2026-10-08 01:00:00", updated_at: "2026-10-08 02:00:00", author_name: "Yukino" }]);
     expect(escaped).toContain("&lt;script&gt;&amp;标题"); expect(escaped).toContain("Thu, 08 Oct 2026 01:00:00 GMT");
     expect(subscriptionsOpml().match(/<outline /g)).toHaveLength(SUBSCRIPTIONS.length);
+  });
+  it.each([
+    ["personal-domain", "domain-structure"],
+    ["domain-portal", "domain-structure"],
+    ["developer-tools", "dev-tools-design"],
+    ["resource-box", "box-vs-download"],
+    ["personal-pages", "essential-pages"],
+  ])("resolves legacy %s to the existing published slug %s", async (legacy, canonical) => {
+    await posts.onRequestPost(context("posts", "POST", { ...article, slug: canonical, published: true }, admin));
+    const response = await posts.onRequestGet(context("posts?slug=" + legacy));
+    expect(response.status).toBe(200);
+    expect((await response.json()).post).toMatchObject({ slug: canonical, content: article.content });
+    const direct = await posts.onRequestGet(context("posts?slug=" + canonical));
+    expect(direct.status).toBe(200);
+    expect(canonicalSlug(legacy)).toBe(canonical);
+    expect(postHref(legacy)).toBe("/blog?post=" + canonical);
   });
   it("accepts real resource edits and rejects unsafe links, invalid ordering and unauthorized users", async () => {
     expect((await box.onRequestPost(context("box", "POST", resource, reader))).status).toBe(403);

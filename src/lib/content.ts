@@ -4,7 +4,13 @@ export type PostSummary = Omit<Post, "content">;
 export type BoxInput = { title: string; description: string; url: string; category: string; size: string; sort_order: number };
 export type BoxItem = BoxInput & { id: number; created_at: string; updated_at: string };
 
-const aliases: Record<string, string> = { "personal-domain": "domain-portal", "resource-box": "box-vs-download", "personal-pages": "essential-pages" };
+const aliases: Record<string, string> = {
+  "personal-domain": "domain-structure",
+  "domain-portal": "domain-structure",
+  "developer-tools": "dev-tools-design",
+  "resource-box": "box-vs-download",
+  "personal-pages": "essential-pages",
+};
 export const canonicalSlug = (slug: string) => aliases[slug] ?? slug;
 export const postHref = (slug: string) => `/blog?post=${encodeURIComponent(canonicalSlug(slug))}`;
 export function contentDate(value: string) {

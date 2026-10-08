@@ -45,7 +45,7 @@ describe("cloud content on public and admin pages", () => {
     const notes = mount(<Notes />, "/notes"); await screen.findByRole("heading", { name: article.title });
     fireEvent.click(screen.getByRole("button", { name: "新分类" })); expect(screen.getByRole("link", { name: /云端新增笔记/ })).toHaveAttribute("href", "/blog?post=cloud-note");
     fireEvent.change(screen.getByRole("textbox", { name: "搜索笔记标题或摘要" }), { target: { value: " 云端 " } }); expect(screen.getByRole("heading", { name: article.title })).toBeVisible(); notes.unmount();
-    const blog = mount(<Blog />, "/blog?post=personal-domain"); await screen.findByRole("heading", { name: article.title }); expect(api.getPost).toHaveBeenCalledWith("domain-portal");
+    const blog = mount(<Blog />, "/blog?post=personal-domain"); await screen.findByRole("heading", { name: article.title }); expect(api.getPost).toHaveBeenCalledWith("domain-structure");
     expect(screen.getByRole("navigation", { name: "文章目录" })).toBeVisible(); expect(screen.getByText("const n = 1;")).toBeVisible(); blog.unmount();
     mount(<QuickSearch open onClose={vi.fn()} />); fireEvent.change(screen.getByRole("combobox", { name: "搜索内容" }), { target: { value: "云端" } }); expect(await screen.findByRole("option", { name: /云端新增笔记/ })).toBeVisible();
   });

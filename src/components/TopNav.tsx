@@ -12,6 +12,7 @@ export function TopNav() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const subdomainHome = isRailHost() || (window.location.hostname.endsWith(".yukino.bond") && window.location.hostname !== "www.yukino.bond");
   const [searchOpen, setSearchOpen] = useState(false);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -49,7 +50,7 @@ export function TopNav() {
         </div>
         <nav className="site-navigation" aria-label="主导航">
           {siteNavigation.map((item) => (
-            isRailHost() && item.to === "/" ? <a key={item.to} href="https://www.yukino.bond/" title={item.description}>{item.label}</a> :
+            subdomainHome && item.to === "/" ? <a key={item.to} href="https://www.yukino.bond/" title={item.description}>{item.label}</a> :
             isRailHost() && item.to === "/cr" ? <Link key={item.to} to="/ticket" title={item.description} className={isRailPath(location.pathname) ? "active" : undefined} aria-current={isRailPath(location.pathname) ? "page" : undefined}>{item.label}</Link> :
             <NavLink key={item.to} end={item.to === "/"} to={item.to} title={item.description}>{item.label}</NavLink>
           ))}

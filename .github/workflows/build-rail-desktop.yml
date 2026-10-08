@@ -19,6 +19,7 @@ on:
       - 'src/lib/rail-station-coordinates.ts'
       - 'src/data/rail-station-coordinates.json'
       - 'vite.config.ts'
+      - 'scripts/check-build-assets.mjs'
       - 'src/lib/railgo.ts'
       - 'src/lib/train-art.ts'
       - 'src/lib/train-position.ts'
