@@ -8,6 +8,10 @@ type Env = { DB: any; AI?: { run: (model: string, input: Record<string, unknown>
 type Context = { request: Request; env: Env };
 class RadioError extends Error { constructor(message: string, public status = 503) { super(message); } }
 const MAX_AUDIO = 4 * 1024 * 1024;
+function sourceFailure(error: unknown): RadioError {
+  const message = error instanceof Error && /^(OpenF1 |数据源|暂时无法连接数据源)/.test(error.message) ? error.message : "无线电数据源暂不可用，请稍后重试";
+  return new RadioError(message, message.includes("请求频率受限") ? 429 : 503);
+}
 
 function recording(raw: any): RadioTextRequest | null {
   if (!raw || !/^[1-9]\d{0,7}$/.test(String(raw.session)) || !/^[1-9]\d{0,2}$/.test(String(raw.driver)) ||
@@ -30,14 +34,14 @@ export function trustedRadioUrl(value: string) {
 }
 
 async function audioRecording(entry: RadioTextRequest, token?: string) {
-  const session = (await openf1("sessions", { session_key: entry.session }, token, 3600000))[0] as F1Session | undefined;
+  const session = (await openf1("sessions", { session_key: entry.session }, token, 3600000).catch(error => { throw sourceFailure(error); }))[0] as F1Session | undefined;
   if (!session || session.is_cancelled) throw new RadioError("该场次暂不可用", 404);
   if (!token && Date.now() < Date.parse(session.date_end) + 30 * 60000) throw new RadioError("比赛中的无线电需要有效的 OpenF1 实时订阅授权", 403);
-  const rows = await openf1("team_radio", { session_key: entry.session, driver_number: entry.driver }, token, 300000) as F1Radio[];
+  const rows = await openf1("team_radio", { session_key: entry.session, driver_number: entry.driver }, token, 300000).catch(error => { throw sourceFailure(error); }) as F1Radio[];
   const row = rows.find(radio => radio.driver_number === entry.driver && Date.parse(radio.date) === Date.parse(entry.date));
   const address = row && trustedRadioUrl(row.recording_url);
   if (!address) throw new RadioError("未找到这段官方无线电录音", 404);
-  const result = await fetch(address, { redirect: "error", signal: AbortSignal.timeout(15000) });
+  const result = await fetch(address, { redirect: "error", signal: AbortSignal.timeout(15000) }).catch(() => { throw new RadioError("录音暂时无法读取，请稍后重试"); });
   if (!result.ok || !result.body) throw new RadioError("录音暂时无法读取，请稍后重试");
   if (Number(result.headers.get("Content-Length")) > MAX_AUDIO) throw new RadioError("录音过大，暂不支持转写", 413);
   const reader = result.body.getReader(), chunks: Uint8Array[] = [];
@@ -91,6 +95,7 @@ export async function onRequestPost({ request, env }: Context) {
   if (!entry) return errorResponse("录音参数不正确");
   const key = keyFor(entry);
   let acquired = false;
+  let stage = "cache";
   try {
     await ensureF1Schema(env.DB);
     const cached = await read(env.DB, key);
@@ -103,13 +108,16 @@ export async function onRequestPost({ request, env }: Context) {
       WHERE status != 'working' OR lease_until <= ? RETURNING recording_key`).bind(key, now + 120000, new Date(now).toISOString(), now).first();
     if (!lease) return jsonResponse(responseText(await read(env.DB, key)), 202);
     acquired = true;
+    stage = "quota";
     await allowInference(request, env.DB);
     let transcript = cached?.transcript || "", language = cached?.language || "en";
     if (!transcript) {
+      stage = "recording";
       const audio = await audioRecording(entry, env.OPENF1_TOKEN);
+      stage = "transcription";
       let result: any;
       try { result = await env.AI.run("@cf/openai/whisper-large-v3-turbo", { audio, task: "transcribe", vad_filter: true, condition_on_previous_text: false }); }
-      catch { throw new RadioError("语音转写服务暂不可用，请稍后重试"); }
+      catch (error) { console.warn("F1 radio transcription failed", error instanceof Error ? error.message : "Model request failed"); throw new RadioError("语音转写服务暂不可用，请稍后重试"); }
       transcript = typeof result?.text === "string" ? result.text.trim() : "";
       if (!transcript || transcript.length > 6000 || /^\[.*(silence|blank|no speech).*\]$/i.test(transcript)) throw new RadioError("这段录音未识别出清晰语音，可播放原声后重试", 422);
       const detected = result?.transcription_info?.language;
@@ -117,6 +125,7 @@ export async function onRequestPost({ request, env }: Context) {
       await env.DB.prepare("UPDATE f1_radio_text SET transcript = ?, language = ?, updated_at = ? WHERE recording_key = ?")
         .bind(transcript, language, new Date().toISOString(), key).run();
     }
+    stage = "translation";
     let translation = "", translationError = "";
     try {
       if (language === "zh") translation = transcript;
@@ -125,11 +134,13 @@ export async function onRequestPost({ request, env }: Context) {
         translation = typeof result?.translated_text === "string" ? result.translated_text.trim() : "";
         if (!translation || translation.length > 10000) throw new Error("Empty translation");
       }
-    } catch { translationError = "中文翻译暂未完成，已保留转写原文；可以重试翻译。"; }
+    } catch (error) { console.warn("F1 radio translation failed", error instanceof Error ? error.message : "Model request failed"); translationError = "中文翻译暂未完成，已保留转写原文；可以重试翻译。"; }
+    stage = "save";
     await env.DB.prepare("UPDATE f1_radio_text SET translation = ?, status = 'ready', lease_until = 0, error = ?, updated_at = ? WHERE recording_key = ?")
       .bind(translation, translationError, new Date().toISOString(), key).run();
     return jsonResponse(responseText(await read(env.DB, key)));
   } catch (error) {
+    console.warn("F1 radio processing failed", { stage, message: error instanceof Error ? error.message : "Unknown failure" });
     const message = error instanceof RadioError ? error.message : "无线电文字未生成，请稍后重试";
     if (acquired) {
       try { await env.DB.prepare("UPDATE f1_radio_text SET status = 'error', lease_until = 0, error = ?, updated_at = ? WHERE recording_key = ?").bind(message, new Date().toISOString(), key).run(); }

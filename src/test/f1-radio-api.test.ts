@@ -80,4 +80,10 @@ describe("verified team radio transcription and translation", () => {
     expect(endpoint.trustedRadioUrl("https://name:password@livetiming.formula1.com/audio.mp3")).toBeNull();
     expect(endpoint.trustedRadioUrl("https://livetiming.formula1.com.evil.test/audio.mp3")).toBeNull();
   });
+  it("reports upstream rate limits without replacing them with a generic recognition error", async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response("rate limited",{status:429}));
+    const response = await post();
+    expect(response.status).toBe(429); expect((await response.json()).error).toContain("OpenF1 请求频率受限");
+    expect(run).not.toHaveBeenCalled();
+  });
 });
