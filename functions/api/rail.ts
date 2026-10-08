@@ -480,6 +480,13 @@ export async function onRequestGet(context: { request: Request }) {
       trains: parseTrains(data.result, { ...names, ...data.map }, trainCode, trainNo, date),
     }, 200, 30);
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "查询 12306 失败" }, error instanceof QueryError ? error.status : 502);
+    return json({ error: railQueryError(error) }, error instanceof QueryError ? error.status : 502);
   }
+}
+
+export function railQueryError(error: unknown) {
+  const name = error && typeof error === "object" && "name" in error ? error.name : "";
+  if (name === "SyntaxError") return "12306 暂未返回可用资料，请稍后重试或前往官网查询";
+  if (name === "AbortError" || name === "TimeoutError") return "12306 查询超时，请稍后重试";
+  return error instanceof Error ? error.message : "查询 12306 失败，请稍后重试";
 }

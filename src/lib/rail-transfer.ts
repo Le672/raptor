@@ -1,4 +1,4 @@
-import { railApiUrl } from "./rail-api";
+import { railApiUrl, readRailResponse } from "./rail-api";
 import { candidateHubs, findStation, interchangeVariants, stationVariants, transferLink } from "./rail-station-groups";
 import type { TransferLink } from "./rail-station-groups";
 import { chinaDateTime, isJourneyDate } from "./train-position";
@@ -67,8 +67,8 @@ export function makeTrip(legs: Leg[], connections: TransferLink[], settings: Tra
 }
 async function json<T>(params: URLSearchParams, signal?: AbortSignal) {
   const response = await fetch(railApiUrl(params), { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000) });
-  const data = await response.json();
-  if (!response.ok || data.source !== "12306") throw new Error(data.error || "12306 查询资料暂不可用");
+  const data = await readRailResponse<T & { source?: string }>(response);
+  if (data.source !== "12306") throw new Error("12306 查询资料暂不可用");
   return data as T;
 }
 export async function searchTransfers(settings: TransferSettings, stations: Station[], signal: AbortSignal, onProgress: (progress: TransferProgress) => void): Promise<TransferResult> {

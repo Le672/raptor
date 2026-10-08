@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Maximize, Minimize, RefreshCw, TrainFront } from "lucide-react";
 import type { Station } from "../lib/rail-tickets";
-import { railApiUrl } from "../lib/rail-api";
+import { railApiUrl, readRailResponse } from "../lib/rail-api";
 import { chinaDateTime } from "../lib/train-position";
 import { boardRows, boardStatusText, CHECK_IN_TEXT } from "../lib/rail-board";
 import type { BoardDirection, BoardRowDetail, StationBoardData } from "../lib/rail-board";
@@ -13,9 +13,7 @@ const detailKey = (direction: BoardDirection, id: string) => `${direction}/${id}
 function savedStation() { try { return localStorage.getItem("yukino-board-station") || "广州南"; } catch { return "广州南"; } }
 async function read<T>(params: Record<string, string>, signal: AbortSignal): Promise<T> {
   const response = await fetch(railApiUrl(new URLSearchParams(params)), { signal });
-  const data = await response.json() as T & { error?: string };
-  if (!response.ok || data.error) throw new Error(data.error || `查询失败 ${response.status}`);
-  return data;
+  return readRailResponse<T>(response);
 }
 function clock(at: number) { return new Date(at).toLocaleTimeString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false }); }
 

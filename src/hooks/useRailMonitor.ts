@@ -5,7 +5,7 @@ import type { Train, Station, Seat } from "../lib/rail-tickets";
 export type { Train, Station, Seat } from "../lib/rail-tickets";
 export { matchingSeats } from "../lib/rail-tickets";
 import { matchingSeats } from "../lib/rail-tickets";
-import { railApiUrl } from "../lib/rail-api";
+import { railApiUrl, readRailResponse } from "../lib/rail-api";
 import { railFeatureFromLocation, railPositionFromLocation } from "../lib/rail-navigation";
 import type { RailFeature, RailPositionSelection } from "../lib/rail-navigation";
 
@@ -65,9 +65,7 @@ export function formatCheckedAt(value: string) {
 
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
-  const data = await response.json() as T & { error?: string };
-  if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
-  return data;
+  return readRailResponse<T>(response);
 }
 
 async function query(settings: Settings): Promise<Result> {

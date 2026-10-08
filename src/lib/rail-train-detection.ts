@@ -1,4 +1,4 @@
-import { railApiUrl } from "./rail-api";
+import { railApiUrl, readRailResponse } from "./rail-api";
 import { loadJourney } from "./rail-position-data";
 import { loadCachedRailway, loadRailNetworkStations } from "./rail-network";
 import { railwayToWgs84, validLocation } from "./rail-gps";
@@ -124,8 +124,8 @@ async function loadBoard(station: DetectionStation,date: string,signal: AbortSig
   const key=`${station.code}/${date}`, cached=boards.get(key);
   if (cached && cached.until>Date.now()) return cached.value;
   const response=await fetch(railApiUrl(new URLSearchParams({mode:"board",station:station.code,date})),{signal:AbortSignal.any([signal,AbortSignal.timeout(20000)])});
-  const value=await response.json() as StationBoardData & {error?:string};
-  if (!response.ok || value.source!=="12306" || value.stationCode!==station.code || value.date!==date || !Array.isArray(value.rows)) throw new Error(value.error||"12306 到发车次暂不可用");
+  const value=await readRailResponse<StationBoardData>(response);
+  if (value.source!=="12306" || value.stationCode!==station.code || value.date!==date || !Array.isArray(value.rows)) throw new Error("12306 到发车次暂不可用");
   if (boards.size>=80) boards.delete(boards.keys().next().value!);
   boards.set(key,{until:Date.now()+60000,value}); return value;
 }
