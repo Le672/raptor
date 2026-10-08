@@ -25,7 +25,7 @@ const changelog: ChangelogEntry[] = [
       "七个开发工具补齐输入校验、MD5、颜色双向转换和工具链接，修复极端时间戳、空白编码、中文命名及复制反馈；实验室支持触屏粒子、可重置计数与渐变 CSS 复制",
       "专注页支持校验后导入备份，撤销删除保留新任务，补齐专注子域缺失的 DNS 与 Pages 绑定；设备清单增加搜索、分类与条目排序；导航支持本机收藏和书签导出，友链与更新日志增加搜索，联系信息可复制或保存名片",
       "修复扫雷计时与触屏取消标记、贪吃蛇快速转向与满盘处理、俄罗斯方块旋转颜色与消行、井字棋和 Simon 重置后的旧定时器；游戏成绩在浏览器存储不可用时仍能使用",
-      "全站搜索支持方向键与焦点回退，子域顶栏首页统一返回主站；增加页面错误恢复和登录状态重新校验，修复后台等多级地址刷新后的空白页，网页与桌面端分别构建资源路径，旧版本页面可重新加载更新后的资源",
+      "全站搜索支持方向键与焦点回退，子域顶栏首页统一返回主站，更新日志按实际日期排序；增加页面错误恢复和登录状态重新校验，修复后台等多级地址刷新后的空白页，网页与桌面端分别构建资源路径，旧版本页面可重新加载更新后的资源",
       "F1 页面可复制当前赛季与标签页链接，修复车队积分空列表与官方核对入口，并统一去除搜索首尾空格；铁路补齐本地存储不可用、损坏设置和上游异常返回的容错，查询失败或超时显示清晰的重试提示，余票、中转、位置和车站大屏保留独立来源状态",
     ],
   },
@@ -440,7 +440,7 @@ export default function Changelog() {
   const [params, setParams] = useSearchParams();
   const query = params.get("q") ?? "", type = params.get("type") ?? "all";
   const update = (key: string, value: string) => setParams(previous => { const next = new URLSearchParams(previous); if (value) next.set(key, value); else next.delete(key); return next; }, { replace: true });
-  const entries = changelog.filter(entry => (type === "all" || entry.type === type) && `${entry.date} ${entry.title} ${entry.version ?? ""} ${entry.changes.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const entries = changelog.filter(entry => (type === "all" || entry.type === type) && `${entry.date} ${entry.title} ${entry.version ?? ""} ${entry.changes.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase())).sort((a, b) => b.date.localeCompare(a.date));
   useEffect(() => { try { const id = decodeURIComponent(window.location.hash.slice(1)); if (id) document.getElementById(id)?.scrollIntoView(); } catch { /* Ignore malformed fragments. */ } }, [query, type]);
 
   return (

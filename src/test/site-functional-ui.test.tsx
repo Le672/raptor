@@ -127,6 +127,12 @@ describe("catalogs and global search", () => {
     const rss = mount(<RSS />); expect(screen.getByRole("button", { name: "复制本站 RSS" })).toBeEnabled(); fireEvent.click(screen.getByRole("button", { name: "本站" })); expect(screen.getByText("1 个订阅源")).toBeVisible(); rss.unmount();
     mount(<Changelog />); fireEvent.change(screen.getByRole("textbox", { name: "搜索日期、版本或改动" }), { target: { value: "MD5" } }); expect(screen.getByRole("heading", { name: "全站功能审查与内容联通" })).toBeVisible(); expect(screen.getByText("1 条记录 · 按实际变更日期排列")).toBeVisible();
   });
+  it("places historical September entries before July entries even if they were appended later", () => {
+    mount(<Changelog />);
+    const september = screen.getByRole("heading", { name: "JM 漫画书房独立重写" });
+    const july = screen.getByRole("heading", { name: "新增桌面端与 Android 应用支持" });
+    expect(september.compareDocumentPosition(july) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
   it("opens the selected keyboard search result and restores focus after closing", async () => {
     const close = vi.fn(); const trigger = document.createElement("button"); document.body.appendChild(trigger); trigger.focus();
     const view = mount(<Routes><Route path="/" element={<QuickSearch open onClose={close} />} /><Route path="/lab" element={<h1>实验室已打开</h1>} /></Routes>);
