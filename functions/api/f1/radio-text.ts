@@ -41,7 +41,8 @@ async function audioRecording(entry: RadioTextRequest, token?: string) {
   const row = rows.find(radio => radio.driver_number === entry.driver && Date.parse(radio.date) === Date.parse(entry.date));
   const address = row && trustedRadioUrl(row.recording_url);
   if (!address) throw new RadioError("未找到这段官方无线电录音", 404);
-  const result = await fetch(address, { redirect: "error", signal: AbortSignal.timeout(15000) }).catch(() => { throw new RadioError("录音暂时无法读取，请稍后重试"); });
+  // Workers supports manual/follow redirects; reject 3xx here without following another host.
+  const result = await fetch(address, { redirect: "manual", signal: AbortSignal.timeout(15000) }).catch(() => { throw new RadioError("录音暂时无法读取，请稍后重试"); });
   if (!result.ok || !result.body) throw new RadioError("录音暂时无法读取，请稍后重试");
   if (Number(result.headers.get("Content-Length")) > MAX_AUDIO) throw new RadioError("录音过大，暂不支持转写", 413);
   const reader = result.body.getReader(), chunks: Uint8Array[] = [];

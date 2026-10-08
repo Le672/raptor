@@ -86,4 +86,12 @@ describe("verified team radio transcription and translation", () => {
     expect(response.status).toBe(429); expect((await response.json()).error).toContain("OpenF1 请求频率受限");
     expect(run).not.toHaveBeenCalled();
   });
+  it("uses Workers-compatible manual mode and refuses recording redirects before inference", async () => {
+    const original = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation(async (url: any,init?: any) => String(url).includes("/TeamRadio/") ? new Response(null,{status:302,headers:{Location:"https://internal.example.test/private.mp3"}}) : original(url,init));
+    expect((await post()).status).toBe(503); expect(run).not.toHaveBeenCalled();
+    const mediaCall=vi.mocked(fetch).mock.calls.find(([url])=>String(url).includes("/TeamRadio/"));
+    expect(mediaCall?.[1]?.redirect).toBe("manual");
+    expect(vi.mocked(fetch).mock.calls.some(([url])=>String(url).includes("internal.example.test"))).toBe(false);
+  });
 });
