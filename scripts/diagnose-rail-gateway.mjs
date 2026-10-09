@@ -52,5 +52,8 @@ try {
   });
   console.log(JSON.stringify({ event: 'tail-finished', events, expectedStop: stopping }));
 } finally {
+  socket.close();
   await api(`${endpoint}/${encodeURIComponent(session.id)}`, 'DELETE').catch(() => {});
 }
+// End the bounded diagnostic even if the remote socket's close handshake lingers.
+process.exit(process.exitCode || 0);
