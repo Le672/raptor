@@ -503,7 +503,14 @@ export async function onRequestGet(context: { request: Request }) {
       trains: parseTrains(data.result, { ...names, ...data.map }, trainCode, trainNo, date),
     }, 200, 30);
   } catch (error) {
-    return json({ error: railQueryError(error) }, error instanceof QueryError ? error.status : 502);
+    const message = railQueryError(error);
+    if (["query", "fare", "hubs"].includes(mode)) {
+      // Diagnose gateway failures without logging request headers or raw upstream text.
+      const http = message.match(/(?:返回 |失败：)(\d{3})$/);
+      const tags = ["会话", "余票数据", "无法识别", "查询地址", "超时", "繁忙", "非法", "预售", "日期", "未登录"].filter(tag => message.includes(tag));
+      console.warn("rail-gateway-failure", JSON.stringify({ upstreamStatus: http ? Number(http[1]) : undefined, tags }));
+    }
+    return json({ error: message }, error instanceof QueryError ? error.status : 502);
   }
 }
 

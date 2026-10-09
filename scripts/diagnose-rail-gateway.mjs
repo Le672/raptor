@@ -33,11 +33,19 @@ function emitEvent(value) {
     if (v && /^[A-Za-z0-9-]{1,32}$/.test(v)) query[key] = v;
   }
   events++;
+  const failures = (value.logs || []).flatMap(log => {
+    if (!Array.isArray(log.message) || log.message[0] !== 'rail-gateway-failure') return [];
+    try {
+      const detail = JSON.parse(log.message[1]);
+      return [{ upstreamStatus: Number.isInteger(detail.upstreamStatus) ? detail.upstreamStatus : undefined,
+        tags: Array.isArray(detail.tags) ? detail.tags.filter(tag => ['会话', '余票数据', '无法识别', '查询地址', '超时', '繁忙', '非法', '预售', '日期', '未登录'].includes(tag)) : [] }];
+    } catch { return []; }
+  });
   console.log(JSON.stringify({
     event: 'rail-request', timestamp: value.eventTimestamp, host: url.hostname,
     query, status: value.event?.response?.status, outcome: value.outcome,
     cpuTime: value.cpuTime, wallTime: value.wallTime,
-    exceptions: (value.exceptions || []).map(e => /^[A-Za-z]{1,40}$/.test(e.name) ? e.name : 'Exception'),
+    exceptions: (value.exceptions || []).map(e => /^[A-Za-z]{1,40}$/.test(e.name) ? e.name : 'Exception'), failures,
   }));
 }
 try {
