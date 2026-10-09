@@ -1,4 +1,8 @@
 import { spawn } from 'node:child_process';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Only status and public railway query fields leave this process. Never emit
 // raw Wrangler output, request headers, IP addresses, cookies or exception text.
@@ -13,10 +17,12 @@ const metadata = await project.json();
 console.log(JSON.stringify({ event: 'pages-project', status: project.status, success: metadata.success,
   errors: (metadata.errors || []).map(e => e.code),
   domain: metadata.result?.subdomain, deployment: metadata.result?.canonical_deployment?.id }));
+// Tailing needs no build config; the project config references local dist files.
+const diagnosticDirectory = await mkdtemp(join(tmpdir(), 'yukino-rail-tail-'));
 const child = spawn(process.execPath, [
-  'node_modules/wrangler/bin/wrangler.js', 'pages', 'deployment', 'tail',
+  fileURLToPath(new URL('../node_modules/wrangler/bin/wrangler.js', import.meta.url)), 'pages', 'deployment', 'tail',
   '--project-name', 'raptor', '--environment', 'production', '--format', 'json',
-], { stdio: ['ignore', 'pipe', 'pipe'] });
+], { cwd: diagnosticDirectory, stdio: ['ignore', 'pipe', 'pipe'] });
 let buffer = '', stopping = false, events = 0, diagnosticText = '';
 const rememberCli = chunk => { diagnosticText = (diagnosticText + chunk.toString()).slice(-16_000); };
 function emitEvent(value) {
