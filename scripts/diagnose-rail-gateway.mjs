@@ -1,30 +1,26 @@
-import { spawn } from 'node:child_process';
-import { mkdtemp } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-// Only status and public railway query fields leave this process. Never emit
-// raw Wrangler output, request headers, IP addresses, cookies or exception text.
-if (!process.env.CLOUDFLARE_API_TOKEN || !process.env.CLOUDFLARE_ACCOUNT_ID) {
-  throw new Error('Existing Cloudflare deployment credentials are required');
+// Only status and public railway query fields leave this process, never headers,
+// IP addresses, cookies, unfiltered logs or exception text.
+const account = process.env.CLOUDFLARE_ACCOUNT_ID, token = process.env.CLOUDFLARE_API_TOKEN;
+if (!account || !token) throw new Error('Existing deployment credentials are required');
+const projectUrl = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(account)}/pages/projects/raptor`;
+async function api(url, method = 'GET', body) {
+  const response = await fetch(url, { method, body, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(15_000) });
+  const data = await response.json();
+  if (!response.ok || !data.success) {
+    console.log(JSON.stringify({ event: 'tail-api-failed', status: response.status, codes: (data.errors || []).map(e => e.code) }));
+    throw new Error('Cloudflare diagnostic API did not succeed');
+  }
+  return data.result;
 }
-const project = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(process.env.CLOUDFLARE_ACCOUNT_ID)}/pages/projects/raptor`, {
-  headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}` },
-  signal: AbortSignal.timeout(15_000),
-});
-const metadata = await project.json();
-console.log(JSON.stringify({ event: 'pages-project', status: project.status, success: metadata.success,
-  errors: (metadata.errors || []).map(e => e.code),
-  domain: metadata.result?.subdomain, deployment: metadata.result?.canonical_deployment?.id }));
-// Tailing needs no build config; the project config references local dist files.
-const diagnosticDirectory = await mkdtemp(join(tmpdir(), 'yukino-rail-tail-'));
-const child = spawn(process.execPath, [
-  fileURLToPath(new URL('../node_modules/wrangler/bin/wrangler.js', import.meta.url)), 'pages', 'deployment', 'tail',
-  '--project-name', 'raptor', '--environment', 'production', '--format', 'json',
-], { cwd: diagnosticDirectory, stdio: ['ignore', 'pipe', 'pipe'] });
-let buffer = '', stopping = false, events = 0, diagnosticText = '';
-const rememberCli = chunk => { diagnosticText = (diagnosticText + chunk.toString()).slice(-16_000); };
+const project = await api(projectUrl), deployment = project.canonical_deployment?.id;
+if (!deployment) throw new Error('No production deployment to inspect');
+console.log(JSON.stringify({ event: 'pages-project', domain: project.subdomain, deployment }));
+const endpoint = `${projectUrl}/deployments/${encodeURIComponent(deployment)}/tails`;
+const session = await api(endpoint, 'POST', JSON.stringify({}));
+const socketUrl = new URL(session.url);
+if (socketUrl.protocol !== 'wss:' || socketUrl.hostname !== 'tail.developers.workers.dev') throw new Error('Unexpected Cloudflare diagnostic endpoint');
+let events = 0, stopping = false;
+const socket = new WebSocket(session.url, 'trace-v1');
 function emitEvent(value) {
   const request = value.event?.request;
   if (!request?.url) return;
@@ -44,36 +40,17 @@ function emitEvent(value) {
     exceptions: (value.exceptions || []).map(e => /^[A-Za-z]{1,40}$/.test(e.name) ? e.name : 'Exception'),
   }));
 }
-function readJson(chunk) {
-  buffer += chunk.toString();
-  // Wrangler emits formatted JSON objects, separated by ordinary status lines.
-  for (;;) {
-    const start = buffer.indexOf('{');
-    if (start < 0) { buffer = ''; return; }
-    let depth = 0, quoted = false, escape = false, end = -1;
-    for (let i = start; i < buffer.length; i++) {
-      const char = buffer[i];
-      if (quoted) {
-        if (escape) escape = false;
-        else if (char === '\\') escape = true;
-        else if (char === '"') quoted = false;
-      } else if (char === '"') quoted = true;
-      else if (char === '{') depth++;
-      else if (char === '}' && --depth === 0) { end = i + 1; break; }
-    }
-    if (end < 0) { buffer = buffer.slice(start); if (buffer.length > 2_000_000) buffer = ''; return; }
-    try { emitEvent(JSON.parse(buffer.slice(start, end))); } catch { /* Ignore CLI status text. */ }
-    buffer = buffer.slice(end);
-  }
+try {
+  await new Promise(resolve => {
+    const timer = setTimeout(() => { stopping = true; socket.close(); resolve(); }, 180_000);
+    socket.addEventListener('open', () => { socket.send(JSON.stringify({ debug: false })); console.log(JSON.stringify({ event: 'tail-starting', durationSeconds: 180 })); });
+    socket.addEventListener('message', async event => {
+      try { const raw = typeof event.data === 'string' ? event.data : await event.data.text(); emitEvent(JSON.parse(raw)); } catch { /* Never print unfiltered messages. */ }
+    });
+    socket.addEventListener('close', () => { clearTimeout(timer); resolve(); });
+    socket.addEventListener('error', () => { clearTimeout(timer); process.exitCode = 1; resolve(); });
+  });
+  console.log(JSON.stringify({ event: 'tail-finished', events, expectedStop: stopping }));
+} finally {
+  await api(`${endpoint}/${encodeURIComponent(session.id)}`, 'DELETE').catch(() => {});
 }
-child.stdout.on('data', chunk => { rememberCli(chunk); readJson(chunk); });
-child.stderr.on('data', rememberCli);
-child.on('error', () => { console.log(JSON.stringify({ event: 'tail-start-failed' })); process.exitCode = 1; });
-const timer = setTimeout(() => { stopping = true; child.kill('SIGTERM'); }, 180_000);
-child.on('exit', (code) => {
-  clearTimeout(timer);
-  const reasons = ['authentication', 'permission', 'unknown argument', 'not found', 'missing', 'required', 'ENOENT', 'no deployments', 'account', 'config', '10000', '10013', '8000040'].filter(word => diagnosticText.toLowerCase().includes(word.toLowerCase()));
-  console.log(JSON.stringify({ event: 'tail-finished', events, expectedStop: stopping, code, reasons }));
-  if (!stopping && code !== 0) process.exitCode = 1;
-});
-console.log(JSON.stringify({ event: 'tail-starting', durationSeconds: 180 }));
