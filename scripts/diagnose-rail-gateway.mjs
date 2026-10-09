@@ -5,11 +5,20 @@ import { spawn } from 'node:child_process';
 if (!process.env.CLOUDFLARE_API_TOKEN || !process.env.CLOUDFLARE_ACCOUNT_ID) {
   throw new Error('Existing Cloudflare deployment credentials are required');
 }
+const project = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(process.env.CLOUDFLARE_ACCOUNT_ID)}/pages/projects/raptor`, {
+  headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}` },
+  signal: AbortSignal.timeout(15_000),
+});
+const metadata = await project.json();
+console.log(JSON.stringify({ event: 'pages-project', status: project.status, success: metadata.success,
+  errors: (metadata.errors || []).map(e => e.code),
+  domain: metadata.result?.subdomain, deployment: metadata.result?.canonical_deployment?.id }));
 const child = spawn(process.execPath, [
   'node_modules/wrangler/bin/wrangler.js', 'pages', 'deployment', 'tail',
   '--project-name', 'raptor', '--environment', 'production', '--format', 'json',
 ], { stdio: ['ignore', 'pipe', 'pipe'] });
-let buffer = '', stopping = false, events = 0;
+let buffer = '', stopping = false, events = 0, diagnosticText = '';
+const rememberCli = chunk => { diagnosticText = (diagnosticText + chunk.toString()).slice(-16_000); };
 function emitEvent(value) {
   const request = value.event?.request;
   if (!request?.url) return;
@@ -51,13 +60,14 @@ function readJson(chunk) {
     buffer = buffer.slice(end);
   }
 }
-child.stdout.on('data', readJson);
-child.stderr.on('data', () => {});
+child.stdout.on('data', chunk => { rememberCli(chunk); readJson(chunk); });
+child.stderr.on('data', rememberCli);
 child.on('error', () => { console.log(JSON.stringify({ event: 'tail-start-failed' })); process.exitCode = 1; });
 const timer = setTimeout(() => { stopping = true; child.kill('SIGTERM'); }, 180_000);
 child.on('exit', (code) => {
   clearTimeout(timer);
-  console.log(JSON.stringify({ event: 'tail-finished', events, expectedStop: stopping, code }));
+  const reasons = ['authentication', 'permission', 'unknown argument', 'not found', 'missing', 'required', 'ENOENT', 'no deployments', 'account', 'config', '10000', '10013', '8000040'].filter(word => diagnosticText.toLowerCase().includes(word.toLowerCase()));
+  console.log(JSON.stringify({ event: 'tail-finished', events, expectedStop: stopping, code, reasons }));
   if (!stopping && code !== 0) process.exitCode = 1;
 });
 console.log(JSON.stringify({ event: 'tail-starting', durationSeconds: 180 }));
