@@ -41,7 +41,14 @@ const farePending = new Map<string, Promise<ReturnType<typeof parseEncodedFares>
 const hubCache = new Map<string, { at: number; hubs: Station[] }>();
 
 class QueryError extends Error {
-  constructor(message: string, readonly status: number) { super(message); }
+  constructor(message: string, readonly status: number, readonly retryAfterSeconds = 5) { super(message); }
+}
+
+function ticketUpstreamError(response: Response, message: string) {
+  const header = response.headers.get("retry-after")?.trim();
+  const requested = !header ? 0 : /^\d+(?:\.\d+)?$/.test(header) ? Number(header) : (Date.parse(header) - Date.now()) / 1000;
+  const minimum = [403, 423, 429].includes(response.status) ? 60 : 5;
+  return new QueryError(message, 503, Math.ceil(Math.max(minimum, Number.isFinite(requested) ? requested : 0)));
 }
 
 export function parseStations(text: string): Station[] {
@@ -126,7 +133,7 @@ async function getSessionCookie(): Promise<string> {
       headers: REQUEST_HEADERS,
       signal: AbortSignal.timeout(15000),
     });
-    if (!response.ok) throw new Error(`12306 初始化会话失败：${response.status}`);
+    if (!response.ok) throw ticketUpstreamError(response, `12306 初始化会话失败：${response.status}`);
     const headers = response.headers as Headers & { getSetCookie?: () => string[] };
     const setCookies = headers.getSetCookie?.() || [response.headers.get("set-cookie") || ""];
     const cookies = new Map<string, string>();
@@ -310,7 +317,7 @@ async function fetchTicketPayload(url: URL, cookie: string) {
   });
   if (!response.ok) {
     if (sessionCache?.cookie === cookie) sessionCache = undefined;
-    throw new Error(`12306 余票接口返回 ${response.status}`);
+    throw ticketUpstreamError(response, `12306 余票接口返回 ${response.status}`);
   }
   const contentType = response.headers.get("content-type") || "";
   const body = await response.text();
@@ -326,7 +333,7 @@ async function fetchTicketPayload(url: URL, cookie: string) {
       kind: /^\s*</.test(body) ? "html" : body.trim() ? "other" : "empty",
       markers: ["验证码", "captcha", "document.cookie", "eval(", "网络", "繁忙", "维护", "非法", "不合法", "稍后", "leftTicket/init", "error.html"].filter(marker => body.includes(marker)),
     }));
-    throw new Error("12306 暂时未返回余票数据，请稍后重试或前往官网查询");
+    throw ticketUpstreamError(response, "12306 暂时未返回余票数据，请稍后重试或前往官网查询");
   }
   return payload as {
     httpstatus?: number;
@@ -522,7 +529,12 @@ export async function onRequestGet(context: { request: Request }) {
       const tags = ["会话", "余票数据", "无法识别", "查询地址", "超时", "繁忙", "非法", "预售", "日期", "未登录"].filter(tag => message.includes(tag));
       console.warn("rail-gateway-failure", JSON.stringify({ upstreamStatus: http ? Number(http[1]) : undefined, tags }));
     }
-    return json({ error: message }, error instanceof QueryError ? error.status : 502);
+    const status = error instanceof QueryError ? error.status : ["query", "fare", "hubs"].includes(mode) ? 503 : 502;
+    const response = json({ error: message }, status);
+    // A caught upstream outage is a readable API error, rather than an edge-generated 502 page.
+    // Explicitly bound recovery pauses for a network error, and respect longer upstream rate limits.
+    if (status === 503) response.headers.set("Retry-After", String(error instanceof QueryError ? error.retryAfterSeconds : 5));
+    return response;
   }
 }
 
