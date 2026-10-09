@@ -41,11 +41,23 @@ function emitEvent(value) {
         tags: Array.isArray(detail.tags) ? detail.tags.filter(tag => ['会话', '余票数据', '无法识别', '查询地址', '超时', '繁忙', '非法', '预售', '日期', '未登录'].includes(tag)) : [] }];
     } catch { return []; }
   });
+  const upstream = (value.logs || []).flatMap(log => {
+    if (!Array.isArray(log.message) || log.message[0] !== 'rail-upstream-unavailable') return [];
+    try {
+      const detail = JSON.parse(log.message[1]);
+      return [{ status: Number.isInteger(detail.status) ? detail.status : undefined,
+        contentType: typeof detail.contentType === 'string' && /^[a-zA-Z0-9/;+ =.-]{0,80}$/.test(detail.contentType) ? detail.contentType : 'other',
+        path: typeof detail.path === 'string' && /^\/[A-Za-z0-9/_.-]{0,160}$/.test(detail.path) ? detail.path : 'other',
+        kind: ['html', 'other', 'empty'].includes(detail.kind) ? detail.kind : 'other',
+        markers: Array.isArray(detail.markers) ? detail.markers.filter(marker => ['验证码', 'captcha', 'document.cookie', 'eval(', '网络', '繁忙', '维护', '非法', '不合法', '稍后', 'leftTicket/init', 'error.html'].includes(marker)) : [],
+      }];
+    } catch { return []; }
+  });
   console.log(JSON.stringify({
     event: 'rail-request', timestamp: value.eventTimestamp, host: url.hostname,
     query, status: value.event?.response?.status, outcome: value.outcome,
     cpuTime: value.cpuTime, wallTime: value.wallTime,
-    exceptions: (value.exceptions || []).map(e => /^[A-Za-z]{1,40}$/.test(e.name) ? e.name : 'Exception'), failures,
+    exceptions: (value.exceptions || []).map(e => /^[A-Za-z]{1,40}$/.test(e.name) ? e.name : 'Exception'), failures, upstream,
   }));
 }
 try {

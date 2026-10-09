@@ -312,11 +312,23 @@ async function fetchTicketPayload(url: URL, cookie: string) {
     if (sessionCache?.cookie === cookie) sessionCache = undefined;
     throw new Error(`12306 余票接口返回 ${response.status}`);
   }
-  if (!response.headers.get("content-type")?.includes("json")) {
+  const contentType = response.headers.get("content-type") || "";
+  const body = await response.text();
+  let payload;
+  try { payload = JSON.parse(body); }
+  catch {
     if (sessionCache?.cookie === cookie) sessionCache = undefined;
+    // Inspect only known public response markers, never the HTML, cookies or headers themselves.
+    console.warn("rail-upstream-unavailable", JSON.stringify({
+      status: response.status,
+      contentType: /^[a-zA-Z0-9/;+ =.-]{0,80}$/.test(contentType) ? contentType : "other",
+      path: new URL(response.url || url.href).pathname,
+      kind: /^\s*</.test(body) ? "html" : body.trim() ? "other" : "empty",
+      markers: ["验证码", "captcha", "document.cookie", "eval(", "网络", "繁忙", "维护", "非法", "不合法", "稍后", "leftTicket/init", "error.html"].filter(marker => body.includes(marker)),
+    }));
     throw new Error("12306 暂时未返回余票数据，请稍后重试或前往官网查询");
   }
-  return await response.json() as {
+  return payload as {
     httpstatus?: number;
     c_url?: string;
     data?: { result?: string[]; map?: Record<string, string>; c_url?: string };

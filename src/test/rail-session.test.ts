@@ -64,4 +64,21 @@ describe("official ticket session and query address", () => {
     const response = await onRequestGet({ request: request() });
     expect(response.status).toBe(502); expect(await response.json()).toEqual({ error: "当次查询会话暂不可用" });
   });
+  it("accepts valid official ticket JSON even when its MIME header is generic", async () => {
+    mockTicket(() => new Response(JSON.stringify({ data: { result: [] }, status: true }), { headers: { "Content-Type": "text/plain" } }));
+    const { onRequestGet } = await import("../../functions/api/rail");
+    const response = await onRequestGet({ request: request() });
+    expect(response.status).toBe(200); expect((await response.json()).trains).toEqual([]);
+  });
+  it("rejects an official HTML error page and discards its session", async () => {
+    let rejected = false;
+    mockTicket((_url, options) => {
+      if (!rejected) { rejected = true; return new Response("<!doctype html><title>Network error</title>"); }
+      expect(new Headers(options?.headers).get("cookie")).toBe("PUBLIC_SESSION=session2"); return data();
+    });
+    const { onRequestGet } = await import("../../functions/api/rail");
+    const failed = await onRequestGet({ request: request() });
+    expect(failed.status).toBe(502); expect((await failed.json()).error).toContain("未返回余票数据");
+    expect((await onRequestGet({ request: request() })).status).toBe(200);
+  });
 });
