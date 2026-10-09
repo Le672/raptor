@@ -24,6 +24,7 @@ on:
       - 'src/lib/train-art.ts'
       - 'src/lib/train-position.ts'
       - 'src/lib/rail-ticket-date.ts'
+      - 'src/lib/rail-api.ts'
       - 'src/lib/rail-transfer.ts'
       - 'src/components/RailTransfer.tsx'
       - 'src/lib/rail-position-data.ts'
