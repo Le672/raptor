@@ -14,7 +14,7 @@ import { useRailPageNavigation } from "../hooks/useRailPageNavigation";
 
 export default function Rail() {
   useDocumentMeta("余票提醒", "查询 12306 余票，按自定间隔监控意向车次并提醒。");
-  const { desktop, settings, stations, result, error, storageError, checking, feature, setFeature: setScreen, positionSelection, setPositionSelection, permission, knownStations, matched, update, runCheck, toggleMonitor } = useRailMonitor();
+  const { desktop, settings, dateRange, dateNotice, stations, result, error, storageError, checking, feature, setFeature: setScreen, positionSelection, setPositionSelection, permission, knownStations, matched, update, runCheck, toggleMonitor } = useRailMonitor();
   const setFeature = useRailPageNavigation(setScreen, useNavigate(), setPositionSelection);
   const { filters, setFilters, visibleTrains } = useTrainListing(result?.trains, settings.seat);
   return (
@@ -49,7 +49,7 @@ export default function Rail() {
             </div>
             <p className="rail-search-help">{settings.queryMode === "train" ? "只需输入车次，自动识别该日期的始发和终到站，查询全程余票。" : "只需选择出发站和到达站，查询该区间全部车次，无需填写车次。"}</p>
             <div className="rail-fields">
-              <label className={settings.queryMode === "route" ? "rail-date" : undefined}>出行日期<input type="date" value={settings.date} onChange={(event) => update({ date: event.target.value })} /></label>
+              <label className={settings.queryMode === "route" ? "rail-date" : undefined}>出行日期<input type="date" min={dateRange.min} max={dateRange.max} required value={settings.date} onChange={(event) => update({ date: event.target.value })} /></label>
               {settings.queryMode === "train" ?
                 <label>车次<input type="text" placeholder="例如 G101 或 1461" value={settings.train} onChange={(event) => update({ train: event.target.value.toUpperCase() })} /></label> : <>
                   <label>出发站<input list="rail-stations" placeholder="例如 北京南" value={settings.from} onChange={(event) => update({ from: event.target.value })} aria-invalid={!!settings.from && stations.length > 0 && !knownStations.has(settings.from)} /></label>
@@ -59,6 +59,8 @@ export default function Rail() {
               <label><span className="rail-field-heading">检查间隔 <small>1–60 分钟</small></span><div className="rail-interval"><input type="number" min="1" max="60" step="1" value={settings.intervalMinutes} onChange={(event) => update({ intervalMinutes: Number(event.target.value) })} /><span>分钟</span></div></label>
             </div>
             <datalist id="rail-stations">{stations.map((station) => <option key={station.code} value={station.name}>{station.pinyin}</option>)}</datalist>
+            <p className="rail-hint">余票查询范围：{dateRange.min} 至 {dateRange.max}（含当天 15 天）。</p>
+            {dateNotice && <p className="rail-note" role="status">{dateNotice}</p>}
             <div className="rail-actions">
               <button className="rail-primary" type="button" onClick={() => void runCheck(false)} disabled={checking}><RefreshCw size={17} className={checking ? "rail-spin" : ""} /> {checking ? "正在查询" : "立即查询"}</button>
               <button className={settings.enabled ? "rail-stop" : "rail-secondary"} type="button" onClick={() => void toggleMonitor()}>{settings.enabled ? <BellOff size={17} /> : <Bell size={17} />}{settings.enabled ? "停止监控" : "开启监控"}</button>
@@ -70,7 +72,7 @@ export default function Rail() {
             <div className="rail-status-icon">{settings.enabled ? <Bell size={25} /> : <Clock3 size={25} />}</div>
             <h2>{settings.enabled ? "正在监控" : "等待开始"}</h2>
             <p>{settings.enabled ? `每 ${settings.intervalMinutes} 分钟检查一次` : "填写条件后开启余票监控"}</p>
-            <div className="rail-status-meta"><span>通知方式</span><strong>{desktop ? "Windows 系统通知" : permission === "granted" ? "浏览器系统通知" : "需允许浏览器通知"}</strong></div>
+            <div className="rail-status-meta"><span>通知方式</span><strong>{desktop ? "Windows 系统通知" : permission === "granted" ? "浏览器系统通知" : permission === "denied" ? "浏览器已阻止系统通知" : permission === "unsupported" ? "此浏览器不支持系统通知" : "需允许浏览器通知"}</strong></div>
             <div className="rail-status-meta"><span>最近检查</span><strong>{result ? formatCheckedAt(result.checkedAt) : "尚未查询"}</strong></div>
             <p className="rail-note">{desktop ? "关闭窗口后会留在系统托盘继续监控。" : "网页监控需要保持此页面打开；浏览器休眠时检查可能延迟。"}</p>
           </aside>
@@ -86,13 +88,13 @@ export default function Rail() {
               return <article className="rail-train" key={`${train.code}-${train.departure}`}>
                 <div className="rail-train-main"><div className="rail-train-identity"><span className="rail-train-code">{train.code}</span><TrainIllustration model={train.trainsetModel} /></div><div className="rail-journey"><strong>{train.departure}</strong><span>{train.from}</span></div><div className="rail-route"><span>{train.duration}</span><i /></div><div className="rail-journey"><strong>{train.arrival}</strong><span>{train.to}</span></div><span className={available.length ? "rail-badge is-available" : "rail-badge"}>{available.length ? "有余票" : "暂无余票"}</span></div>
                 <div className="rail-seats">{train.seats.filter((seat) => seat.value !== "--").map((seat) => <span className={seat.available ? "rail-seat is-available" : "rail-seat"} key={seat.label}>{seat.label} <strong>{seat.value}</strong>{seat.price != null && <small>{money(seat.price)}</small>}</span>)}</div>
-                <div className="rail-train-foot"><span title={equipmentTitle(train)}>{equipmentLabel(train)}</span><TrainFare train={train} seat={settings.seat}/><div className="rail-train-links"><button type="button" onClick={() => { setPositionSelection({ train: train.code, date: train.originDate || result.date }); setFeature("position"); }}>位置／下一站</button><a href="https://www.12306.cn/" target="_blank" rel="noreferrer">前往 12306 <ExternalLink size={13} /></a></div></div>
+                <div className="rail-train-foot"><span title={equipmentTitle(train)}>{equipmentLabel(train)}</span><TrainFare train={train} seat={settings.seat}/><div className="rail-train-links"><button type="button" onClick={() => setFeature("position", { train: train.code, date: train.originDate || result.date, autoQuery: true })}>位置／下一站</button><a href="https://www.12306.cn/" target="_blank" rel="noreferrer">前往 12306 <ExternalLink size={13} /></a></div></div>
               </article>;
             })}</div>}
         </section>
         </div>
         {feature === "board" && <StationBoard stations={stations} onPosition={(train, date) => setFeature("position", { train, date, autoQuery: true })}/>}
-        {feature === "transfer" && <RailTransfer stations={stations} onPosition={(train, date) => { setPositionSelection({ train, date }); setFeature("position"); }}/>}
+        {feature === "transfer" && <RailTransfer stations={stations} onPosition={(train, date) => setFeature("position", { train, date, autoQuery: true })}/>}
         {feature === "position" && <RailPosition key={`${positionSelection.train}/${positionSelection.date}`} initialTrain={positionSelection.train} initialDate={positionSelection.date} autoQuery={positionSelection.autoQuery} />}
         <p className="rail-disclaimer">本工具仅展示公开查询结果，不提供购票或抢票。车票状态会随时变化，最终以 12306 官网为准。</p>
         <a className="rail-attribution" href="https://api.railgo.dev/" target="_blank" rel="noreferrer" aria-label="车型、配属与铁路坐标补充来源：RailGo 数据服务（打开数据服务文档）">

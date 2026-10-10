@@ -3,8 +3,26 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
-afterEach(() => { vi.unstubAllGlobals(); localStorage.clear(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); localStorage.clear(); });
 describe("rail subdomain routes", () => {
+  it("opens a ticket train using its origin date and starts the journey request immediately", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-10T01:00:00Z")); vi.stubGlobal("scrollTo", vi.fn());
+    localStorage.setItem("yukino-rail-monitor-v1", JSON.stringify({ queryMode: "train", date: "2026-10-10", train: "K123", seat: "任意席别", intervalMinutes: 5, enabled: false }));
+    const request = vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(String(input), "https://cr.yukino.bond"), mode = url.searchParams.get("mode");
+      if (mode === "stations") return Response.json({ stations: [] });
+      if (!mode) return Response.json({ date: "2026-10-10", checkedAt: "2026-10-10T01:00:00Z", from: "北京", to: "上海", trains: [{ code: "K123", trainNo: "NO123", from: "北京", to: "上海", departure: "08:00", arrival: "17:00", duration: "09:00", originDate: "2026-10-09", trainsetModel: null, saleStatus: "Y", seats: [] }] });
+      return Response.json({ error: "Test endpoint unavailable" }, { status: 400 });
+    });
+    vi.stubGlobal("fetch", request); window.history.replaceState({}, "", "/ticket"); render(<App/>);
+    fireEvent.click(await screen.findByRole("button", { name: "立即查询" }, { timeout: 10000 }));
+    fireEvent.click(await screen.findByRole("button", { name: "位置／下一站" }));
+    await waitFor(() => expect(window.location.pathname).toBe("/live"));
+    expect(new URLSearchParams(window.location.search).get("date")).toBe("2026-10-09");
+    await waitFor(() => expect(request.mock.calls.some(([input]) => {
+      const url = new URL(String(input), "https://cr.yukino.bond"); return url.searchParams.get("mode") === "journey" && url.searchParams.get("train") === "K123" && url.searchParams.get("date") === "2026-10-09";
+    })).toBe(true));
+  }, 15000);
   it("keeps the homepage clean and uses stable feature paths without restarting the monitor", async () => {
     vi.stubGlobal("scrollTo", vi.fn()); vi.stubGlobal("fetch", vi.fn().mockImplementation(() => new Promise(() => {})));
     window.history.replaceState({}, "", "/"); render(<App />);
