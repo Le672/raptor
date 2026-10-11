@@ -34,3 +34,18 @@ test('a missing database and malformed reports have explicit error responses', a
     assert.equal((await handleSpeed(new Request('https://speed.yukino.bond/api/speed/report', { method: 'OPTIONS', headers: { Origin: 'null' } }), { DB })).status, 204);
   } finally { DB.sqlite.close(); }
 });
+
+test('old portal subdomains can reconcile reports, while unrelated and deceptive origins remain blocked', async () => {
+  const DB = database();
+  try {
+    for (const host of ['ip','focus','dev','blog','cr','f1','games','rss','news','status','links','box','friends','about','uses','changelog','lab']) {
+      const origin = `https://${host}.yukino.bond`, id = crypto.randomUUID(), token = crypto.randomUUID()+crypto.randomUUID();
+      const preflight = await handleSpeed(new Request('https://speed.yukino.bond/api/speed/report',{method:'OPTIONS',headers:{Origin:origin}}),{DB});
+      assert.equal(preflight.headers.get('Access-Control-Allow-Origin'),origin);
+      assert.equal((await handleSpeed(request('session',{id,token},origin),{DB})).status,200);
+      assert.equal((await handleSpeed(request('report',{id,token,bytes:100,durationMs:1000},origin),{DB})).status,200);
+    }
+    for (const origin of ['https://ip.yukino.bond.evil.example','https://evilyukino.bond','http://ip.yukino.bond','https://evil.example']) assert.equal((await handleSpeed(request('session',{id:crypto.randomUUID(),token},origin),{DB})).status,403);
+    assert.equal((await (await handleSpeed(request('totals'),{DB})).json()).bytes,1700);
+  } finally {DB.sqlite.close();}
+});

@@ -1,0 +1,14 @@
+.site-visits { display: flex; align-items: center; gap: 13px; padding: 16px 18px; margin-top: 16px; color: #637455; background: #eff3e8; border: 1px solid #e3e9db; border-radius: 16px; }
+.site-visits > svg { flex-shrink: 0; }
+.site-visits > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 13px; min-width: 0; }
+.site-visits span { font-size: 12px; }
+.site-visits strong { color: #2f503f; font: 25px Georgia, 'Noto Serif SC', serif; font-variant-numeric: tabular-nums; }
+.site-visits small { font-size: 10px; color: #7d8975; }
+.site-visits-compact { justify-content: center; padding: 10px 16px; margin: 0; background: transparent; border: 0; }
+.site-visits-compact strong { font-size: 16px; }
+.site-handoff { max-width: 650px; margin: 12vh auto; padding: 30px; color: #455644; }
+.site-handoff h1 { font-size: 30px; margin: 20px 0; }
+.site-handoff p { line-height: 1.9; margin-bottom: 18px; }
+.site-handoff .text-link { display: inline-flex; margin: 15px; }
+.legacy-sync-notice { max-width: 1104px; margin: 14px auto; padding: 12px 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border: 1px solid #e3e9db; border-radius: 12px; background: #eff3e8; color: #637455; font-size: 12px; }
+@media (max-width: 600px) { .site-visits > div { gap: 4px 10px; } .site-visits small { flex-basis: 100%; } .site-handoff { margin: 8vh 15px; padding: 20px; } }

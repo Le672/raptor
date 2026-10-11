@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 export class PageErrorBoundary extends Component<{ children: ReactNode; resetKey: string }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }

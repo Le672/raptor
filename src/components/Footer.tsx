@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 import { VisitorNetwork } from "@/components/VisitorNetwork";
+import { SiteVisits } from "@/components/SiteVisits";
 export function Footer() {
   return (
     <footer className="site-footer">
@@ -19,6 +20,7 @@ export function Footer() {
       </nav>
       <span className="footer-credit">© {new Date().getFullYear()} Yukino</span>
       <VisitorNetwork compact />
+      <SiteVisits compact />
     </footer>
   );
 }

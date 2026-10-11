@@ -1,5 +1,5 @@
 import { ArrowUpRight, Globe2, RefreshCw } from "lucide-react";
-import { Link } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 import { CopyButton } from "@/components/CopyButton";
 import { useVisitorNetwork } from "@/hooks/useVisitorNetwork";
 import "@/ip.css";

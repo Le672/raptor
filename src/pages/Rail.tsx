@@ -113,8 +113,8 @@ export default function Rail() {
             <nav aria-label="页脚导航">
               <a href="https://github.com/Le672" target="_blank" rel="noreferrer">GitHub ↗</a>
               <a href="mailto:Raptor@yukino.bond" target="_blank" rel="noreferrer">邮件 ↗</a>
-              <a href="https://www.yukino.bond/changelog" target="_blank" rel="noreferrer">更新日志</a>
-              <a href="https://www.yukino.bond/rss" target="_blank" rel="noreferrer">订阅</a>
+              <a href="https://changelog.yukino.bond/changelog" target="_blank" rel="noreferrer">更新日志</a>
+              <a href="https://rss.yukino.bond/rss" target="_blank" rel="noreferrer">订阅</a>
             </nav>
           </div>
           <div className="rail-site-footer-caption">© {new Date().getFullYear()} Yukino</div>

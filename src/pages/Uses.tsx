@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 import { ArrowLeft, Monitor, Keyboard, HardDrive, Code2, Globe, Pencil, Plus, Save, Trash2, X, Loader2 } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";

@@ -1,5 +1,5 @@
 import { ArrowRight, CalendarDays } from "lucide-react";
-import { Link } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 import type { PostPreview } from "@/data/site";
 
 type PostCardProps = {

@@ -5,6 +5,7 @@ import { BrowserRunner } from './browser-runner.mjs';
 import { readTab, saveTab } from './tab-state.mjs';
 import SpeedChart from './SpeedChart';
 import { Reporter, fetchApi, readRuns, saveRun } from './storage.mjs';
+import { SPEED_API_BASES } from './legacy-sync.mjs';
 import { SERVERS, SERVER_GROUPS, COUNTRIES } from './servers';
 import { filterServers } from './catalog.mjs';
 import type { Server } from './servers';
@@ -54,7 +55,7 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
   const stateRef = useRef(state); stateRef.current = state;
   const savedAt = useRef(0);
   const runner = useRef<any>(null);
-  const api = desktop || embedded || ['localhost', '127.0.0.1'].includes(location.hostname) ? ['https://speed.yukino.bond/api/speed', 'https://yukino-speed.pages.dev/api/speed'] : ['/api/speed', 'https://yukino-speed.pages.dev/api/speed'];
+  const api = SPEED_API_BASES;
   const reporter = useRef<any>(null);
   const selected = [...SERVERS, ...discovered].find(s => s.id === serverId) || SERVERS[0];
   const url = (desktop && selected.httpUrl ? selected.httpUrl : selected.url) || effectiveUrl(customUrl);

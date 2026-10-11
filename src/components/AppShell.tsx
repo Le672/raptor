@@ -8,6 +8,8 @@ import { isRailPath } from "@/lib/rail-navigation";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { api, ApiError } from "@/lib/api";
+import { SiteVisitsProvider } from "@/components/SiteVisits";
+import { LegacySpeedRecovery } from "@/components/LegacySpeedRecovery";
 
 export function AppShell() {
   const location = useLocation();
@@ -31,11 +33,13 @@ export function AppShell() {
   }, [closeMobileMenu, location.pathname]);
 
   return (
+    <SiteVisitsProvider>
     <div className="site-shell">
       <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); const main = document.getElementById("main-content"); main?.focus(); main?.scrollIntoView(); }}>
         跳转到正文
       </a>
       <TopNav />
+      <LegacySpeedRecovery />
       <main
         id="main-content"
         key={isRailPage ? "rail" : location.pathname}
@@ -47,5 +51,6 @@ export function AppShell() {
       {!isRailPage && !isF1Page && <Footer />}
       <PageUtilities />
     </div>
+    </SiteVisitsProvider>
   );
 }

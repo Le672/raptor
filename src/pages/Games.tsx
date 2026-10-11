@@ -1,6 +1,7 @@
 import { Component, ComponentType, lazy, ReactNode, Suspense, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Dices, Gamepad2, Loader2, Search, Star } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 import { HomeLink } from "@/components/HomeLink";
 import { gameCatalog, GameCategory } from "@/data/games";
 import { useStoredState } from "@/hooks/useStoredState";

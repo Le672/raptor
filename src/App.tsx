@@ -29,27 +29,8 @@ const Speed = lazy(() => import("@/pages/Speed"));
 const Ip = lazy(() => import("@/pages/Ip"));
 import { isElectronApp } from "@/lib/runtime";
 import { isRailHost, RAIL_FEATURE_PATHS } from "@/lib/rail-navigation";
-
-const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
-  dev: "/dev",
-  blog: "/blog",
-  box: "/box",
-  links: "/links",
-  about: "/about-me",
-  uses: "/uses",
-  changelog: "/changelog",
-  friends: "/friends",
-  rss: "/rss",
-  lab: "/lab",
-  status: "/status",
-  games: "/games",
-  focus: "/focus",
-  news: "/news",
-  f1: "/f1",
-  speed: "/speed",
-  ip: "/ip",
-  www: "/",
-};
+import { CanonicalSite } from "@/components/CanonicalSite";
+import { SUBDOMAIN_ROUTES, isPortalHost } from "@/lib/site-routing";
 
 function SubdomainRouter() {
   const navigate = useNavigate();
@@ -57,9 +38,9 @@ function SubdomainRouter() {
   useEffect(() => {
     const hostname = window.location.hostname;
     const parts = hostname.split(".");
-    if (parts.length >= 3) {
+    if (isPortalHost(hostname) && parts.length >= 3) {
       const subdomain = parts[0];
-      const targetPath = SUBDOMAIN_ROUTE_MAP[subdomain];
+      const targetPath = SUBDOMAIN_ROUTES[subdomain];
       if (targetPath && window.location.pathname === "/") {
         navigate({ pathname: targetPath, search: window.location.search, hash: window.location.hash }, { replace: true });
       }
@@ -75,10 +56,11 @@ const Router = isElectronApp() ? HashRouter : BrowserRouter;
 export default function App() {
   return (
     <Router>
+      <CanonicalSite>
       <SubdomainRouter />
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={isRailHost() ? <Rail /> : window.location.hostname === "ip.yukino.bond" ? <Ip /> : <Home />} />
+          <Route path="/" element={isRailHost() ? <Rail /> : window.location.hostname === "speed.yukino.bond" ? <Speed /> : window.location.hostname === "ip.yukino.bond" ? <Ip /> : <Home />} />
           {isRailHost() && Object.values(RAIL_FEATURE_PATHS).map(path => <Route key={path} path={path} element={<Rail />} />)}
           <Route path="/notes" element={<Notes />} />
           <Route path="/about-me" element={<AboutMe />} />
@@ -107,6 +89,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
+      </CanonicalSite>
     </Router>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
+import { useSiteNavigate as useNavigate } from "@/hooks/useSiteNavigate";
 import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { api } from "@/lib/api";

@@ -2,7 +2,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{1
 const ORIGINS = ['https://speed.yukino.bond', 'https://www.yukino.bond', 'https://yukino.bond', 'https://raptor.pages.dev', 'https://yukino-speed.pages.dev'];
 function cors(request) {
   const origin = request.headers.get('Origin');
-  return { 'Access-Control-Allow-Origin': origin && (ORIGINS.includes(origin) || origin === 'null' || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) ? origin : 'https://speed.yukino.bond', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', Vary: 'Origin' };
+  return { 'Access-Control-Allow-Origin': origin && (ORIGINS.includes(origin) || /^https:\/\/(?:[a-z0-9-]+\.)?yukino\.bond$/.test(origin) || origin === 'null' || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) ? origin : 'https://speed.yukino.bond', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', Vary: 'Origin' };
 }
 function json(request, value, status = 200) { return new Response(JSON.stringify(value), { status, headers: { ...cors(request), 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } }); }
 async function hash(value) { const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))); return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join(''); }

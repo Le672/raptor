@@ -1,4 +1,5 @@
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 import { ArrowUpRight } from "lucide-react";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { usePublicPosts } from "@/hooks/usePublicContent";

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 import { ArrowLeft, ArrowUpRight, Mail } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";

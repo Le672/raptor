@@ -1,6 +1,7 @@
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
-import { Link, useNavigate } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
+import { useSiteNavigate as useNavigate } from "@/hooks/useSiteNavigate";
 
 export default function NotFound() {
   const navigate = useNavigate();

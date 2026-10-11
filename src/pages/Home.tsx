@@ -14,13 +14,14 @@ import {
   Gauge,
   ShieldCheck,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 import { siteProfile } from "@/data/site";
 import { usePublicPosts } from "@/hooks/usePublicContent";
 import { ContentNotice } from "@/components/ContentNotice";
 import { contentDate, postHref } from "@/lib/content";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { VisitorNetwork } from "@/components/VisitorNetwork";
+import { SiteVisits } from "@/components/SiteVisits";
 const corners = [
   {
     icon: Code2,
@@ -92,6 +93,7 @@ export default function Home() {
             </a>
           </div>
           <VisitorNetwork />
+          <SiteVisits />
         </div>
         <div className="hero-art" aria-hidden="true">
           <div className="art-top">

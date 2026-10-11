@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
 
 /**
  * A link to the home page that works correctly on subdomains.
@@ -14,19 +14,6 @@ export function HomeLink({
   children: React.ReactNode;
   className?: string;
 } & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-  const hostname =
-    typeof window !== "undefined" ? window.location.hostname : "";
-  const parts = hostname.split(".");
-  const isSubdomain = hostname.endsWith(".yukino.bond") && parts[0] !== "www";
-
-  if (isSubdomain) {
-    return (
-      <a href="https://www.yukino.bond/" className={className} {...props}>
-        {children}
-      </a>
-    );
-  }
-
   return (
     <Link to="/" className={className} {...props}>
       {children}

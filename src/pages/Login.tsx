@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
+import { useSiteNavigate as useNavigate } from "@/hooks/useSiteNavigate";
 import { ArrowLeft, LogIn } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useAuthStore } from "@/hooks/useAuthStore";

@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { safeHttpUrl } from "@/lib/content";
 import { CopyButton } from "@/components/CopyButton";
+import { siteHref } from "@/lib/site-routing";
 
 // No HTML injection: content stays React text, and links use a protocol allowlist.
 function inline(text: string): ReactNode[] {
@@ -10,7 +11,7 @@ function inline(text: string): ReactNode[] {
     const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (link) {
       const href = safeHttpUrl(link[2]) ?? (/^\/(?!\/)/.test(link[2]) && !/[\\\x00-\x1f]/.test(link[2]) ? link[2] : null);
-      return href ? <a key={index} className="underline underline-offset-4" href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{link[1]}</a> : <Fragment key={index}>{link[1]}</Fragment>;
+      return href ? <a key={index} className="underline underline-offset-4" href={siteHref(href)} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{link[1]}</a> : <Fragment key={index}>{link[1]}</Fragment>;
     }
     return part;
   });

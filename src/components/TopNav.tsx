@@ -1,18 +1,22 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Search } from "lucide-react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
+import { useSiteNavigate } from "@/hooks/useSiteNavigate";
 import { HomeLink } from "@/components/HomeLink";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { api } from "@/lib/api";
 import { QuickSearch } from "@/components/QuickSearch";
 import { siteNavigation } from "@/data/navigation";
 import { isRailHost, isRailPath } from "@/lib/rail-navigation";
+import { SUBDOMAIN_ROUTES, isPortalHost } from "@/lib/site-routing";
 
 export function TopNav() {
   const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
+  const navigate = useSiteNavigate();
   const location = useLocation();
-  const subdomainHome = isRailHost() || (window.location.hostname.endsWith(".yukino.bond") && window.location.hostname !== "www.yukino.bond");
+  const ownPath = isPortalHost(window.location.hostname) ? SUBDOMAIN_ROUTES[window.location.hostname.split('.')[0]] : null;
+  const activePath = location.pathname === '/' && ownPath ? ownPath : location.pathname;
   const [searchOpen, setSearchOpen] = useState(false);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -50,9 +54,8 @@ export function TopNav() {
         </div>
         <nav className="site-navigation" aria-label="主导航">
           {siteNavigation.map((item) => (
-            subdomainHome && item.to === "/" ? <a key={item.to} href="https://www.yukino.bond/" title={item.description}>{item.label}</a> :
             isRailHost() && item.to === "/cr" ? <Link key={item.to} to="/ticket" title={item.description} className={isRailPath(location.pathname) ? "active" : undefined} aria-current={isRailPath(location.pathname) ? "page" : undefined}>{item.label}</Link> :
-            <NavLink key={item.to} end={item.to === "/"} to={item.to} title={item.description}>{item.label}</NavLink>
+            <Link key={item.to} to={item.to} title={item.description} className={activePath === item.to && !(item.to === '/' && isRailHost()) ? 'active' : undefined} aria-current={activePath === item.to && !(item.to === '/' && isRailHost()) ? 'page' : undefined}>{item.label}</Link>
           ))}
           <a href="https://mail.yukino.bond/" target="_blank" rel="noreferrer" title="Yukino Mail，打开新标签页">邮箱 <ArrowUpRight size={11} /></a>
         </nav>

@@ -1,4 +1,6 @@
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
+import { SiteLink as Link } from "@/components/SiteLink";
+import { useSiteNavigate as useNavigate } from "@/hooks/useSiteNavigate";
 import { ArrowLeft, FileText, Boxes, LogOut, User, Monitor } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { useAuthStore } from "@/hooks/useAuthStore";

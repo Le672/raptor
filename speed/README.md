@@ -5,7 +5,7 @@
 - 在线使用：[speed.yukino.bond](https://speed.yukino.bond)
 - 备用入口：[yukino-speed.pages.dev](https://yukino-speed.pages.dev)
 - Windows 安装包、便携版与 SHA-256：[GitHub Releases](https://github.com/Le672/yukino-speed/releases/latest)
-- 主站：[Yukino](https://www.yukino.bond/speed)
+- 主站：[Yukino](https://www.yukino.bond/)
 
 ## 功能
 
@@ -14,6 +14,8 @@
 全站累计由 Cloudflare D1 持久保存，包括网页与 Windows 客户端。统计接口只接收随机任务 ID、字节和时间，不接收下载 URL。每个任务使用独立随机密钥，重复、乱序和重试上报只计新增字节；断网记录自动补传。匿名客户端可以伪造其自身数据，因此公开总量明确标注为客户端上报。
 
 任务凭据独立于待同步队列持久保存，已确认检查点、刷新和后续上报使用相同身份。单项失败不阻塞其他任务；独立域名暂时连接失败时统计和节点目录可切换到同数据库的 Pages 备用接口。
+
+所有网页入口统一使用独立测速站的统计 API；本站的 HTTPS 子域可以补报旧任务，来源不会因从 IP、专注或其他页面进入而被误拒绝。主站旧 `/speed` 地址先保留原任务 ID 和凭据补报，再转入正式域名；原域名的本机历史继续保留。`src/site-routing.mjs` 为主站与测速 Pages 共用的域名策略，错误的跨功能页面路径自动纠正，API 和静态资源不跳转。
 
 ## 使用边界
 

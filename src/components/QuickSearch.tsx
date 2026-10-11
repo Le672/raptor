@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useSiteNavigate } from "@/hooks/useSiteNavigate";
 import { domainLinks } from "@/data/site";
 import { siteNavigation } from "@/data/navigation";
 import { gameCatalog } from "@/data/games";
@@ -15,7 +15,7 @@ export function QuickSearch({ open, onClose }: QuickSearchProps) {
   const [query, setQuery] = useState(""), [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null), dialog = useRef<HTMLElement>(null), close = useRef(onClose);
   close.current = onClose;
-  const navigate = useNavigate(), published = usePublicPosts(open);
+  const navigate = useSiteNavigate(), published = usePublicPosts(open);
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null, overflow = document.body.style.overflow;
