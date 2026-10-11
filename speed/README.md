@@ -3,6 +3,7 @@
 网络测速与流量消耗工具，网页版与 Windows 原生下载引擎共用计量和控制逻辑。
 
 - 在线使用：[speed.yukino.bond](https://speed.yukino.bond)
+- 备用入口：[yukino-speed.pages.dev](https://yukino-speed.pages.dev)
 - Windows 安装包、便携版与 SHA-256：[GitHub Releases](https://github.com/Le672/yukino-speed/releases/latest)
 - 主站：[Yukino](https://www.yukino.bond/speed)
 
@@ -38,6 +39,8 @@ pnpm dist:win
 测试覆盖跨线程配额、实际字节不截断、共享速率、暂停恢复、陈旧请求隔离、超时与错误重试；原生引擎在本地无 CORS 的 HTTP 服务器上验证 Range、重定向和取消。全站 API 使用真实 SQLite 验证重复 / 乱序提交、凭据与来源校验。
 
 Cloudflare Pages 配置在 `wrangler.toml`，表结构在 `cloudflare/schema.sql`。数据库绑定名为 `DB`。自行部署时改为自己的 D1 ID，并执行 schema；Yukino 域名部署由主仓库 [Le672/raptor](https://github.com/Le672/raptor) 的 `Deploy Yukino Speed` workflow 使用既有 Cloudflare secrets 完成。核心不提供任意 URL 的服务端流量中转。
+
+部署完成后，workflow 自动验证正式域名的 HTTPS 页面和持久统计接口。初次绑定域名时需要 DNS 编辑权限，或在 Cloudflare 控制台将 `speed` CNAME 指向 `yukino-speed.pages.dev`；域名已激活后可使用现有 Pages 部署权限继续发布。
 
 源代码在主仓库 `speed/` 与此独立仓库同步，独立提交可通过 `git subtree split --prefix=speed` 生成，再推送至本仓库。推送与 package version 对应的 `v*` 标签即可在 Windows Actions 中测试、打包并发布安装版 / 便携版和校验文件。
 
