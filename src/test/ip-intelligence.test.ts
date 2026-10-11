@@ -50,7 +50,8 @@ describe("explainable purity score", () => {
 describe("visitor identity and multi-source service", () => {
   beforeEach(() => { vi.resetModules(); });
   function fakeSources(overrides: Record<string, Response | Error> = {}) {
-    return vi.fn(async (address: string) => {
+    return vi.fn(async (address: string, options?: RequestInit) => {
+      if (options?.redirect !== "manual") throw new TypeError("Unsupported Workers redirect mode");
       const url = new URL(address), ip = decodeURIComponent(url.pathname.split("/").filter(Boolean).at(-1) || "");
       const override = overrides[url.hostname]; if (override instanceof Error) throw override; if (override) return override.clone();
       const json = (data: unknown) => new Response(JSON.stringify(data), { headers: { "content-type": "application/json" } });
@@ -103,6 +104,15 @@ describe("visitor identity and multi-source service", () => {
     expect(report.assessment).toMatchObject({ purity: 80, scoredSources: 1, confidence: "limited" });
     expect(report.sources.find(s => s.id === "ipquery")).toMatchObject({ status: "error", risk: null, detail: "数据源返回的数据格式异常，未纳入判断" });
     expect(JSON.stringify(report)).not.toContain("private-provider-diagnostic");
+  });
+  it("uses Workers-compatible manual mode and rejects an unexpected provider redirect", async () => {
+    const moved = new Response(null, { status: 302, headers: { location: "https://unexpected.example/" } });
+    const fetcher = fakeSources({ "api.ipquery.io": moved }); vi.stubGlobal("fetch", fetcher);
+    const { inspectIp } = await import("../../functions/_utils/ip-service"); const report = await inspectIp("1.1.1.1");
+    expect(report.assessment).toMatchObject({ purity: 80, scoredSources: 1 });
+    expect(report.sources.find(s => s.id === "ipquery")).toMatchObject({ status: "error", detail: "数据源发生意外跳转，未纳入判断" });
+    expect(fetcher.mock.calls.every(([, options]) => options?.redirect === "manual")).toBe(true);
+    expect(fetcher.mock.calls.some(([url]) => String(url).includes("unexpected.example"))).toBe(false);
   });
   it("does not label unsupported IPv6 lists as clean and correctly matches a listed IPv6 subnet", async () => {
     const drop = new Response(JSON.stringify({ cidr: "2001:678:254::/48", sblid: "SBL-test" }) + "\n" + JSON.stringify({ type: "metadata", timestamp: Math.floor(Date.now() / 1000), copyright: "(c) Spamhaus" }), { headers: { "content-type": "application/json" } });

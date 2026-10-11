@@ -8,6 +8,7 @@ const local = new Map<string, { expires: number; raw: Raw }>();
 const pending = new Map<string, Promise<Raw>>();
 const initializing = new WeakMap<object, Promise<void>>();
 const callers = new Map<string, { until: number; count: number }>();
+class UpstreamError extends Error {}
 const text = (value: unknown) => typeof value === "string" ? value.slice(0, 300) : undefined;
 export const asnLabel = (value: unknown): string | undefined => /^(?:AS)?\d{1,10}$/.test(String(value)) && Number(String(value).replace(/^AS/, "")) > 0 ? `AS${String(value).replace(/^AS/, "")}` : undefined;
 
@@ -29,10 +30,10 @@ export function allowIpQuery(request: EdgeRequest): boolean {
   return bucket.count <= 12;
 }
 async function boundedText(body: ReadableStream<Uint8Array> | null, maximum: number) {
-  if (!body) throw new Error("数据源返回空响应");
+  if (!body) throw new UpstreamError("数据源返回空响应");
   const reader = body.getReader(), chunks: Uint8Array[] = []; let size = 0;
   try {
-    while (true) { const { done, value } = await reader.read(); if (done) break; size += value.byteLength; if (size > maximum) throw new Error("响应超过读取上限"); chunks.push(value); }
+    while (true) { const { done, value } = await reader.read(); if (done) break; size += value.byteLength; if (size > maximum) throw new UpstreamError("响应超过读取上限"); chunks.push(value); }
   } finally { await reader.cancel().catch(() => {}); }
   const bytes = new Uint8Array(size); let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
@@ -45,14 +46,15 @@ export async function readIpBody(request: Request) {
 async function networkRaw(address: string): Promise<Raw> {
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
   try {
-    const response = await fetch(address, { headers: { Accept: "application/json, text/plain", "User-Agent": "Yukino-IP/1.0 (+https://ip.yukino.bond)" }, redirect: "error", signal: controller.signal });
-    if (!response.ok) throw new Error(response.status === 429 ? "数据源今日额度或请求频率受限" : `数据源返回 HTTP ${response.status}`);
-    if (response.headers.get("content-type")?.includes("text/html")) throw new Error("数据源返回网页，未纳入评分");
+    const response = await fetch(address, { headers: { Accept: "application/json, text/plain", "User-Agent": "Yukino-IP/1.0 (+https://ip.yukino.bond)" }, redirect: "manual", signal: controller.signal });
+    if (response.status >= 300 && response.status < 400) throw new UpstreamError("数据源发生意外跳转，未纳入判断");
+    if (!response.ok) throw new UpstreamError(response.status === 429 ? "数据源今日额度或请求频率受限" : `数据源返回 HTTP ${response.status}`);
+    if (response.headers.get("content-type")?.includes("text/html")) throw new UpstreamError("数据源返回网页，未纳入评分");
     return { text: await boundedText(response.body, 500000), fetchedAt: new Date().toISOString(), updatedAt: response.headers.get("last-modified") || undefined, cached: false };
   } catch (error) {
     if (controller.signal.aborted) throw new Error("数据源连接超时");
-    if (error instanceof TypeError) throw new Error("暂时无法连接数据源");
-    throw error;
+    if (error instanceof UpstreamError) throw error;
+    throw new Error("暂时无法连接数据源");
   } finally { clearTimeout(timer); }
 }
 async function sharedFeed(address: string, ttl: number, db: any): Promise<Raw> {
