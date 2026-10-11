@@ -68,11 +68,13 @@ async function init() {
     if (!selected) throw new Error('无效的内置核验源');
     const proof = { version: app.getVersion(), packaged: app.isPackaged, sourceId,
       bridge: await window.webContents.executeJavaScript('typeof window.yukinoSpeed?.start'), title: window.getTitle(),
-      catalog: await window.webContents.executeJavaScript("Array.from(document.querySelectorAll(\"select\")[0].options).map(option => ({id:option.value,label:option.textContent}))") };
-    runner.start({ url: selected.url, kind: selected.kind, referrer: selected.referrer, threads: 2, limitBytes: 1_000_000, rateBps: 500_000, durationMs: 20000 });
+      catalog: await window.webContents.executeJavaScript("Array.from(document.querySelector(\"select[aria-label=\\\"下载服务器\\\"]\").options).map(option => ({id:option.value,label:option.textContent}))") };
+    runner.start({ url: selected.url, kind: selected.kind, referrer: selected.referrer, cacheBust: selected.cacheBust !== false, threads: 2, limitBytes: 1_000_000, rateBps: 500_000, durationMs: 20000 });
     await runner.task;
-    await reporter.flush();
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const syncDeadline = Date.now() + 12000;
+    while (Date.now() < syncDeadline && (reporter.busy || Object.keys(storage).some(key => key.startsWith('yukino-speed:report:')))) {
+      await reporter.flush(); await new Promise(resolve => setTimeout(resolve, 200));
+    }
     proof.result = runner.snapshot(); proof.result.history = []; proof.blockerActive = blocker !== undefined;
     writeJson('smoke.json', proof); app.quit();
   }

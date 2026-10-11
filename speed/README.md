@@ -9,7 +9,7 @@
 
 ## 功能
 
-内置 16 个完整下载地址，按电信、联通、移动、广电、Steam CDN 和全球文件分组，直接选择，无需手填。包括 Steam Fastly / Akamai 官方客户端资源包及安装文件、电信天翼云、联通云盘、移动营业厅、广电谷豆 TV 及公开资源，以及 Cloudflare、CacheFly、Vultr（东京 / 新加坡）、OVH。另保留公开 Speedtest 节点目录及自定义 URL。完整来源、文件大小与核验说明见 [SOURCES.md](SOURCES.md)。支持 1–32 个并发下载任务、定时测速或持续消耗、暂停 / 继续、配额自动停止、运行中调整共享带宽上限。显示实际已读取字节、持续时间、实时 MB/s 与 Mbps、平均与峰值带宽及曲线，保存本机历史，可导出 JSON。
+内置 205 个完整地址、覆盖 26 个国家和地区，107 个可直接在网页使用。按四运营商、国内 CDN、Steam 和全球节点分组，支持名称、国家地区、域名与兼容性组合筛选，无需手填。全球目录覆盖 Vultr、Akamai Cloud、Leaseweb、OVHcloud、HostHatch，保留 Steam Fastly / Akamai 官方资源包与安装文件。另保留公开 Speedtest 节点目录及自定义 URL。完整地址、大小、分段读取与来源说明见 [SOURCES.md](SOURCES.md)。支持 1–32 个并发下载任务、定时测速或持续消耗、暂停 / 继续、配额自动停止、运行中调整共享带宽上限。显示实际已读取字节、持续时间、实时 MB/s 与 Mbps、平均与峰值带宽及曲线，保存本机历史，可导出 JSON。
 
 全站累计由 Cloudflare D1 持久保存，包括网页与 Windows 客户端。统计接口只接收随机任务 ID、字节和时间，不接收下载 URL。每个任务使用独立随机密钥，重复、乱序和重试上报只计新增字节；断网记录自动补传。匿名客户端可以伪造其自身数据，因此公开总量明确标注为客户端上报。
 
@@ -36,7 +36,10 @@ pnpm test
 pnpm build
 pnpm desktop
 pnpm dist:win
+pnpm sources:check
 ```
+
+`pnpm sources:check` 会使用 Windows 原生下载连接逐个读取内置源的少量数据，结果保存到忽略提交的 `qa-output/source-checks.json`；此检查需要网络，未关闭 TLS 校验。
 
 测试覆盖跨线程配额、实际字节不截断、共享速率、暂停恢复、陈旧请求隔离、超时与错误重试；原生引擎在本地无 CORS 的 HTTP 服务器上验证 Range、重定向和取消。全站 API 使用真实 SQLite 验证重复 / 乱序提交、凭据与来源校验。
 

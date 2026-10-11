@@ -1,6 +1,6 @@
 {
   "name": "yukino-speed",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "Yukino 网络测速与流量消耗工具",
   "author": "Yukino <Le672@users.noreply.github.com>",
@@ -10,10 +10,11 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5190",
     "check": "tsc --noEmit",
-    "test": "vitest run && node --test test/native.test.mjs test/system-fetch.test.mjs test/api.test.mjs test/storage.test.mjs",
+    "test": "vitest run && node --test test/native.test.mjs test/system-fetch.test.mjs test/catalog.test.mjs test/api.test.mjs test/storage.test.mjs",
     "build": "tsc --noEmit && vite build",
     "desktop": "pnpm run build && install-electron && electron .",
-    "dist:win": "pnpm run build && install-electron && electron-builder --win --publish never"
+    "dist:win": "pnpm run build && install-electron && electron-builder --win --publish never",
+    "sources:check": "install-electron && electron scripts/check-sources.cjs"
   },
   "dependencies": {
     "react": "18.3.1",

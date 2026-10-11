@@ -151,3 +151,8 @@ body:has(>.ys-app),body:has(#root>.ys-app) { margin:0; }
 .ys-compat-note { padding:10px 12px; border:1px solid #dfd8c3; border-radius:8px; color:#8a7c59; font-size:11px; line-height:1.8; background:#f8f6ed; margin:0 0 14px; }
 .ys-compat-note a { display:flex; }
 .ys-start:disabled { opacity:.5; cursor:not-allowed; }
+
+.ys-catalog-search { margin-top:10px; }
+.ys-catalog-filters { gap:9px; }
+.ys-filter-result { color:#8b987b; font-size:10px; margin:-2px 0 10px; }
+.ys-source-hint { margin:-4px 0 11px; line-height:1.7; }
