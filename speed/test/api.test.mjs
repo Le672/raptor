@@ -17,7 +17,8 @@ test('durable global totals are idempotent, monotonic and protected by a per-tas
     for (const bytes of [1000, 1000, 500, 2000]) assert.equal((await handleSpeed(request('report', { id, token, bytes, durationMs: 1000 }), { DB })).status, 200);
     let total = await (await handleSpeed(request('totals'), { DB })).json(); assert.equal(total.bytes, 2000); assert.equal(total.sessions, 1);
     const wrong = crypto.randomUUID() + crypto.randomUUID();
-    assert.equal((await handleSpeed(request('session', { id, token: wrong }), { DB })).status, 409);
+    const conflict = await handleSpeed(request('session', { id, token: wrong }), { DB });
+    assert.equal(conflict.status, 409); assert.deepEqual((await conflict.json()).acknowledged, { bytes: 2000, durationMs: 1000, finished: false });
     assert.equal((await handleSpeed(request('report', { id, token: wrong, bytes: 3000, durationMs: 1000 }), { DB })).status, 403);
     assert.equal((await handleSpeed(request('report', { id, token, bytes: -1, durationMs: 1000 }), { DB })).status, 400);
     assert.equal((await handleSpeed(request('report', { id, token, bytes: 1e14 + 1, durationMs: 1000 }), { DB })).status, 400);

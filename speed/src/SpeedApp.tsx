@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Activity, ArrowDown, ArrowUpRight, Check, Download, Gauge, Globe2, Github, HardDrive, Layers3, LockKeyhole, Pause, Play, Radio, RotateCcw, Search, Square, Timer, UnlockKeyhole, Zap } from 'lucide-react';
 import { DownloadRunner, formatBytes, formatDuration, validateConfig } from './engine.mjs';
-import { Reporter, readRuns, saveRun } from './storage.mjs';
+import { Reporter, fetchApi, readRuns, saveRun } from './storage.mjs';
 import { SERVERS } from './servers';
 import type { Server } from './servers';
 import './speed.css';
@@ -46,7 +46,7 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
   const stateRef = useRef(state); stateRef.current = state;
   const savedAt = useRef(0);
   const runner = useRef<any>(null);
-  const api = desktop || embedded || ['localhost', '127.0.0.1'].includes(location.hostname) ? 'https://speed.yukino.bond/api/speed' : '/api/speed';
+  const api = desktop || embedded || ['localhost', '127.0.0.1'].includes(location.hostname) ? ['https://speed.yukino.bond/api/speed', 'https://yukino-speed.pages.dev/api/speed'] : ['/api/speed', 'https://yukino-speed.pages.dev/api/speed'];
   const reporter = useRef<any>(null);
   const selected = [...SERVERS, ...discovered].find(s => s.id === serverId) || SERVERS[0];
   const url = (desktop && selected.httpUrl ? selected.httpUrl : selected.url) || effectiveUrl(customUrl);
@@ -70,7 +70,7 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
     void window.yukinoSpeed?.state().then((next: any) => checkpoint(next));
     void window.yukinoSpeed?.records().then((runs: any[]) => { try { runs.forEach(run => saveRun(run)); refreshRecords(); } catch { setStorageError('本机历史记录暂时无法读取。'); } });
     const readTotal = async () => {
-      try { const response = await fetch(api + '/totals', { signal: AbortSignal.timeout(10000), cache: 'no-store' }); if (!response.ok) throw new Error(); setTotal(await response.json()); setStatsError(''); }
+      try { const response = await fetchApi(api, '/totals', { cache: 'no-store' }); if (!response.ok) throw new Error(); setTotal(await response.json()); setStatsError(''); }
       catch { setStatsError('全站统计暂时无法读取；连接恢复后自动更新。'); }
     };
     void readTotal(); if (!desktop) void reporter.current.flush();
@@ -116,7 +116,7 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
   async function search() {
     setSearching(true); setSearchError('');
     try {
-      const response = await fetch(api + '/servers?q=' + encodeURIComponent(query.trim()), { signal: AbortSignal.timeout(15000) });
+      const response = await fetchApi(api, '/servers?q=' + encodeURIComponent(query.trim()));
       const data = await response.json(); if (!response.ok) throw new Error(data.error || '节点目录暂不可用');
       setDiscovered(data.servers || []); if (!data.servers?.length) setSearchError('未找到匹配节点，请尝试城市英文名、运营商名称，或自定义完整文件链接。');
     } catch (failure: any) { setSearchError(failure.message || '暂时无法连接运营商节点目录'); }
@@ -180,6 +180,6 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
       {(statsError || storageError) && <p className="ys-sync-note" role="status">{storageError || statsError}</p>}
       <section className="ys-history"><div className="ys-section-heading"><h2>连接留下的足迹<span>RECENT SESSIONS</span></h2><button disabled={!records.length} onClick={exportHistory}><Download size={14}/>导出本机记录</button></div>{records.length ? <div className="ys-history-scroll"><table><thead><tr><th>开始时间</th><th>下载服务器</th><th>消耗流量</th><th>持续时间</th><th>平均带宽</th><th>状态</th></tr></thead><tbody>{records.slice(0, 10).map(record => <tr key={record.id}><td>{new Date(record.startedAt).toLocaleString('zh-CN', { hour12: false })}</td><td title={record.config?.url}>{(() => { try { return new URL(record.config?.url).hostname; } catch { return '未知服务器'; } })()}</td><td>{formatBytes(record.bytes)}</td><td>{formatDuration(record.elapsedMs)}</td><td>{(record.averageBps * 8 / 1e6).toFixed(2)} Mbps</td><td>{record.status === 'running' && record.id !== state.id ? '中断记录' : LABELS[record.status]}</td></tr>)}</tbody></table></div> : <p className="ys-history-empty"><RotateCcw size={18}/>第一段连接，从点击开始。</p>}</section>
       <details className="ys-help"><summary>关于统计、带宽限制与服务器兼容性</summary><div><p>实时网速以 MB/s 等字节单位显示，实时带宽以 Mbps 显示；1 MB/s = 8 Mbps。容量采用十进制：1 GB = 1000 MB。平均带宽包含连接与重试时间，暂停期间不计时。</p><p>统计的是下载到应用的数据有效载荷，不包含 TLS、TCP、HTTP 头等开销。停止或限制流量时，网络及浏览器可能已经预读少量额外数据；运营商计费以运营商账单为准。缓存参数避免浏览器重复使用文件；CDN 的边缘缓存仍会通过网络传输。</p><p>带宽锁定表示所有线程共享的下载上限，不能保证网络达到该速率。网页版采用分块请求和请求间隔控制，瞬时速度可能波动，后台标签页可能被浏览器限速。Windows 版采用原生流式连接；两端都推荐 Cloudflare 或支持 Range 的文件服务器。</p><p>网页版需要目标服务器允许 CORS，HTTPS 页面无法下载 HTTP 文件。Windows 版可以直接访问 HTTP 与无 CORS 的文件链接。Steam 等 CDN 需要完整且未过期的文件链接；网站首页、登录页、仅专用协议的节点和受限制文件不能作为测试文件。这里使用兼容的 HTTP 下载文件，未使用 Ookla 的官方测速算法。</p><p>本机历史不会自动跨设备同步。全站统计保存匿名任务 ID、已接收字节和持续时间，包含网页和 Windows 版；客户端数据可以被篡改，因此全站总量属于客户端上报统计。失败时保留本机待同步记录，下次联网自动重试；重复上报只计新增字节。清除浏览器数据会移除本机历史与尚未同步的记录。</p></div></details>
-    </main><footer className="ys-footer"><span>Yukino Speed<span> · </span>给连接留一点刻度。</span><div><a href="https://www.yukino.bond/">返回主站<ArrowUpRight size={12}/></a><a href={REPO}>开源代码<ArrowUpRight size={12}/></a><span>v{desktop ? window.yukinoSpeed!.version : '1.0.0'}</span></div></footer>
+    </main><footer className="ys-footer"><span>Yukino Speed<span> · </span>给连接留一点刻度。</span><div><a href="https://www.yukino.bond/">返回主站<ArrowUpRight size={12}/></a><a href={REPO}>开源代码<ArrowUpRight size={12}/></a><span>v{desktop ? window.yukinoSpeed!.version : '1.0.1'}</span></div></footer>
   </div>;
 }

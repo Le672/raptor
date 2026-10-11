@@ -1,6 +1,6 @@
 {
   "name": "yukino-speed",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Yukino 网络测速与流量消耗工具",
   "author": "Yukino <Le672@users.noreply.github.com>",

@@ -64,8 +64,8 @@ export async function handleSpeed(request, env) {
     const tokenHash = await hash(input.token); const now = Date.now();
     if (route === '/session') {
       await env.DB.prepare('INSERT OR IGNORE INTO speed_runs (id,token_hash,created_at,updated_at) VALUES (?,?,?,?)').bind(input.id, tokenHash, now, now).run();
-      const row = await env.DB.prepare('SELECT token_hash FROM speed_runs WHERE id=?').bind(input.id).first();
-      return json(request, row?.token_hash === tokenHash ? { id: input.id } : { error: '此任务的凭据不匹配。' }, row?.token_hash === tokenHash ? 200 : 409);
+      const row = await env.DB.prepare('SELECT token_hash,bytes,duration_ms,finished FROM speed_runs WHERE id=?').bind(input.id).first();
+      return json(request, row?.token_hash === tokenHash ? { id: input.id } : { error: '此任务的凭据不匹配。', acknowledged: row ? { bytes: Number(row.bytes), durationMs: Number(row.duration_ms), finished: row.finished === 1 } : null }, row?.token_hash === tokenHash ? 200 : 409);
     }
     const bytes = Number(input.bytes), durationMs = Number(input.durationMs);
     if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > 100_000_000_000_000 || !Number.isSafeInteger(durationMs) || durationMs < 0 || durationMs > 31_536_000_000 || bytes > (durationMs + 1000) * 12_500_000) return json(request, { error: '统计数值不符合范围。' }, 400);

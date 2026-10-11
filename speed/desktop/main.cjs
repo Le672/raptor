@@ -20,7 +20,7 @@ async function init() {
     setItem: { value: (key, value) => { storage[key] = value; writeJson('reports.json', storage); } },
     removeItem: { value: key => { delete storage[key]; writeJson('reports.json', storage); } },
   });
-  reporter = new Reporter('https://speed.yukino.bond/api/speed', () => {}, storage);
+  reporter = new Reporter(['https://speed.yukino.bond/api/speed', 'https://yukino-speed.pages.dev/api/speed'], () => {}, storage);
   runner = new DownloadRunner({ fetcher: nativeFetch, onUpdate: state => {
     if (state.id && (state.status !== 'running' || Date.now() - saveAt > 1000)) {
       saveAt = Date.now(); const { history, workers, ...record } = state; records[state.id] = record;
