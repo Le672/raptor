@@ -1,19 +1,19 @@
 # 预置下载源
 
-核验日期：2026-10-11。共 **204 个不同地址、182 个域名、26 个国家和地区**，其中 107 个标为网页 / Windows 可用。已有所有预置源与此次新增源均实际读取过数据；按地址去重，Cloudflare 的不同 bytes 参数合并为一个动态接口。不同文件可能共用一个域名，此处数量是可选地址，不是独立物理服务器数。
+核验日期：2026-10-11。共 **339 个不同地址、317 个域名、58 个国家和地区**，其中 169 个标为网页 / Windows 可用。所有预置源均实际读取过数据，按地址去重；地址数不等于独立物理服务器数，CDN 的实际出口随解析变化。此次新增 135 个地址。逐项 HTTP 响应、实际字节及新源跨域链见 [source-audit.json](source-audit.json)。
 
-参考用户指定的 [use.wuxie.de](https://use.wuxie.de/)、[lhh.la/tools/cesu](https://lhh.la/tools/cesu)、[shua.leyz.top/sl](https://shua.leyz.top/sl/)，同时直接读取 Vultr、Akamai、Leaseweb、OVHcloud、HostHatch 的官方地区目录和下载端点。失效、无数据、返回错误页及证书异常的候选未收入。引用其公开文件地址与名称线索，界面和下载引擎由本项目独立实现。
+参考用户指定的 [use.wuxie.de](https://use.wuxie.de/)、[lhh.la](https://lhh.la/tools/cesu)、[shua.leyz.top](https://shua.leyz.top/sl/)，并读取 Vultr、Akamai、Leaseweb、OVHcloud、HostHatch 官方目录。此次增加 [DataPacket 全球机房测试文件](https://www.datapacket.com/speed-test-files/latin-america)、[EDIS Global 地区目录](https://co.edisglobal.com/)、[Psychz Looking Glass](https://www.psychz.net/looking-glass.html)、[Clouvider 官方测试目录](https://as62240.net/speedtest)。只提取公开地址和提供方标示的地区，界面与引擎独立实现。失败、无数据、网页和证书异常的候选未收入。
 
-网页支持搜索名称、国家地区和域名，以及国家 / 地区、网页兼容性、分类组合筛选。四运营商、Steam 和自定义地址继续保留。
+网页支持名称、国家地区、域名和客户端组合筛选；继续保留四运营商、Steam 和自定义地址。DataPacket 每个已验证机房只收录 100 MB 文件，没有把 1 GB / 10 GB 尺寸变体重复计为更多节点。
 
 ## 兼容性与计量
 
-- 网页需要 HTTPS、完整重定向链允许 CORS；必须附带特定来源页的文件只在 Windows 使用。
-- Windows 使用系统代理，保持 TLS 校验；必要来源页及不能添加缓存参数的地址由预置配置处理。
-- 35 个源未支持 Range，配额结束时可能超出一个实际读取的数据块，限速会有波动；精确配额优先选 Cloudflare 或标记支持分段读取的文件。所有实际读取的完整字节块仍会计入统计。
-- 小图片和脚本适合低速 / 连通性检查，大带宽更适合 100 MB、1 GB 测试文件。脚本、安装包、媒体与其他文件均仅读取后丢弃，不保存或执行。
-- 地区采用提供方标示；国内服务和 CDN 资源的实际边缘节点随网络解析变化，不保证运营商专网或特定游戏的下载路由，不承诺任何定向流量计费。
-- 核验只代表检查时的可达性，文件版本、区域政策与路由可能变化。
+- 网页需要 HTTPS、完整重定向链允许 CORS；有必要来源页的文件只在 Windows 使用。
+- Windows 使用系统代理并保持 TLS 校验，预置配置自动处理必要来源页和缓存参数。
+- 35 个源未支持 Range，配额结束时可能超出一个实际读取的数据块；所有完整读取字节仍计入。精确配额优先使用 Cloudflare 或支持 Range 的文件。
+- 小文件适合低速 / 连通性检查，大带宽适合 100 MB、1 GB 测试文件。数据读取后丢弃，不执行。
+- 地区采用提供方标示。运营商组是官方 CDN 文件，不保证专网出口；Steam 组是官方客户端负载，不代表具体游戏的专属线路，不承诺定向计费。
+- 核验仅代表检查时的可达性，文件版本、地区限制和路由可能变化。
 
 ## 全部地址
 
@@ -26,7 +26,7 @@
 | [中国联通 · 联通云盘 Mac 文件](https://pack.pan.wo.cn/download/WoCloud-2.8.13-x64.dmg) | 中国大陆 · 官方 CDN | Windows | 344.98 MB | 支持 | [官方来源](https://pan.wo.cn/client_download) |
 | [中国移动 · 营业厅官方下载](https://res.app.coc.10086.cn/downfile/apk/CM10086_android_V11.9.2_20250424195533224.apk) | 中国大陆 · 官方 CDN | Windows | 190.49 MB | 支持 | [官方来源](https://www.10086.cn/cmccclient/) |
 | [中国广电 · 广东谷豆 TV 下载](https://www.gcable.com.cn/css/GoodTV-AndroidPhone-3.13.0_9226.apk) | 中国大陆 · 广东广电官方 | Windows | 41.73 MB | 支持 | [官方来源](https://www.gcable.com.cn/gdcp/gdtv/index.html) |
-| [中国广电 · 营业厅公开资源](https://m.10099.com.cn/gwecdq/gWrwMYe20RGkxiCubXa8nc5yN1ldZUIT.jpg) | 中国大陆 · 官方资源 CDN | 网页 / Windows | 0.21 MB | 支持 | [官方来源](https://m.10099.com.cn/cbn_client_download.html) |
+| [中国广电 · 营业厅公开资源](https://m.10099.com.cn/gwecdq/gWrwMYe20RGkxiCubXa8nc5yN1ldZUIT.jpg) | 中国大陆 · 官方资源 CDN | 网页 / Windows | 212.62 KB | 支持 | [官方来源](https://m.10099.com.cn/cbn_client_download.html) |
 | [Steam · Fastly 客户端资源包](https://cdn.fastly.steamstatic.com/client/steamui_websrc_all.zip.399ab78a41fd3867bf178d8bcee57db47a9de0bd) | Steam 官方 · Fastly CDN | Windows | 30.83 MB | 支持 | [官方来源](https://cdn.akamai.steamstatic.com/client/steam_client_win32) |
 | [Steam · Akamai 客户端资源包](https://cdn.akamai.steamstatic.com/client/steamui_websrc_all.zip.399ab78a41fd3867bf178d8bcee57db47a9de0bd) | Steam 官方 · Akamai CDN | Windows | 30.83 MB | 支持 | [官方来源](https://cdn.akamai.steamstatic.com/client/steam_client_win32) |
 | [Steam · Fastly 官方安装文件](https://cdn.fastly.steamstatic.com/client/installer/SteamSetup.exe) | Steam 官方 · Fastly CDN | Windows | 2.38 MB | 支持 | [官方来源](https://store.steampowered.com/about/) |
@@ -38,66 +38,66 @@
 | [Wuxie · Cloudflare R2 测试文件](https://r2.wuxie.de/hello100.png) | 全球 CDN · 自动调度 | Windows | 104.86 MB | 支持 | [参考页面](https://use.wuxie.de/) |
 | [百度CDN](https://issuecdn.baidupcs.com/issue/netdisk/apk/BaiduNetdiskSetup_wap_share.apk) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 198.72 MB | 支持 | [参考页面](https://use.wuxie.de/) |
 | [字节跳动](https://p9-arcosite.byteimg.com/tos-cn-i-goo7wpa0wc/00fb66006eb84b16965b620b6e1f2d78~tplv-goo7wpa0wc-image.image) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 1.51 MB | 支持 | [参考页面](https://use.wuxie.de/) |
-| [腾讯 · WeGame](https://wegame.gtimg.com/g.55555-r.c4663/wegame-home/sc02-03.514d7db8.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.83 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [腾讯 · WeGame](https://wegame.gtimg.com/g.55555-r.c4663/wegame-home/sc02-03.514d7db8.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 833.28 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [vivo](https://wwwstatic.vivo.com.cn/vivoportal/files/resource/funtouch/1651200648928/images/os2-jude-video.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 4.42 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [腾讯 · 游戏宣传视频](https://bns.lv.game.qq.com/dis_kt_271ff5afcc739860b7cbf358a2256d75_1700728513/0b53cyaagaaatyaa52c7evs6ofwdamlaaaya.f0.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 6.64 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
-| [字节跳动 · 抖音](https://lf1-cdn-tos.bytegoofy.com/goofy/ies/douyin_home_web/imgs/mob_1-1.15453147.gif) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.00 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
-| [哔哩哔哩](https://i2.hdslb.com/bfs/openplatform/202506/ndIMphTF1750406775833.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.38 MB | 支持 | [参考页面](https://use.wuxie.de/) |
-| [中国移动 · 咪咕](https://wcache.migu.cn/prod/upload/game_resource/contentRelated/006212638000/84/1662605671282.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.35 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
+| [字节跳动 · 抖音](https://lf1-cdn-tos.bytegoofy.com/goofy/ies/douyin_home_web/imgs/mob_1-1.15453147.gif) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 43 B | 支持 | [参考页面](https://lhh.la/tools/cesu) |
+| [哔哩哔哩](https://i2.hdslb.com/bfs/openplatform/202506/ndIMphTF1750406775833.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 376.56 KB | 支持 | [参考页面](https://use.wuxie.de/) |
+| [中国移动 · 咪咕](https://wcache.migu.cn/prod/upload/game_resource/contentRelated/006212638000/84/1662605671282.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 347.50 KB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
 | [腾讯](https://static-res.qq.com/web/im.qq.com/qq9-introduction.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 24.01 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
 | [快手](https://alimov2.a.kwimgs.com/upic/2024/03/29/19/BMjAyNDAzMjkxOTI2MjdfNzAxNDkwODM5XzEyODQ3NjA0NzA1MF8xXzM=_b_Bcaebd79754ad49a73f606219c2461ce5.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 10.93 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
-| [拼多多](https://img.pddpic.com/mms-material-img/2025-07-24/275617a7-4795-414a-b472-c06f11e79b37.jpeg.a.jpeg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.12 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
+| [拼多多](https://img.pddpic.com/mms-material-img/2025-07-24/275617a7-4795-414a-b472-c06f11e79b37.jpeg.a.jpeg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 117.39 KB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
 | [中国移动 · 移动云盘①](https://img.mcloud.139.com/material_prod/material_media/20221128/1669626861087.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 1.14 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [小米](https://cdn.cnbj1.fds.api.mi-img.com/product-images/xiaomi-15_852852/images/14.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 1.09 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
-| [百度](https://jmy-video.baidu.com/011b7fe3c5f101b0a4968402e5ca06e0_1920_1080.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.75 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
-| [华为](https://consumer.huawei.com/content/dam/huawei-cbg-site/cn/mkt/mobileservices/video-2026/images/huawei-video-kv-01-xs.webp) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.39 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
-| [AcFun](https://tx-free-imgs.acfun.cn/o4jJrDBmjG-ju2QVr-BrmQ3e-VRjmia-mE7fiu.jpg?imageslim&imageView2/1/w/690/h/208/format/jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.28 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
+| [百度](https://jmy-video.baidu.com/011b7fe3c5f101b0a4968402e5ca06e0_1920_1080.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 753.89 KB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
+| [华为](https://consumer.huawei.com/content/dam/huawei-cbg-site/cn/mkt/mobileservices/video-2026/images/huawei-video-kv-01-xs.webp) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 392.42 KB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
+| [AcFun](https://tx-free-imgs.acfun.cn/o4jJrDBmjG-ju2QVr-BrmQ3e-VRjmia-mE7fiu.jpg?imageslim&imageView2/1/w/690/h/208/format/jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 275.77 KB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
 | [中国电信 · 天翼云](https://desk.ctyun.cn/desktop/software/clientsoftware/download/ff3e71dcc21152307f54700c62e5aef6) | 中国大陆服务 · CDN 自动调度 | Windows | 52.59 MB | 支持 | [参考页面](https://use.wuxie.de/) |
 | [哔哩哔哩 · bilibili](https://i0.hdslb.com/bfs/album/6a259a872289fbf56e61876c9b8870a9868325af.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 1.50 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
-| [斗鱼](https://rpic.douyucdn.cn/live-cover/appCovers/2024/01/12/5820055_20240112025246.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.55 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
-| [网易](https://g.fp.ps.netease.com/cg-image/file/673d45661e7b3dacd86e0895QHZHgDb705?fop=imageView/2/w/1200/h/680/f/jpeg/q/60) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.13 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
+| [斗鱼](https://rpic.douyucdn.cn/live-cover/appCovers/2024/01/12/5820055_20240112025246.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 546.57 KB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
+| [网易](https://g.fp.ps.netease.com/cg-image/file/673d45661e7b3dacd86e0895QHZHgDb705?fop=imageView/2/w/1200/h/680/f/jpeg/q/60) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 126.50 KB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
 | [字节跳动 · 朝夕光年游戏](https://lf5-j1gamecdn-cn.dailygn.com/obj/lf-game-lf/gdl_app_2682/1233880772355.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 49.06 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国电信 · 电信](https://desk.ctyun.cn:8999/desktop-prod/software/windows_tob_client/15/64/202000005/CtyunClouddeskUniversal_2.0.0_202000005_x86_20230421161227_Setup_Signed.exe) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 78.15 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
 | [京东](https://jvod.300hu.com/vod/product/351f867b-b6fd-4107-8cbe-46b1e2064ede/8bce0b70e00746a7a187e904dd3f98ce.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 3.22 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
 | [腾讯视频](https://puui.qpic.cn/vpic_cover/g3346tki83w/g3346tki83w_hz.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 3.34 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [腾讯①](https://ossweb-img.qq.com/images/lol/web201310/skin/big10001.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.45 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [腾讯①](https://ossweb-img.qq.com/images/lol/web201310/skin/big10001.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 445.87 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [Akamai CDN · Akamai · 公开媒体片段](https://akamtrans-a.akamaihd.net/delivery/2023/08/30/brand-protector-2500k-00004.ts) | 全球 CDN · 自动调度 | 网页 / Windows | 5.18 MB | 支持 | [参考页面](https://lhh.la/tools/cesu) |
 | [腾讯②](https://ossweb-img.qq.com/upload/webplat/info/cf/20230717/653421385804853.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 2.83 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [百度 · 好看视频](https://vd3.bdstatic.com/mda-pm9zn07ydwzhfw85/1080p/cae_h264/1702252000350219836/mda-pm9zn07ydwzhfw85.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 13.40 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [爱奇艺](https://static-d.iqiyi.com/ext/common/iQIYIMedia_000.dmg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 40.78 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国联通 · 联通电视①](https://listen.10155.com/listener/womusic-bucket/90115000/mv_vod/volte_mp4/20250113/25011310461878632856356618241.mp4?user=N/A&channelid=3000013947&contentid=97720000202501134237680&id=7806C0ECA5815296727516B237939874&timestamp=1737618838&isSegment=0) | 中国大陆服务 · CDN 自动调度 | Windows | 14.57 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [百度网盘③](https://staticsns.cdn.bcebos.com/amis/2024-12/1733110167508/ec2943f8f5e27bd38f00c6e02.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.15 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [百度网盘③](https://staticsns.cdn.bcebos.com/amis/2024-12/1733110167508/ec2943f8f5e27bd38f00c6e02.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 148.26 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国联通 · 联通电视③](https://listen.10155.com/listener/womusic-bucket/90115000/mv_vod/volte_mp4/20250122/25012211351881906856159535106.mp4?user=N/A&channelid=3000013947&contentid=91789000202501225046120&id=BF48AF05B7EEF59FA42A2B63EE194BB9&timestamp=1737620144&isSegment=0) | 中国大陆服务 · CDN 自动调度 | Windows | 16.27 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国联通 · 联通电视②](https://listen.10155.com/listener/womusic-bucket/90115000/mv_vod/volte_mp4/20250107/25010717451876559137903665153.mp4?user=N/A&channelid=3000013947&contentid=91789000202501073774710&id=F031747CA9A3198960CC36A1F0A3CD6B&timestamp=1737618923&isSegment=0) | 中国大陆服务 · CDN 自动调度 | Windows | 30.81 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [百度网盘②](https://issuepcdn.baidupcs.com/issue/netdisk/yunguanjia/BaiduNetdisk_7.54.0.103.exe) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 413.14 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [百度网盘①](https://wppkg.baidupcs.com/issue/netdisk/apk/BaiduNetdisk_10.1.02.apk) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 113.23 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国联通 · 沃音乐①](https://listen.10155.com/listener/womusic-bucket/90115000/mv_vod/volteposter/screenshot/20220129/1487368366712385537.jpeg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.06 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国联通 · 沃音乐②](https://listen.10155.com/listener/womusic-bucket/90115000/mv_vod/volteposter/screenshot/20200805/1290977212593999873.jpeg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.05 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国联通 · 联通广告公开资源①](https://m1.ad.10010.com/small_video/uploadImg/1598021193891.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.05 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [gw.alicdn.com · 阿里系①](https://gw.alicdn.com/tfscom/TB1fASCxhjaK1RjSZKzXXXVwXXa.jpg) | 全球 CDN · 自动调度 | 网页 / Windows | 0.29 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [gw.alicdn.com · 钉钉](https://gw.alicdn.com/tfs/TB1k07QUoY1gK0jSZFCXXcwqXXa-810-450.png) | 全球 CDN · 自动调度 | 网页 / Windows | 0.47 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国联通 · 联通云](https://www.cucloud.cn/upload/1717685645631.png) | 中国大陆服务 · CDN 自动调度 | Windows | 0.16 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国联通 · 沃音乐①](https://listen.10155.com/listener/womusic-bucket/90115000/mv_vod/volteposter/screenshot/20220129/1487368366712385537.jpeg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 60.24 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国联通 · 沃音乐②](https://listen.10155.com/listener/womusic-bucket/90115000/mv_vod/volteposter/screenshot/20200805/1290977212593999873.jpeg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 49.14 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国联通 · 联通广告公开资源①](https://m1.ad.10010.com/small_video/uploadImg/1598021193891.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 52.40 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [gw.alicdn.com · 阿里系①](https://gw.alicdn.com/tfscom/TB1fASCxhjaK1RjSZKzXXXVwXXa.jpg) | 全球 CDN · 自动调度 | 网页 / Windows | 293.12 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [gw.alicdn.com · 钉钉](https://gw.alicdn.com/tfs/TB1k07QUoY1gK0jSZFCXXcwqXXa-810-450.png) | 全球 CDN · 自动调度 | 网页 / Windows | 472.66 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国联通 · 联通云](https://www.cucloud.cn/upload/1717685645631.png) | 中国大陆服务 · CDN 自动调度 | Windows | 163.27 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [字节跳动 · 今日头条](https://lf9-static.bytednsdoc.com/obj/eden-cn/uhbfnupkbps/video/earth_v6.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 21.15 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [字节跳动①](https://lf1-cdn-tos.bytescm.com/obj/static/ies/bytedance_official/_next/static/images/8-4@2x-f85835b5e482bccf94c824067caac899.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.94 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [字节跳动②](https://lf3-cdn-tos.bytescm.com/obj/ttfe/ATSX/mainland/video-poster_1576231362701.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.37 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国电信 · 天翼云盘](https://static.e.189.cn/open/login/page/web/v5.0/static/js/captch.min.js?v1.1) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.10 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [字节跳动①](https://lf1-cdn-tos.bytescm.com/obj/static/ies/bytedance_official/_next/static/images/8-4@2x-f85835b5e482bccf94c824067caac899.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 939.44 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [字节跳动②](https://lf3-cdn-tos.bytescm.com/obj/ttfe/ATSX/mainland/video-poster_1576231362701.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 371.68 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国电信 · 天翼云盘](https://static.e.189.cn/open/login/page/web/v5.0/static/js/captch.min.js?v1.1) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 104.47 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国电信 · 天翼云桌面①](https://desk.ctyun.cn:8999/desktop-prod/software/windows_tob_client/15/64/202030001/CtyunClouddeskUniversal_2.3.0_202030001_x86_20240327104015_Setup.exe) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 87.17 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [百度 · 公开图片](https://jmy-pic.baidu.com/0/pic/1203225490_216151106_2084668354.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.80 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [百度 · 公开图片](https://jmy-pic.baidu.com/0/pic/1203225490_216151106_2084668354.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 804.08 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国电信 · 电信21](https://review.21cn.com/img/20220610/1/1654859008246.mp4) | 中国大陆服务 · CDN 自动调度 | Windows | 3.87 MB | 未支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国移动 · 移动云盘②](https://yun.mcloud.139.com/hongseyunpan/2.43G.zip) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 2590.28 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国移动 · 移动云盘②](https://yun.mcloud.139.com/hongseyunpan/2.43G.zip) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 2.59 GB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国移动 · 移动云盘③](https://open.yun.139.com/static/img/case_bg_1.16716f8f.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 1.40 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国移动 · 移动云盘④](https://img.mcloud.139.com/material_prod/material_media/20230605/1685935277971.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.19 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国移动 · 咪咕视频①](https://img.cmvideo.cn/publish/noms/2023/12/06/1O4SHFIFR36BD.gif) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.00 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国移动 · 咪咕视频②](https://img.cmvideo.cn/publish/noms/2022/10/14/1O3VIGPVP6HTS.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.00 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国移动 · 移动云盘④](https://img.mcloud.139.com/material_prod/material_media/20230605/1685935277971.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 185.76 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国移动 · 咪咕视频①](https://img.cmvideo.cn/publish/noms/2023/12/06/1O4SHFIFR36BD.gif) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 164 B | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国移动 · 咪咕视频②](https://img.cmvideo.cn/publish/noms/2022/10/14/1O3VIGPVP6HTS.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 164 B | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国移动 · 咪咕快游②](https://freeserver.migufun.com/resource/beta/video/system/20210924112351666.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 21.34 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国移动 · 咪咕快游①](https://freeserver.migufun.com/resource/beta/picture/system/20200723/20200723104326220_sdpic.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 5.00 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国移动 · 139邮箱①](https://img.mcloud.139.com/material_prod/material_media/20241105/1730784603634.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.08 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国移动 · 139邮箱①](https://img.mcloud.139.com/material_prod/material_media/20241105/1730784603634.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 75.04 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [快手](https://alimov2.a.kwimgs.com/upic/2024/11/18/17/BMjAyNDExMTgxNzM0NTFfMjQ2MzY1ODI4MV8xNDg5NTc1NTQwNDBfMl8z_b_Ba0e085802ad867415b13e560bab69dd2.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 24.44 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国移动 · 139邮箱②](https://img.mcloud.139.com/material_prod/material_media/20241105/1730784682069.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.07 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [京东](https://img20.360buyimg.com/babel/jfs/t20271006/227634/23/27810/35856/67027beeF0cffb9fc/e68cd03835b91103.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.02 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [中国移动 · 移动](https://img1.shop.10086.cn/goods/tcqtjwurkdsfcxgr_940x7200) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.63 MB | 未支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国移动 · 139邮箱②](https://img.mcloud.139.com/material_prod/material_media/20241105/1730784682069.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 67.67 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [京东](https://img20.360buyimg.com/babel/jfs/t20271006/227634/23/27810/35856/67027beeF0cffb9fc/e68cd03835b91103.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 16.59 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [中国移动 · 移动](https://img1.shop.10086.cn/goods/tcqtjwurkdsfcxgr_940x7200) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 629.68 KB | 未支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [夸克 / UC · 夸克浏览器](https://image.uc.cn/s/uae/g/3o/broccoli/resource/202401/zry_video.mp4) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 35.02 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [微软中国商店 · 公开图片](https://cdn.microsoftstore.com.cn/media/product_long_description/3781-00000/2_dupn50xr/4h0yzz2_360.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.77 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [微软中国商店 · 公开图片](https://cdn.microsoftstore.com.cn/media/product_long_description/3781-00000/2_dupn50xr/4h0yzz2_360.jpg) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 773.96 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [OPPO商城](https://dsfs.oppo.com/oppo/shop-pc-v2/main/js/9fb472f.js) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 4.24 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [哔哩哔哩 · B站①](https://s1.hdslb.com/bfs/game-static/web/caster/static/script/vue/da3f37d7fd8339357ed671a94941757e/st.zip) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 5.28 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国移动 · 咪咕爱看](https://img.aikan.miguvideo.com/publish/noms/2024/04/22/1O5MNLF3AN2JL.gif) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 2.65 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
@@ -106,13 +106,13 @@
 | [新浪](http://i.apps.sina.cn/tqt/zip/com.sina.tianqitong_6.1892_2019.07.29.17.54.18.apk) | 中国大陆服务 · CDN 自动调度 | Windows | 19.87 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [拼多多②](https://cd.pddpic.com/android_dev/2023-07-28/5c04772968aee57ca690fbe1e7f29467.apk) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 30.30 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [哔哩哔哩 · 上海灵羊](https://activity.hdslb.com/blackboard/static/20210604/4d40bc4f98f94fbc71c235832ce3efd4/hJEhL6jGOY.zip) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 6.45 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [拼多多H5](https://funimg.pddpic.com/c3affbeb-9b31-4546-b2df-95b62de81639.png.slim.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 0.03 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [拼多多H5](https://funimg.pddpic.com/c3affbeb-9b31-4546-b2df-95b62de81639.png.slim.png) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 28.71 KB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [cloud.video.taobao.com · 夸克网盘](https://cloud.video.taobao.com/play/u/null/p/1/e/6/t/1/442087612070.mp4) | 全球 CDN · 自动调度 | 网页 / Windows | 10.46 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [CacheFly · 200 MB 测试文件](https://cachefly.cachefly.net/200mb.test) | 全球 CDN · 自动调度 | 网页 / Windows | 209.72 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [Vultr · 美国 · 新泽西 · 1 GB 文件](https://nj-us-ping.vultr.com/vultr.com.1000MB.bin) | 美国 · 新泽西 | 网页 / Windows | 1048.58 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [Vultr · 新加坡 · 新加坡 · 1 GB 文件](https://sgp-ping.vultr.com/vultr.com.1000MB.bin) | 新加坡 · 新加坡 | 网页 / Windows | 1048.58 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [Vultr · 美国 · 新泽西 · 1 GB 文件](https://nj-us-ping.vultr.com/vultr.com.1000MB.bin) | 美国 · 新泽西 | 网页 / Windows | 1.05 GB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [Vultr · 新加坡 · 新加坡 · 1 GB 文件](https://sgp-ping.vultr.com/vultr.com.1000MB.bin) | 新加坡 · 新加坡 | 网页 / Windows | 1.05 GB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [BBC · 公开脚本文件](https://emp.bbci.co.uk/emp/dashjs/3.2.0-8/dash.all.min.js) | 全球 CDN · 自动调度 | 网页 / Windows | 动态数据 | 未支持 | [参考页面](https://shua.leyz.top/sl/) |
-| [GitHub 第三方镜像 · GitHub · 第三方公开文件镜像](https://gh.con.sh/https://github.com/AaronFeng753/Waifu2x-Extension-GUI/releases/download/v2.21.12/Waifu2x-Extension-GUI-v2.21.12-Portable.7z) | 全球 CDN · 自动调度 | 网页 / Windows | 0.00 MB | 未支持 | [参考页面](https://shua.leyz.top/sl/) |
+| [GitHub 第三方镜像 · GitHub · 第三方公开文件镜像](https://gh.con.sh/https://github.com/AaronFeng753/Waifu2x-Extension-GUI/releases/download/v2.21.12/Waifu2x-Extension-GUI-v2.21.12-Portable.7z) | 全球 CDN · 自动调度 | 网页 / Windows | 48 B | 未支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [Akamai Cloud · 日本 · 东京 · 100 MB 文件](https://speedtest.tokyo2.linode.com/100MB-tokyo2.bin) | 日本 · 东京 | Windows | 104.86 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [img.alicdn.com · 阿里系②](https://img.alicdn.com/imgextra/i1/O1CN01xA4P9S1JsW2WEg0e1_!!6000000001084-2-tps-2880-560.png) | 全球 CDN · 自动调度 | Windows | 1.43 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
 | [中国电信 · 天翼云桌面②](https://desk.ctyun.cn:8999/desktop-prod/software/windows_tob_client/15/64/202010003/CtyunClouddeskUniversal_2.1.0_202010003_x86_20230905151733_Setup_signed.exe) | 中国大陆服务 · CDN 自动调度 | 网页 / Windows | 78.73 MB | 支持 | [参考页面](https://shua.leyz.top/sl/) |
@@ -209,17 +209,152 @@
 | [OVHcloud · 澳大利亚 · 悉尼](https://syd1-sy2.speedtest.network.ovh.net/files/100Mb.dat) | 澳大利亚 · 悉尼 | Windows | 104.86 MB | 支持 | [官方来源](https://syd1-sy2.speedtest.network.ovh.net) |
 | [OVHcloud · 新加坡 · 新加坡](https://sin1-sgp.speedtest.network.ovh.net/files/100Mb.dat) | 新加坡 · 新加坡 | Windows | 104.86 MB | 支持 | [官方来源](https://sin1-sgp.speedtest.network.ovh.net) |
 | [OVHcloud · 印度 · 孟买](https://bom1-ynm1.speedtest.network.ovh.net/files/100Mb.dat) | 印度 · 孟买 | Windows | 104.86 MB | 支持 | [官方来源](https://bom1-ynm1.speedtest.network.ovh.net) |
-| [HostHatch · 瑞士 · 苏黎世](https://lg.zrh.hosthatch.com/1GB.test) | 瑞士 · 苏黎世 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.zrh.hosthatch.com/) |
-| [HostHatch · 挪威 · 奥斯陆](https://lg.osl.hosthatch.com/1GB.test) | 挪威 · 奥斯陆 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.osl.hosthatch.com/) |
-| [HostHatch · 奥地利 · 维也纳](https://lg.vie.hosthatch.com/1GB.test) | 奥地利 · 维也纳 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.vie.hosthatch.com/) |
-| [HostHatch · 瑞典 · 斯德哥尔摩](https://lg.sto.hosthatch.com/1GB.test) | 瑞典 · 斯德哥尔摩 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.sto.hosthatch.com/) |
-| [HostHatch · 英国 · 伦敦](https://lg.lon.hosthatch.com/1GB.test) | 英国 · 伦敦 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.lon.hosthatch.com/) |
-| [HostHatch · 荷兰 · 阿姆斯特丹](https://lg.ams.hosthatch.com/1GB.test) | 荷兰 · 阿姆斯特丹 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.ams.hosthatch.com/) |
-| [HostHatch · 美国 · 芝加哥](https://lg.chi.hosthatch.com/1GB.test) | 美国 · 芝加哥 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.chi.hosthatch.com/) |
-| [HostHatch · 美国 · 洛杉矶](https://lg.lax.hosthatch.com/1GB.test) | 美国 · 洛杉矶 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.lax.hosthatch.com/) |
-| [HostHatch · 美国 · 纽约](https://lg.nyc.hosthatch.com/1GB.test) | 美国 · 纽约 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.nyc.hosthatch.com/) |
-| [HostHatch · 日本 · 东京](https://lg.tok.hosthatch.com/1GB.test) | 日本 · 东京 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.tok.hosthatch.com/) |
-| [HostHatch · 新加坡 · 新加坡](https://lg.sgp.hosthatch.com/1GB.test) | 新加坡 · 新加坡 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.sgp.hosthatch.com/) |
-| [HostHatch · 中国香港特别行政区 · 香港](https://lg.hkg.hosthatch.com/1GB.test) | 中国香港特别行政区 · 香港 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.hkg.hosthatch.com/) |
-| [HostHatch · 澳大利亚 · 悉尼](https://lg.syd.hosthatch.com/1GB.test) | 澳大利亚 · 悉尼 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.syd.hosthatch.com/) |
-| [HostHatch · 韩国 · 首尔](https://lg.sel.hosthatch.com/1GB.test) | 韩国 · 首尔 | Windows | 1000.00 MB | 支持 | [官方来源](https://lg.sel.hosthatch.com/) |
+| [HostHatch · 瑞士 · 苏黎世](https://lg.zrh.hosthatch.com/1GB.test) | 瑞士 · 苏黎世 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.zrh.hosthatch.com/) |
+| [HostHatch · 挪威 · 奥斯陆](https://lg.osl.hosthatch.com/1GB.test) | 挪威 · 奥斯陆 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.osl.hosthatch.com/) |
+| [HostHatch · 奥地利 · 维也纳](https://lg.vie.hosthatch.com/1GB.test) | 奥地利 · 维也纳 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.vie.hosthatch.com/) |
+| [HostHatch · 瑞典 · 斯德哥尔摩](https://lg.sto.hosthatch.com/1GB.test) | 瑞典 · 斯德哥尔摩 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.sto.hosthatch.com/) |
+| [HostHatch · 英国 · 伦敦](https://lg.lon.hosthatch.com/1GB.test) | 英国 · 伦敦 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.lon.hosthatch.com/) |
+| [HostHatch · 荷兰 · 阿姆斯特丹](https://lg.ams.hosthatch.com/1GB.test) | 荷兰 · 阿姆斯特丹 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.ams.hosthatch.com/) |
+| [HostHatch · 美国 · 芝加哥](https://lg.chi.hosthatch.com/1GB.test) | 美国 · 芝加哥 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.chi.hosthatch.com/) |
+| [HostHatch · 美国 · 洛杉矶](https://lg.lax.hosthatch.com/1GB.test) | 美国 · 洛杉矶 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.lax.hosthatch.com/) |
+| [HostHatch · 美国 · 纽约](https://lg.nyc.hosthatch.com/1GB.test) | 美国 · 纽约 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.nyc.hosthatch.com/) |
+| [HostHatch · 日本 · 东京](https://lg.tok.hosthatch.com/1GB.test) | 日本 · 东京 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.tok.hosthatch.com/) |
+| [HostHatch · 新加坡 · 新加坡](https://lg.sgp.hosthatch.com/1GB.test) | 新加坡 · 新加坡 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.sgp.hosthatch.com/) |
+| [HostHatch · 中国香港特别行政区 · 香港](https://lg.hkg.hosthatch.com/1GB.test) | 中国香港特别行政区 · 香港 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.hkg.hosthatch.com/) |
+| [HostHatch · 澳大利亚 · 悉尼](https://lg.syd.hosthatch.com/1GB.test) | 澳大利亚 · 悉尼 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.syd.hosthatch.com/) |
+| [HostHatch · 韩国 · 首尔](https://lg.sel.hosthatch.com/1GB.test) | 韩国 · 首尔 | Windows | 1.00 GB | 支持 | [官方来源](https://lg.sel.hosthatch.com/) |
+| [Psychz · 美国 · Atlanta](https://lg.atl.psychz.net/200MB.test) | 美国 · Atlanta | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 美国 · Dallas](https://lg.texas.psychz.net/200MB.test) | 美国 · Dallas | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 美国 · Ashburn](https://lg.va.psychz.net/200MB.test) | 美国 · Ashburn | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 美国 · Los Angeles](https://lg.lax.psychz.net/200MB.test) | 美国 · Los Angeles | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 英国 · London](https://lg.lon.psychz.net/200MB.test) | 英国 · London | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 美国 · Chicago](https://lg.chi.psychz.net/200MB.test) | 美国 · Chicago | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 荷兰 · Amsterdam](https://lg.ams.psychz.net/200MB.test) | 荷兰 · Amsterdam | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 西班牙 · Barcelona](https://lg.bcn.psychz.net/200MB.test) | 西班牙 · Barcelona | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 巴西 · São Paulo](https://lg.sao.psychz.net/200MB.test) | 巴西 · São Paulo | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 台湾 · Taipei](https://lg.tw.psychz.net/200MB.test) | 台湾 · Taipei | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 南非 · Johannesburg](https://lg.jnb.psychz.net/200MB.test) | 南非 · Johannesburg | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 日本 · Tokyo](https://lg.jp.psychz.net/200MB.test) | 日本 · Tokyo | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 印度 · Mumbai](https://lg.in.psychz.net/200MB.test) | 印度 · Mumbai | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Psychz · 韩国 · Seoul](https://lg.icn.psychz.net/200MB.test) | 韩国 · Seoul | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Clouvider · 美国 · Los Angeles](https://la.speedtest.clouvider.net/1g.bin) | 美国 · Los Angeles | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [Clouvider · 美国 · Atlanta](https://atl.speedtest.clouvider.net/1g.bin) | 美国 · Atlanta | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [Psychz · 澳大利亚 · Sydney](https://lg.syd.psychz.net/200MB.test) | 澳大利亚 · Sydney | Windows | 200.00 MB | 支持 | [Psychz 官方测试文件](https://www.psychz.net/looking-glass.html) |
+| [Clouvider · 英国 · London](https://lon.speedtest.clouvider.net/1g.bin) | 英国 · London | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [Clouvider · 美国 · New York](https://nyc.speedtest.clouvider.net/1g.bin) | 美国 · New York | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [Clouvider · 英国 · Manchester](https://man.speedtest.clouvider.net/1g.bin) | 英国 · Manchester | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [Clouvider · 荷兰 · Amsterdam](https://ams.speedtest.clouvider.net/1g.bin) | 荷兰 · Amsterdam | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [Clouvider · 美国 · Dallas](https://dal.speedtest.clouvider.net/1g.bin) | 美国 · Dallas | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [Clouvider · 美国 · Ashburn](https://ash.speedtest.clouvider.net/1g.bin) | 美国 · Ashburn | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [Clouvider · 德国 · Frankfurt](https://fra.speedtest.clouvider.net/1g.bin) | 德国 · Frankfurt | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [Clouvider · 美国 · Phoenix](https://phx.speedtest.clouvider.net/1g.bin) | 美国 · Phoenix | Windows | 1.05 GB | 支持 | [Clouvider 官方测试文件](https://as62240.net/speedtest) |
+| [DataPacket · 捷克 · Prague](https://prg.download.datapacket.com/100mb.bin) | 捷克 · Prague | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 荷兰 · Amsterdam](https://ams.download.datapacket.com/100mb.bin) | 荷兰 · Amsterdam | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 德国 · Frankfurt](https://fra.download.datapacket.com/100mb.bin) | 德国 · Frankfurt | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 英国 · London](https://lon.download.datapacket.com/100mb.bin) | 英国 · London | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 美国 · Atlanta](https://atl.download.datapacket.com/100mb.bin) | 美国 · Atlanta | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 瑞典 · Stockholm](https://sto.download.datapacket.com/100mb.bin) | 瑞典 · Stockholm | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 美国 · Chicago](https://chi.download.datapacket.com/100mb.bin) | 美国 · Chicago | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 美国 · Los Angeles](https://lax.download.datapacket.com/100mb.bin) | 美国 · Los Angeles | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 西班牙 · Madrid](https://mad.download.datapacket.com/100mb.bin) | 西班牙 · Madrid | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 奥地利 · Vienna](https://vie.download.datapacket.com/100mb.bin) | 奥地利 · Vienna | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 美国 · New York](https://nyc.download.datapacket.com/100mb.bin) | 美国 · New York | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 新加坡 · Singapore](https://sgp.download.datapacket.com/100mb.bin) | 新加坡 · Singapore | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/asia-pacific) |
+| [DataPacket · 美国 · Miami](https://mia.download.datapacket.com/100mb.bin) | 美国 · Miami | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 法国 · Paris](https://par.download.datapacket.com/100mb.bin) | 法国 · Paris | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 美国 · Dallas](https://dal.download.datapacket.com/100mb.bin) | 美国 · Dallas | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 波兰 · Warsaw](https://war.download.datapacket.com/100mb.bin) | 波兰 · Warsaw | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 日本 · Tokyo](https://tyo.download.datapacket.com/100mb.bin) | 日本 · Tokyo | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/asia-pacific) |
+| [DataPacket · 意大利 · Milan](https://mil.download.datapacket.com/100mb.bin) | 意大利 · Milan | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 美国 · Denver](https://den.download.datapacket.com/100mb.bin) | 美国 · Denver | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 瑞士 · Zürich](https://zur.download.datapacket.com/100mb.bin) | 瑞士 · Zürich | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 美国 · Seattle](https://sea.download.datapacket.com/100mb.bin) | 美国 · Seattle | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 中国香港特别行政区 · Hong Kong](https://hkg.download.datapacket.com/100mb.bin) | 中国香港特别行政区 · Hong Kong | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/asia-pacific) |
+| [DataPacket · 斯洛伐克 · Bratislava](https://bra.download.datapacket.com/100mb.bin) | 斯洛伐克 · Bratislava | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 罗马尼亚 · Bucharest](https://buc.download.datapacket.com/100mb.bin) | 罗马尼亚 · Bucharest | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 美国 · Ashburn](https://ash.download.datapacket.com/100mb.bin) | 美国 · Ashburn | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 澳大利亚 · Sydney](https://syd.download.datapacket.com/100mb.bin) | 澳大利亚 · Sydney | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/asia-pacific) |
+| [DataPacket · 法国 · Marseille](https://mrs.download.datapacket.com/100mb.bin) | 法国 · Marseille | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 巴西 · São Paulo](https://sao.download.datapacket.com/100mb.bin) | 巴西 · São Paulo | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/latin-america) |
+| [DataPacket · 美国 · Houston](https://hou.download.datapacket.com/100mb.bin) | 美国 · Houston | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 加拿大 · Toronto](https://tor.download.datapacket.com/100mb.bin) | 加拿大 · Toronto | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 乌克兰 · Kyiv](https://kyi.download.datapacket.com/100mb.bin) | 乌克兰 · Kyiv | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 保加利亚 · Sofia](https://sof.download.datapacket.com/100mb.bin) | 保加利亚 · Sofia | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 美国 · San Jose](https://sjc.download.datapacket.com/100mb.bin) | 美国 · San Jose | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 土耳其 · Istanbul](https://ist.download.datapacket.com/100mb.bin) | 土耳其 · Istanbul | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/middle-east-and-africa) |
+| [DataPacket · 爱尔兰 · Dublin](https://dub.download.datapacket.com/100mb.bin) | 爱尔兰 · Dublin | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 哥伦比亚 · Bogotá](https://bog.download.datapacket.com/100mb.bin) | 哥伦比亚 · Bogotá | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/latin-america) |
+| [DataPacket · 以色列 · Tel Aviv](https://tlv.download.datapacket.com/100mb.bin) | 以色列 · Tel Aviv | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/middle-east-and-africa) |
+| [DataPacket · 阿根廷 · Buenos Aires](https://eze.download.datapacket.com/100mb.bin) | 阿根廷 · Buenos Aires | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/latin-america) |
+| [DataPacket · 克罗地亚 · Zagreb](https://zag.download.datapacket.com/100mb.bin) | 克罗地亚 · Zagreb | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 希腊 · Athens](https://ath.download.datapacket.com/100mb.bin) | 希腊 · Athens | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 南非 · Johannesburg](https://jnb.download.datapacket.com/100mb.bin) | 南非 · Johannesburg | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/middle-east-and-africa) |
+| [DataPacket · 墨西哥 · Querétaro](https://qro.download.datapacket.com/100mb.bin) | 墨西哥 · Querétaro | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/latin-america) |
+| [DataPacket · 比利时 · Brussels](https://bru.download.datapacket.com/100mb.bin) | 比利时 · Brussels | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 丹麦 · Copenhagen](https://cph.download.datapacket.com/100mb.bin) | 丹麦 · Copenhagen | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 美国 · Boston](https://bos.download.datapacket.com/100mb.bin) | 美国 · Boston | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 葡萄牙 · Lisbon](https://lis.download.datapacket.com/100mb.bin) | 葡萄牙 · Lisbon | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 加拿大 · Vancouver](https://van.download.datapacket.com/100mb.bin) | 加拿大 · Vancouver | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 智利 · Santiago](https://scl.download.datapacket.com/100mb.bin) | 智利 · Santiago | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/latin-america) |
+| [DataPacket · 美国 · McAllen](https://mca.download.datapacket.com/100mb.bin) | 美国 · McAllen | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 秘鲁 · Lima](https://lim.download.datapacket.com/100mb.bin) | 秘鲁 · Lima | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/latin-america) |
+| [DataPacket · 意大利 · Palermo](https://plm.download.datapacket.com/100mb.bin) | 意大利 · Palermo | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 挪威 · Oslo](https://osl.download.datapacket.com/100mb.bin) | 挪威 · Oslo | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 尼日利亚 · Lagos](https://los.download.datapacket.com/100mb.bin) | 尼日利亚 · Lagos | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/middle-east-and-africa) |
+| [DataPacket · 澳大利亚 · Melbourne](https://mel.download.datapacket.com/100mb.bin) | 澳大利亚 · Melbourne | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/asia-pacific) |
+| [DataPacket · 加拿大 · Montréal](https://mtl.download.datapacket.com/100mb.bin) | 加拿大 · Montréal | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/north-america) |
+| [DataPacket · 德国 · Berlin](https://ber.download.datapacket.com/100mb.bin) | 德国 · Berlin | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 韩国 · Seoul](https://seo.download.datapacket.com/100mb.bin) | 韩国 · Seoul | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/asia-pacific) |
+| [DataPacket · 新西兰 · Auckland](https://akl.download.datapacket.com/100mb.bin) | 新西兰 · Auckland | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/asia-pacific) |
+| [DataPacket · 阿拉伯联合酋长国 · Fujairah](https://fjr.download.datapacket.com/100mb.bin) | 阿拉伯联合酋长国 · Fujairah | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/middle-east-and-africa) |
+| [DataPacket · 马来西亚 · Kuala Lumpur](https://kul.download.datapacket.com/100mb.bin) | 马来西亚 · Kuala Lumpur | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/asia-pacific) |
+| [DataPacket · 英国 · Manchester](https://man.download.datapacket.com/100mb.bin) | 英国 · Manchester | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [DataPacket · 法国 · Bordeaux](https://bor.download.datapacket.com/100mb.bin) | 法国 · Bordeaux | 网页 / Windows | 100.00 MB | 支持 | [DataPacket 官方测试文件](https://www.datapacket.com/speed-test-files/europe) |
+| [EDIS Global · 加拿大 · Canada](https://ca.edisglobal.com/100MB.test) | 加拿大 · Canada | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://ca.edisglobal.com/) |
+| [EDIS Global · 奥地利 · Austria (Vienna)](https://at.edisglobal.com/100MB.test) | 奥地利 · Austria (Vienna) | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://at.edisglobal.com/) |
+| [EDIS Global · 奥地利 · Vienna @Interxion](https://atvie.edisglobal.com/100MB.test) | 奥地利 · Vienna @Interxion | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://atvie.edisglobal.com/) |
+| [EDIS Global · 奥地利 · Graz, Austria](https://atgrz.edisglobal.com/100MB.test) | 奥地利 · Graz, Austria | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://atgrz.edisglobal.com/) |
+| [EDIS Global · 比利时 · Belgium](https://be.edisglobal.com/100MB.test) | 比利时 · Belgium | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://be.edisglobal.com/) |
+| [EDIS Global · 澳大利亚 · Australia](https://au.edisglobal.com/100MB.test) | 澳大利亚 · Australia | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://au.edisglobal.com/) |
+| [EDIS Global · 哥伦比亚 · Colombia, Bogota](https://co.edisglobal.com/100MB.test) | 哥伦比亚 · Colombia, Bogota | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://co.edisglobal.com/) |
+| [EDIS Global · 保加利亚 · Bulgaria](https://bg.edisglobal.com/100MB.test) | 保加利亚 · Bulgaria | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://bg.edisglobal.com/) |
+| [EDIS Global · 捷克 · Czech Republic](https://cz.edisglobal.com/100MB.test) | 捷克 · Czech Republic | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://cz.edisglobal.com/) |
+| [EDIS Global · 克罗地亚 · Croatia](https://hr.edisglobal.com/100MB.test) | 克罗地亚 · Croatia | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://hr.edisglobal.com/) |
+| [EDIS Global · 智利 · Chile](https://cl.edisglobal.com/100MB.test) | 智利 · Chile | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://cl.edisglobal.com/) |
+| [EDIS Global · 芬兰 · ](https://fi.edisglobal.com/100MB.test) | 芬兰 ·  | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://fi.edisglobal.com/) |
+| [EDIS Global · 丹麦 · Denmark, Copenhagen](https://dk.edisglobal.com/100MB.test) | 丹麦 · Denmark, Copenhagen | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://dk.edisglobal.com/) |
+| [EDIS Global · 塞浦路斯 · Cyprus (Limassol)](https://cy.edisglobal.com/100MB.test) | 塞浦路斯 · Cyprus (Limassol) | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://cy.edisglobal.com/) |
+| [EDIS Global · 法国 · France](https://fr.edisglobal.com/100MB.test) | 法国 · France | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://fr.edisglobal.com/) |
+| [EDIS Global · 爱沙尼亚 · Estonia](https://ee.edisglobal.com/100MB.test) | 爱沙尼亚 · Estonia | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://ee.edisglobal.com/) |
+| [EDIS Global · 德国 · Germany, Frankfurt](https://de.edisglobal.com/100MB.test) | 德国 · Germany, Frankfurt | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://de.edisglobal.com/) |
+| [EDIS Global · 匈牙利 · Hungary](https://hu.edisglobal.com/100MB.test) | 匈牙利 · Hungary | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://hu.edisglobal.com/) |
+| [EDIS Global · 冰岛 · Iceland](https://is.edisglobal.com/100MB.test) | 冰岛 · Iceland | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://is.edisglobal.com/) |
+| [EDIS Global · 希腊 · Greece, Thessaloniki](https://gr.edisglobal.com/100MB.test) | 希腊 · Greece, Thessaloniki | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://gr.edisglobal.com/) |
+| [EDIS Global · 中国香港特别行政区 · Hong Kong](https://hk.edisglobal.com/100MB.test) | 中国香港特别行政区 · Hong Kong | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://hk.edisglobal.com/) |
+| [EDIS Global · 以色列 · Israel, Tel Aviv](https://il.edisglobal.com/100MB.test) | 以色列 · Israel, Tel Aviv | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://il.edisglobal.com/) |
+| [EDIS Global · 意大利 · Italy, Milan](https://it.edisglobal.com/100MB.test) | 意大利 · Italy, Milan | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://it.edisglobal.com/) |
+| [EDIS Global · 意大利 · EDIS Global Looking Glass Palermo (Sicily, Italy)](https://itpa.edisglobal.com/100MB.test) | 意大利 · EDIS Global Looking Glass Palermo (Sicily, Italy) | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://itpa.edisglobal.com/) |
+| [EDIS Global · 拉脱维亚 · Latvia](https://lv.edisglobal.com/100MB.test) | 拉脱维亚 · Latvia | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://lv.edisglobal.com/) |
+| [EDIS Global · 日本 · EDIS Global Looking Glass Japan](https://jp.edisglobal.com/100MB.test) | 日本 · EDIS Global Looking Glass Japan | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://jp.edisglobal.com/) |
+| [EDIS Global · 立陶宛 · Lithuania](https://lt.edisglobal.com/100MB.test) | 立陶宛 · Lithuania | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://lt.edisglobal.com/) |
+| [EDIS Global · 荷兰 · EDIS Global Looking Glass Amsterdam](https://nl.edisglobal.com/100MB.test) | 荷兰 · EDIS Global Looking Glass Amsterdam | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://nl.edisglobal.com/) |
+| [EDIS Global · 摩尔多瓦 · Moldova](https://md.edisglobal.com/100MB.test) | 摩尔多瓦 · Moldova | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://md.edisglobal.com/) |
+| [EDIS Global · 北马其顿 · Macedonia](https://mk.edisglobal.com/100MB.test) | 北马其顿 · Macedonia | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://mk.edisglobal.com/) |
+| [EDIS Global · 挪威 · EDIS Global Looking Glass Norway](https://no.edisglobal.com/100MB.test) | 挪威 · EDIS Global Looking Glass Norway | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://no.edisglobal.com/) |
+| [EDIS Global · 波兰 · EDIS Global Looking Glass Poland](https://pl.edisglobal.com/100MB.test) | 波兰 · EDIS Global Looking Glass Poland | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://pl.edisglobal.com/) |
+| [EDIS Global · 罗马尼亚 · EDIS Global Looking Glass Romania](https://ro.edisglobal.com/100MB.test) | 罗马尼亚 · EDIS Global Looking Glass Romania | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://ro.edisglobal.com/) |
+| [EDIS Global · 俄罗斯 · Russia](https://rusp.edisglobal.com/100MB.test) | 俄罗斯 · Russia | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://rusp.edisglobal.com/) |
+| [EDIS Global · 塞尔维亚 · EDIS Global Looking Glass Serbia](https://rs.edisglobal.com/100MB.test) | 塞尔维亚 · EDIS Global Looking Glass Serbia | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://rs.edisglobal.com/) |
+| [EDIS Global · 新加坡 · EDIS Global Looking Glass Singapore](https://sg.edisglobal.com/100MB.test) | 新加坡 · EDIS Global Looking Glass Singapore | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://sg.edisglobal.com/) |
+| [EDIS Global · 俄罗斯 · EDIS Global Looking Glass Russia](https://ru.edisglobal.com/100MB.test) | 俄罗斯 · EDIS Global Looking Glass Russia | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://ru.edisglobal.com/) |
+| [EDIS Global · 斯洛文尼亚 · EDIS Global Looking Glass Slovenia](https://si.edisglobal.com/100MB.test) | 斯洛文尼亚 · EDIS Global Looking Glass Slovenia | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://si.edisglobal.com/) |
+| [EDIS Global · 西班牙 · Spain, Seville](https://es.edisglobal.com/100MB.test) | 西班牙 · Spain, Seville | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://es.edisglobal.com/) |
+| [EDIS Global · 瑞典 · EDIS Global Looking Glass Sweden, Interxion](https://sesto.edisglobal.com/100MB.test) | 瑞典 · EDIS Global Looking Glass Sweden, Interxion | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://sesto.edisglobal.com/) |
+| [EDIS Global · 瑞典 · EDIS Global Looking Glass Sweden](https://se.edisglobal.com/100MB.test) | 瑞典 · EDIS Global Looking Glass Sweden | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://se.edisglobal.com/) |
+| [EDIS Global · 美国 · EDIS Global Looking Glass Los Angeles](https://uslax.edisglobal.com/100MB.test) | 美国 · EDIS Global Looking Glass Los Angeles | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://uslax.edisglobal.com/) |
+| [EDIS Global · 美国 · EDIS Global Looking Glass New York](https://us.edisglobal.com/100MB.test) | 美国 · EDIS Global Looking Glass New York | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://us.edisglobal.com/) |
+| [EDIS Global · 瑞士 · Switzerland](https://chzrh.edisglobal.com/100MB.test) | 瑞士 · Switzerland | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://chzrh.edisglobal.com/) |
+| [EDIS Global · 美国 · Miami, FL](https://usmia.edisglobal.com/100MB.test) | 美国 · Miami, FL | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://usmia.edisglobal.com/) |
+| [EDIS Global · 英国 · the London Docklands](https://uklnd.edisglobal.com/100MB.test) | 英国 · the London Docklands | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://uklnd.edisglobal.com/) |
+| [EDIS Global · 英国 · EDIS Global Looking Glass London City](https://uk.edisglobal.com/100MB.test) | 英国 · EDIS Global Looking Glass London City | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://uk.edisglobal.com/) |
+| [EDIS Global · 阿拉伯联合酋长国 · Dubai](https://ae.edisglobal.com/100MB.test) | 阿拉伯联合酋长国 · Dubai | Windows | 100.00 MB | 支持 | [EDIS Global 官方测试文件](https://ae.edisglobal.com/) |

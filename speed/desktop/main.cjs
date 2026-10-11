@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Menu, powerSaveBlocker, session } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, powerSaveBlocker, powerMonitor, session } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -6,6 +6,10 @@ const { createSystemFetch } = require('./system-fetch.cjs');
 let nativeFetch;
 let window, runner, reporter, storage, records = {}, blocker, saveAt = 0;
 app.setName('Yukino Speed');
+if (process.argv.includes('--smoke')) {
+  const smokeData = process.argv.find(value => value.startsWith('--smoke-data='))?.slice(13);
+  if (smokeData) { const directory = path.resolve(smokeData); fs.mkdirSync(directory, { recursive: true }); app.setPath('userData', directory); }
+}
 const ownWindow = event => { if (!window || event.sender !== window.webContents) throw new Error('无效的客户端'); };
 function writeJson(name, value) {
   const target = path.join(app.getPath('userData'), name); fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -36,6 +40,10 @@ async function init() {
     if (state.status !== 'running' && blocker !== undefined) { powerSaveBlocker.stop(blocker); blocker = undefined; }
     if (window && !window.isDestroyed()) window.webContents.send('speed:state', state);
   } });
+  powerMonitor.on('suspend', () => runner.setEnvironment({ frozen: true }));
+  powerMonitor.on('resume', () => runner.setEnvironment({ frozen: false }));
+  ipcMain.on('speed:version', event => { ownWindow(event); event.returnValue = app.getVersion(); });
+  ipcMain.handle('speed:environment', (event, value) => { ownWindow(event); const environment = {}; if (typeof value?.online === 'boolean') environment.online = value.online; return runner.setEnvironment(environment); });
   for (const command of ['pause', 'resume', 'stop']) ipcMain.handle('speed:' + command, event => { ownWindow(event); runner[command](); return runner.snapshot(); });
   ipcMain.handle('speed:start', (event, config) => { ownWindow(event); return runner.start(config); });
   ipcMain.handle('speed:limits', (event, limits) => { ownWindow(event); const { limitBytes, rateBps, durationMs } = limits || {}; runner.updateLimits({ limitBytes, rateBps, durationMs }); return runner.snapshot(); });
@@ -67,7 +75,7 @@ async function init() {
     const selected = SERVERS.find(server => server.id === sourceId && server.url);
     if (!selected) throw new Error('无效的内置核验源');
     const proof = { version: app.getVersion(), packaged: app.isPackaged, sourceId,
-      bridge: await window.webContents.executeJavaScript('typeof window.yukinoSpeed?.start'), title: window.getTitle(),
+      bridge: await window.webContents.executeJavaScript('typeof window.yukinoSpeed?.start'), bridgeVersion: await window.webContents.executeJavaScript('window.yukinoSpeed?.version'), title: window.getTitle(),
       catalog: await window.webContents.executeJavaScript("Array.from(document.querySelector(\"select[aria-label=\\\"下载服务器\\\"]\").options).map(option => ({id:option.value,label:option.textContent}))") };
     runner.start({ url: selected.url, kind: selected.kind, referrer: selected.referrer, cacheBust: selected.cacheBust !== false, threads: 2, limitBytes: 1_000_000, rateBps: 500_000, durationMs: 20000 });
     await runner.task;

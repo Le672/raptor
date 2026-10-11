@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Activity, ArrowDown, ArrowUpRight, Check, Download, Gauge, Globe2, Github, HardDrive, Layers3, LockKeyhole, Pause, Play, Radio, RotateCcw, Search, Square, Timer, UnlockKeyhole, Zap } from 'lucide-react';
-import { DownloadRunner, formatBytes, formatDuration, validateConfig } from './engine.mjs';
+import { formatBytes, formatDuration, validateConfig } from './engine.mjs';
+import { BrowserRunner } from './browser-runner.mjs';
+import { readTab, saveTab } from './tab-state.mjs';
+import SpeedChart from './SpeedChart';
 import { Reporter, fetchApi, readRuns, saveRun } from './storage.mjs';
 import { SERVERS, SERVER_GROUPS, COUNTRIES } from './servers';
 import { filterServers } from './catalog.mjs';
 import type { Server } from './servers';
 import './speed.css';
 
-declare global { interface Window { yukinoSpeed?: { version: string; start: (config: any) => Promise<any>; pause: () => Promise<any>; resume: () => Promise<any>; stop: () => Promise<any>; limits: (value: any) => Promise<any>; state: () => Promise<any>; records: () => Promise<any[]>; onState: (fn: (state: any) => void) => () => void; probe: (input: string | { url: string; referrer?: string }) => Promise<any> } } }
+declare global { interface Window { yukinoSpeed?: { version: string; environment: (value: { online: boolean }) => Promise<any>; start: (config: any) => Promise<any>; pause: () => Promise<any>; resume: () => Promise<any>; stop: () => Promise<any>; limits: (value: any) => Promise<any>; state: () => Promise<any>; records: () => Promise<any[]>; onState: (fn: (state: any) => void) => () => void; probe: (input: string | { url: string; referrer?: string }) => Promise<any> } } }
 const EMPTY = { id: '', status: 'idle', bytes: 0, elapsedMs: 0, rateBps: 0, averageBps: 0, peakBps: 0, history: [], workers: [], message: '', config: null, startedAt: '' };
-const LABELS = { idle: '准备就绪', running: '正在下载', paused: '已暂停', completed: '任务完成', stopped: '已结束', error: '连接失败' };
+const LABELS = { idle: '准备就绪', running: '正在下载', recovering: '等待恢复', paused: '已暂停', completed: '任务完成', stopped: '已结束', error: '连接失败' };
 const REPO = 'https://github.com/Le672/yukino-speed';
 function effectiveUrl(value: string) {
   const text = value.trim();
@@ -56,7 +59,7 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
   const selected = [...SERVERS, ...discovered].find(s => s.id === serverId) || SERVERS[0];
   const url = (desktop && selected.httpUrl ? selected.httpUrl : selected.url) || effectiveUrl(customUrl);
   const unsupported = !desktop && !!selected.desktopOnly;
-  const active = state.status === 'running' || state.status === 'paused';
+  const active = ['running', 'paused', 'recovering'].includes(state.status);
   const filteredServers = filterServers(SERVERS, { query: catalogQuery, group: catalogGroup, country: catalogCountry, client: catalogClient });
   const selectionOutsideFilter = !!selected.url && SERVERS.some(s => s.id === serverId) && !filteredServers.some(s => s.id === serverId);
   const presetCount = SERVERS.filter(s => s.url).length;
@@ -64,7 +67,10 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
   const localTotal = records.reduce((sum, record) => sum + record.bytes, 0);
   const refreshRecords = () => { try { setRecords(readRuns()); } catch { setStorageError('本地存储不可用，本机累计与历史无法持久保存；当前任务仍可继续。'); } };
   const checkpoint = (next: any, force = false) => {
+    if (!next) return;
+    stateRef.current = next;
     setState(next);
+    if (!desktop && next.id) { try { saveTab(next); } catch { setStorageError('任务恢复记录暂时无法保存，请保持此页面打开。'); } }
     if (next.id && (force || next.status !== 'running' || Date.now() - savedAt.current >= 1000)) {
       savedAt.current = Date.now();
       try { saveRun(next); if (!desktop) reporter.current?.enqueue(next); refreshRecords(); } catch { setStorageError('本地存储写入失败，历史记录与待同步统计可能无法保存。'); }
@@ -74,7 +80,26 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
   useEffect(() => {
     document.title = `Yukino Speed · 网络测速与流量消耗${desktop ? ' · Windows' : ''}`;
     reporter.current = new Reporter(api, result => { if (result.ok) { setStatsError(''); if (result.total) setTotal(result.total); } else setStatsError('统计暂未同步，联网后自动重试；下载与本机记录不受影响。'); });
-    runner.current = new DownloadRunner({ onUpdate: (next: any) => checkpoint(next) });
+    let mounted = true;
+    const browserRunner = !desktop ? new BrowserRunner({ onUpdate: (next: any) => { if (mounted) checkpoint(next); } }) : null;
+    runner.current = browserRunner;
+    const environment = (frozen = false) => { const next = desktop ? window.yukinoSpeed!.environment({ online: navigator.onLine }) : browserRunner!.setEnvironment({ hidden: document.hidden, online: navigator.onLine, frozen }); void next.catch((failure: any) => { if (mounted) setError(failure.message); }); };
+    environment();
+    if (browserRunner) {
+      try {
+        const pending = readTab(sessionStorage, readRuns());
+        if (pending) {
+          const config = validateConfig(pending.config);
+          const preset = SERVERS.find(s => s.url === config.url);
+          setServerId(preset?.id || 'custom'); if (!preset) setCustomUrl(config.url);
+          setThreads(config.threads); setCacheBust(config.cacheBust);
+          setMode(config.durationMs ? 'test' : 'consume'); if (config.durationMs) setDuration(config.durationMs / 1000);
+          setQuotaOn(!!config.limitBytes); setQuotaUnit('MB'); if (config.limitBytes) setQuota(String(config.limitBytes / 1e6));
+          setRateOn(!!config.rateBps); if (config.rateBps) setRate(String(config.rateBps * 8 / 1e6));
+          void browserRunner.restore(pending).catch((failure: any) => { if (mounted) setError('任务恢复失败：' + failure.message); });
+        }
+      } catch { setStorageError('任务恢复记录无法读取；本机历史仍保留。'); }
+    }
     refreshRecords();
     const off = window.yukinoSpeed?.onState((next: any) => checkpoint(next));
     void window.yukinoSpeed?.state().then((next: any) => checkpoint(next));
@@ -87,14 +112,20 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
     const statTimer = setInterval(() => { if (!desktop) void reporter.current.flush(); void readTotal(); }, 15000);
     const syncTimer = setInterval(() => { if (!desktop) void reporter.current.flush(); }, 5000);
     const storageListener = () => refreshRecords();
-    const onlineListener = () => { if (!desktop) void reporter.current.flush(); void readTotal(); };
+    const onlineListener = () => { environment(); if (!desktop) void reporter.current.flush(); void readTotal(); };
+    const offlineListener = () => environment();
+    const visibilityListener = () => { checkpointOnHide(); environment(); };
+    const freezeListener = () => { checkpointOnHide(); environment(true); };
+    const resumeListener = () => { environment(); };
     const checkpointOnHide = () => {
-      try { if (stateRef.current.id) { saveRun(stateRef.current); if (!desktop) reporter.current.enqueue(stateRef.current); } } catch { /* pending report remains best effort */ }
+      const next = browserRunner?.snapshot() || stateRef.current;
+      try { if (next.id) { saveRun(next); if (!desktop) { saveTab(next); reporter.current.enqueue(next); } } } catch { /* pending report remains best effort */ }
     };
-    const beforeUnload = (event: BeforeUnloadEvent) => { checkpointOnHide(); if (stateRef.current.status === 'running') { event.preventDefault(); event.returnValue = ''; } };
-    window.addEventListener('storage', storageListener); window.addEventListener('online', onlineListener);
-    window.addEventListener('pagehide', checkpointOnHide); window.addEventListener('beforeunload', beforeUnload);
-    return () => { off?.(); runner.current?.stop(); clearInterval(statTimer); clearInterval(syncTimer); window.removeEventListener('storage', storageListener); window.removeEventListener('online', onlineListener); window.removeEventListener('pagehide', checkpointOnHide); window.removeEventListener('beforeunload', beforeUnload); };
+    const beforeUnload = (event: BeforeUnloadEvent) => { checkpointOnHide(); if (desktop && stateRef.current.status === 'running') { event.preventDefault(); event.returnValue = ''; } };
+    window.addEventListener('storage', storageListener); window.addEventListener('online', onlineListener); window.addEventListener('offline', offlineListener);
+    document.addEventListener('visibilitychange', visibilityListener); document.addEventListener('freeze', freezeListener); document.addEventListener('resume', resumeListener);
+    window.addEventListener('pageshow', resumeListener); window.addEventListener('pagehide', freezeListener); window.addEventListener('beforeunload', beforeUnload);
+    return () => { mounted = false; checkpointOnHide(); off?.(); browserRunner?.dispose(); clearInterval(statTimer); clearInterval(syncTimer); window.removeEventListener('storage', storageListener); window.removeEventListener('online', onlineListener); window.removeEventListener('offline', offlineListener); document.removeEventListener('visibilitychange', visibilityListener); document.removeEventListener('freeze', freezeListener); document.removeEventListener('resume', resumeListener); window.removeEventListener('pageshow', resumeListener); window.removeEventListener('pagehide', freezeListener); window.removeEventListener('beforeunload', beforeUnload); };
   }, []);
   useEffect(() => {
     try { localStorage.setItem('yukino-speed:settings', JSON.stringify({ mode, serverId: SERVERS.some(s => s.id === serverId) ? serverId : 'custom', customUrl: selected.url && !SERVERS.some(s => s.id === serverId) ? selected.url : customUrl, threads, duration, quotaOn, quota, quotaUnit, rateOn, rate, cacheBust })); } catch { /* storage status is shown on checkpoint */ }
@@ -114,14 +145,14 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
       const kind = address.hostname === 'speed.cloudflare.com' && address.pathname === '/__down' ? 'cloudflare' : selected.kind;
       const config = validateConfig({ url, kind, referrer: desktop ? selected.referrer : undefined, threads: Number(threads), cacheBust: cacheBust && selected.cacheBust !== false, ...limits() });
       if (!desktop && new URL(config.url).protocol === 'http:') throw new Error('HTTPS 网页无法下载 HTTP 文件，请使用 Windows 版或 HTTPS 地址。');
-      checkpoint(desktop ? await window.yukinoSpeed!.start(config) : runner.current.start(config), true);
+      checkpoint(desktop ? await window.yukinoSpeed!.start(config) : await runner.current.start(config), true);
     } catch (failure: any) { setError(failure.message); }
   }
   async function act(command: 'pause' | 'resume' | 'stop') {
-    try { setError(''); if (desktop) checkpoint(await window.yukinoSpeed![command](), true); else runner.current[command](); } catch (failure: any) { setError(failure.message); }
+    try { setError(''); checkpoint(desktop ? await window.yukinoSpeed![command]() : await runner.current[command](), true); } catch (failure: any) { setError(failure.message); }
   }
   async function applyLimits() {
-    try { setError(''); const next = limits(); if (desktop) checkpoint(await window.yukinoSpeed!.limits(next), true); else runner.current.updateLimits(next); }
+    try { setError(''); const next = limits(); checkpoint(desktop ? await window.yukinoSpeed!.limits(next) : await runner.current.updateLimits(next), true); }
     catch (failure: any) { setError(failure.message); }
   }
   async function search() {
@@ -152,8 +183,6 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
     const objectUrl = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = objectUrl; anchor.download = `yukino-speed-${new Date().toISOString().slice(0, 10)}.json`; anchor.click(); setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
   const chart = state.history as { t: number; bps: number }[];
-  const chartMax = Math.max(1e6 / 8, ...chart.map(p => p.bps), state.config?.rateBps || 0);
-  const points = chart.map((p, i) => `${i * 680 / Math.max(1, chart.length - 1)},${116 - p.bps / chartMax * 105}`).join(' ');
   const progress = state.config?.limitBytes ? Math.min(100, state.bytes / state.config.limitBytes * 100) : state.config?.durationMs ? Math.min(100, state.elapsedMs / state.config.durationMs * 100) : 0;
   const gaugeFraction = state.rateBps ? Math.min(.99, Math.log10(1 + state.rateBps * 8 / 1e6) / 4) : 0;
   return <div className={`ys-app ${embedded ? 'ys-embedded' : ''}`}>
@@ -185,10 +214,10 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
           <button className="ys-probe" disabled={active || probing || unsupported} onClick={checkConnection}><Activity size={14}/>{probing ? '检查连接中…' : probe ? `HTTP ${probe.status} · ${Math.round(probe.ms)} ms` : '检查服务器连接'}<span>HEAD</span></button>
         </aside>
         <section className="ys-panel ys-monitor" aria-label="实时测速数据">
-          <div className="ys-panel-heading"><span><Activity size={17}/> 实时监测</span><span className={`ys-status ys-status-${state.status}`} data-testid="run-status"><span/>{LABELS[state.status]}</span></div>
+          <div className="ys-panel-heading"><span><Activity size={17}/> 实时监测</span><span className={`ys-status ys-status-${state.status}`} data-testid="run-status" data-run-id={state.id}><span/>{LABELS[state.status]}</span></div>
           <div className="ys-gauge"><svg viewBox="0 0 300 166" aria-hidden="true"><path d="M 33 142 A 117 117 0 0 1 267 142" className="ys-gauge-track" pathLength="100"/><path d="M 33 142 A 117 117 0 0 1 267 142" className="ys-gauge-value" pathLength="100" strokeDasharray={`${gaugeFraction * 100} 100`}/><text x="26" y="166">0</text><text x="242" y="166">10 Gbps</text></svg><div className="ys-speed"><span className="ys-eyebrow">LIVE BANDWIDTH</span><strong data-testid="live-bandwidth">{(state.rateBps * 8 / 1e6).toFixed(2)}</strong><span className="ys-speed-unit">Mbps</span><small data-testid="live-speed"><ArrowDown size={13}/>{formatBytes(state.rateBps)} / s</small></div></div>
           <div className="ys-metrics"><div><span><HardDrive size={14}/> 已消耗流量</span><strong data-testid="consumed-bytes">{formatBytes(state.bytes)}</strong></div><div><span><Timer size={14}/> 持续时间</span><strong data-testid="elapsed-time">{formatDuration(state.elapsedMs)}</strong></div><div><span><Zap size={14}/> 平均带宽</span><strong>{(state.averageBps * 8 / 1e6).toFixed(2)} <small>Mbps</small></strong></div><div><span><Gauge size={14}/> 峰值带宽</span><strong>{(state.peakBps * 8 / 1e6).toFixed(2)} <small>Mbps</small></strong></div></div>
-          <div className="ys-chart-heading"><span>下载带宽曲线</span><span>Mbps · 最近 45 秒</span></div><div className="ys-chart"><svg viewBox="0 0 680 130" preserveAspectRatio="none" role="img" aria-label="实时下载带宽曲线"><defs><linearGradient id="ys-chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#70936b" stopOpacity=".22"/><stop offset="100%" stopColor="#70936b" stopOpacity="0"/></linearGradient></defs>{[12, 46, 80, 116].map(y => <line key={y} x1="0" x2="680" y1={y} y2={y} className="ys-grid-line"/>)}{points && <><polygon points={`0,130 ${points} ${chart.length > 1 ? 680 : 0},130`} fill="url(#ys-chart-fill)"/><polyline points={points} fill="none" stroke="#63865b" strokeWidth="2" vectorEffect="non-scaling-stroke"/></>}</svg>{!chart.length && <span>开始任务后，速度曲线将在这里生长。</span>}</div>
+          <div className="ys-chart-heading"><span>下载带宽曲线</span><span>Mbps · 最近 45 秒 · 悬停查看</span></div><SpeedChart history={chart} rateBps={state.config?.rateBps || 0}/>
           <div className="ys-progress"><div><i style={{ width: progress + '%' }}/></div><span>{state.config?.limitBytes ? `${formatBytes(state.bytes)} / ${formatBytes(state.config.limitBytes)}` : state.config?.durationMs ? `${formatDuration(state.elapsedMs)} / ${formatDuration(state.config.durationMs)}` : mode === 'consume' ? '持续下载，直到手动结束或达到流量配额。' : '选择服务器，开始一段测速。'}</span><span>{state.config?.rateBps ? <><LockKeyhole size={12}/>{(state.config.rateBps * 8 / 1e6).toFixed(1)} Mbps</> : <><UnlockKeyhole size={12}/>不限速</>}</span></div>
           <div className="ys-actions">{!active ? <button className="ys-start" disabled={unsupported} onClick={start}><Play size={17}/>{state.id ? '再测一次' : mode === 'consume' ? '开始消耗' : '开始测速'}</button> : <><button className="ys-start" onClick={() => act(state.status === 'paused' ? 'resume' : 'pause')}>{state.status === 'paused' ? <Play size={17}/> : <Pause size={17}/>} {state.status === 'paused' ? '继续下载' : '暂停下载'}</button><button className="ys-stop" onClick={() => act('stop')}><Square size={15}/>结束任务</button></>}<span>{active ? `${state.config?.threads} 个并发下载任务` : '文件不保存到磁盘'}</span></div>
           {(error || state.message) && <p className={error || state.status === 'error' ? 'ys-alert ys-alert-error' : 'ys-alert'} role="status">{error || state.message}</p>}
@@ -198,7 +227,7 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
       <section className="ys-totals" aria-label="累计流量统计"><div><span className="ys-total-icon"><Globe2 size={24}/></span><div><span>所有人的流量，汇成一条河。</span><strong data-testid="global-total">{total ? formatBytes(total.bytes) : '—'}</strong><small>全站累计 · 网页与 Windows 客户端上报{total ? ` · ${total.sessions} 次有效任务` : ''}</small></div></div><div><span className="ys-total-icon"><HardDrive size={23}/></span><div><span>你的每一次连接，也被记得。</span><strong data-testid="local-total">{formatBytes(localTotal)}</strong><small>本机累计 · {records.length} 次任务 · 保存在当前设备</small></div></div></section>
       {(statsError || storageError) && <p className="ys-sync-note" role="status">{storageError || statsError}</p>}
       <section className="ys-history"><div className="ys-section-heading"><h2>连接留下的足迹<span>RECENT SESSIONS</span></h2><button disabled={!records.length} onClick={exportHistory}><Download size={14}/>导出本机记录</button></div>{records.length ? <div className="ys-history-scroll"><table><thead><tr><th>开始时间</th><th>下载服务器</th><th>消耗流量</th><th>持续时间</th><th>平均带宽</th><th>状态</th></tr></thead><tbody>{records.slice(0, 10).map(record => <tr key={record.id}><td>{new Date(record.startedAt).toLocaleString('zh-CN', { hour12: false })}</td><td title={record.config?.url}>{(() => { try { return new URL(record.config?.url).hostname; } catch { return '未知服务器'; } })()}</td><td>{formatBytes(record.bytes)}</td><td>{formatDuration(record.elapsedMs)}</td><td>{(record.averageBps * 8 / 1e6).toFixed(2)} Mbps</td><td>{record.status === 'running' && record.id !== state.id ? '中断记录' : LABELS[record.status]}</td></tr>)}</tbody></table></div> : <p className="ys-history-empty"><RotateCcw size={18}/>第一段连接，从点击开始。</p>}</section>
-      <details className="ys-help"><summary>关于统计、带宽限制与服务器兼容性</summary><div><p>实时网速以 MB/s 等字节单位显示，实时带宽以 Mbps 显示；1 MB/s = 8 Mbps。容量采用十进制：1 GB = 1000 MB。平均带宽包含连接与重试时间，暂停期间不计时。</p><p>统计的是下载到应用的数据有效载荷，不包含 TLS、TCP、HTTP 头等开销。停止或限制流量时，网络及浏览器可能已经预读少量额外数据；运营商计费以运营商账单为准。缓存参数避免浏览器重复使用文件；CDN 的边缘缓存仍会通过网络传输。</p><p>带宽锁定表示所有线程共享的下载上限，不能保证网络达到该速率。网页版采用分块请求和请求间隔控制，瞬时速度可能波动，后台标签页可能被浏览器限速。Windows 版采用原生流式连接；两端都推荐 Cloudflare 或支持 Range 的文件服务器。</p><p>网页版需要目标服务器允许 CORS，HTTPS 页面无法下载 HTTP 文件。Windows 版可以直接访问 HTTP 与无 CORS 的文件链接。已内置电信、联通、移动、广电、国内 CDN、Steam 及全球机房文件，可按名称、国家地区、域名与客户端筛选，直接选择。地区标签采用提供方标示，CDN 实际出口可能随解析变化。小文件适合低速和连通性检查；未支持分段读取的源在配额结束时可能超出一个数据块，均保留实际字节计量。运营商组使用其官方 CDN 文件，实际路由由 CDN 决定，并非保证接入该运营商专网。Steam 组使用官方客户端资源包及安装文件，不能代表某款游戏的专属下载线路。自定义 CDN 需要完整且未过期的文件链接；网站首页、登录页、仅专用协议的节点和受限制文件不能作为测试文件。这里使用兼容的 HTTP 下载文件，未使用 Ookla 的官方测速算法。</p><p>本机历史不会自动跨设备同步。全站统计保存匿名任务 ID、已接收字节和持续时间，包含网页和 Windows 版；客户端数据可以被篡改，因此全站总量属于客户端上报统计。失败时保留本机待同步记录，下次联网自动重试；重复上报只计新增字节。清除浏览器数据会移除本机历史与尚未同步的记录。</p></div></details>
-    </main><footer className="ys-footer"><span>Yukino Speed<span> · </span>给连接留一点刻度。</span><div><a href="https://www.yukino.bond/">返回主站<ArrowUpRight size={12}/></a><a href={REPO}>开源代码<ArrowUpRight size={12}/></a><span>v{desktop ? window.yukinoSpeed!.version : '1.0.3'}</span></div></footer>
+      <details className="ys-help"><summary>关于统计、带宽限制与服务器兼容性</summary><div><p>实时网速以 MB/s 等字节单位显示，实时带宽以 Mbps 显示；1 MB/s = 8 Mbps。容量采用十进制：1 GB = 1000 MB。平均带宽包含连接与重试时间，暂停期间不计时。</p><p>统计的是下载到应用的数据有效载荷，不包含 TLS、TCP、HTTP 头等开销。停止或限制流量时，网络及浏览器可能已经预读少量额外数据；运营商计费以运营商账单为准。缓存参数避免浏览器重复使用文件；CDN 的边缘缓存仍会通过网络传输。</p><p>带宽锁定表示所有线程共享的下载上限，不能保证网络达到该速率。网页版在独立 Worker 中分块下载，瞬时速度可能波动。切换标签页后保持下载并重试临时连接错误；断网、页面冻结或刷新会保留原任务，恢复后继续剩余配额，手动暂停不会自动恢复。手机系统冻结或回收网页时无法保证后台持续下载，后台测速也可能受到系统限速。Windows 版采用原生流式连接；两端都推荐 Cloudflare 或支持 Range 的文件服务器。</p><p>网页版需要目标服务器允许 CORS，HTTPS 页面无法下载 HTTP 文件。Windows 版可以直接访问 HTTP 与无 CORS 的文件链接。已内置电信、联通、移动、广电、国内 CDN、Steam 及全球机房文件，可按名称、国家地区、域名与客户端筛选，直接选择。地区标签采用提供方标示，CDN 实际出口可能随解析变化。小文件适合低速和连通性检查；未支持分段读取的源在配额结束时可能超出一个数据块，均保留实际字节计量。运营商组使用其官方 CDN 文件，实际路由由 CDN 决定，并非保证接入该运营商专网。Steam 组使用官方客户端资源包及安装文件，不能代表某款游戏的专属下载线路。自定义 CDN 需要完整且未过期的文件链接；网站首页、登录页、仅专用协议的节点和受限制文件不能作为测试文件。这里使用兼容的 HTTP 下载文件，未使用 Ookla 的官方测速算法。</p><p>本机历史不会自动跨设备同步。全站统计保存匿名任务 ID、已接收字节和持续时间，包含网页和 Windows 版；客户端数据可以被篡改，因此全站总量属于客户端上报统计。失败时保留本机待同步记录，下次联网自动重试；重复上报只计新增字节。清除浏览器数据会移除本机历史与尚未同步的记录。</p></div></details>
+    </main><footer className="ys-footer"><span>Yukino Speed<span> · </span>给连接留一点刻度。</span><div><a href="https://www.yukino.bond/">返回主站<ArrowUpRight size={12}/></a><a href={REPO}>开源代码<ArrowUpRight size={12}/></a><span>v{desktop ? window.yukinoSpeed!.version : '1.0.4'}</span></div></footer>
   </div>;
 }

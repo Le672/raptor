@@ -6,6 +6,16 @@ function memoryStorage() {
   Object.defineProperties(storage, { length: { get: () => Object.keys(storage).length }, key: { value: i => Object.keys(storage)[i] }, getItem: { value: key => storage[key] ?? null }, setItem: { value: (key, value) => { storage[key] = value; } }, removeItem: { value: key => delete storage[key] } });
   return storage;
 }
+
+test('recovering checkpoints remain unfinished and reuse the same reporting identity', () => {
+  const storage = memoryStorage(); const reporter = new Reporter('/api/speed', () => {}, storage);
+  const state = { id: crypto.randomUUID(), bytes: 1000, elapsedMs: 500, status: 'recovering' };
+  reporter.enqueue(state); const pending = JSON.parse(storage.getItem('yukino-speed:report:' + state.id));
+  assert.equal(pending.finished, false);
+  reporter.enqueue({ ...state, status: 'completed', bytes: 2000 });
+  const completed = JSON.parse(storage.getItem('yukino-speed:report:' + state.id));
+  assert.equal(completed.token, pending.token); assert.equal(completed.finished, true);
+});
 test('checkpoints from the same task replace each other while different tab tasks retain their totals', () => {
   const storage = memoryStorage(); const one = { id: crypto.randomUUID(), startedAt: '2026-10-11T01:00:00Z', bytes: 1000, elapsedMs: 1000, status: 'running' };
   saveRun(one, storage); saveRun({ ...one, bytes: 2000 }, storage); saveRun({ ...one, id: crypto.randomUUID(), bytes: 500 }, storage);

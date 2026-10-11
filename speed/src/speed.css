@@ -27,7 +27,7 @@ body:has(>.ys-app),body:has(#root>.ys-app) { margin:0; }
 .ys-intro-note { display:flex; gap:10px; color:#6a7b61; font-size:12px; padding-bottom:7px; }
 .ys-intro-note svg { margin-top:3px; }
 .ys-intro-note small { color:#92998a; font-size:10px; }
-.ys-workspace { display:grid; grid-template-columns:330px minmax(0,1fr); gap:20px; align-items:start; }
+.ys-workspace { display:grid; grid-template-columns:330px minmax(0,1fr); gap:20px; align-items:stretch; }
 .ys-panel { border:1px solid var(--ys-line); background:#fffefa; border-radius:15px; overflow:hidden; box-shadow:0 4px 24px #293d3303; }
 .ys-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 22px; border-bottom:1px solid #edf0e6; font-size:13px; }
 .ys-panel-heading>span:first-child { display:flex; align-items:center; gap:8px; font-weight:600; }
@@ -71,7 +71,7 @@ body:has(>.ys-app),body:has(#root>.ys-app) { margin:0; }
 .ys-status>span { height:5px; width:5px; border-radius:50%; background:currentColor; }
 .ys-status-running { color:#557c41; background:#e8f0df; }
 .ys-status-error { color:#a2634c; background:#f7ece3; }
-.ys-monitor { padding-bottom:16px; }
+.ys-monitor { padding-bottom:16px; display:flex; flex-direction:column; min-width:0; }
 .ys-gauge { width:300px; height:217px; margin:29px auto 0; position:relative; }
 .ys-gauge>svg { width:300px; height:166px; position:absolute; inset:0; overflow:visible; }
 .ys-gauge-track,.ys-gauge-value { fill:none; stroke-width:12px; stroke-linecap:round; }
@@ -91,9 +91,14 @@ body:has(>.ys-app),body:has(#root>.ys-app) { margin:0; }
 .ys-metrics strong small { font-size:9px; color:#909b81; font-weight:400; }
 .ys-chart-heading { margin:0 26px 10px; display:flex; justify-content:space-between; color:#88977a; font-size:10px; }
 .ys-chart-heading>span:last-child { color:#a6ae9a; }
-.ys-chart { position:relative; margin:0 26px; height:128px; }
-.ys-chart svg { width:100%; height:128px; }
+.ys-chart { position:relative; margin:0 26px; min-height:160px; flex:1; }
+.ys-chart svg { position:absolute; inset:0; width:100%; height:100%; touch-action:pan-y; cursor:crosshair; }
 .ys-chart>span { position:absolute; inset:0; display:grid; place-items:center; color:#b0b7a4; font-size:11px; }
+.ys-chart-crosshair { stroke:#80966f; stroke-dasharray:4 4; }
+.ys-chart-tooltip { position:absolute; top:8px; transform:translateX(8px); display:flex; flex-direction:column; padding:9px 12px; border:1px solid #d3dec9; background:#fffefaee; color:#426039; border-radius:8px; box-shadow:0 4px 12px #293d3310; pointer-events:none; white-space:nowrap; z-index:1; }
+.ys-chart-tooltip-left { transform:translateX(calc(-100% - 8px)); }
+.ys-chart-tooltip span,.ys-chart-tooltip small { font-size:10px; color:#7c8c70; }
+.ys-chart-tooltip strong { font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
 .ys-grid-line { stroke:#edf0e7; stroke-dasharray:3 4; }
 .ys-progress { display:flex; flex-wrap:wrap; justify-content:space-between; gap:7px; margin:16px 26px 0; color:#939f84; font-size:10px; }
 .ys-progress>div { width:100%; height:3px; background:#edf0e7; border-radius:6px; overflow:hidden; }

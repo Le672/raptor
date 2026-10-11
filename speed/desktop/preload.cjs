@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('yukinoSpeed', {
-  version: '1.0.0',
+  version: ipcRenderer.sendSync('speed:version'),
+  environment: value => ipcRenderer.invoke('speed:environment', value),
   start: config => ipcRenderer.invoke('speed:start', config),
   pause: () => ipcRenderer.invoke('speed:pause'), resume: () => ipcRenderer.invoke('speed:resume'), stop: () => ipcRenderer.invoke('speed:stop'),
   limits: limits => ipcRenderer.invoke('speed:limits', limits), state: () => ipcRenderer.invoke('speed:state'),

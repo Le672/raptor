@@ -52,6 +52,7 @@ export class DownloadRunner {
     this.status = 'idle'; this.bytes = 0; this.elapsed = 0; this.history = []; this.workers = [];
     this.controllers = new Set(); this.generation = 0; this.peakBps = 0; this.samples = [];
     this.config = null; this.message = ''; this.reserved = 0;
+    this.environment = { hidden: false, online: true, frozen: false };
   }
   snapshot() {
     const now = this.now();
@@ -72,16 +73,51 @@ export class DownloadRunner {
     this.onUpdate(state); return state;
   }
   start(input) {
-    if (['running', 'paused'].includes(this.status)) throw new Error('请先结束当前任务。');
+    if (['running', 'paused', 'recovering'].includes(this.status)) throw new Error('请先结束当前任务。');
     this.config = validateConfig(input);
     this.id = globalThis.crypto.randomUUID(); this.startedAt = new Date().toISOString();
     this.bytes = 0; this.elapsed = 0; this.history = []; this.samples = []; this.peakBps = 0; this.sequence = 0; this.message = '';
     this.workers = Array.from({ length: this.config.threads }, (_, index) => ({ index, bytes: 0, requests: 0, status: '等待', error: '', failures: 0 }));
-    this.launch(); return this.snapshot();
+    this.resumeFromEnvironment(); return this.snapshot();
+  }
+  restore(saved, { autoResume = true } = {}) {
+    if (['running', 'paused', 'recovering'].includes(this.status)) throw new Error('请先结束当前任务。');
+    if (!saved || !/^[\da-f-]{36}$/i.test(saved.id) || !Number.isSafeInteger(saved.bytes) || saved.bytes < 0 || !Number.isFinite(saved.elapsedMs) || saved.elapsedMs < 0 || !Number.isFinite(Date.parse(saved.startedAt))) throw new Error('任务恢复记录无效。');
+    this.config = validateConfig(saved.config);
+    this.id = saved.id; this.startedAt = saved.startedAt; this.bytes = saved.bytes; this.elapsed = saved.elapsedMs;
+    this.peakBps = Number.isFinite(saved.peakBps) ? Math.max(0, saved.peakBps) : 0;
+    this.history = (Array.isArray(saved.history) ? saved.history : []).filter(p => Number.isFinite(p.t) && p.t >= 0 && p.t <= saved.elapsedMs / 1000 && Number.isFinite(p.bps) && p.bps >= 0).slice(-180);
+    this.samples = []; this.sequence = 0;
+    this.workers = Array.from({ length: this.config.threads }, (_, index) => ({ index, bytes: Number(saved.workers?.[index]?.bytes) || 0, requests: Number(saved.workers?.[index]?.requests) || 0, status: '暂停', error: '', failures: 0 }));
+    this.status = 'paused'; this.message = '已保留任务进度，点击继续下载。';
+    if (this.atLimit()) this.finish('completed', '已达到设定流量或持续时间。');
+    else if (autoResume && ['running', 'recovering'].includes(saved.status)) this.resumeFromEnvironment();
+    else this.emit();
+    return this.snapshot();
+  }
+  atLimit() {
+    return (this.config.limitBytes && this.bytes >= this.config.limitBytes) || (this.config.durationMs && this.snapshot().elapsedMs >= this.config.durationMs);
+  }
+  resumeFromEnvironment() {
+    if (!this.environment.online || this.environment.frozen) this.finish('recovering', '任务进度已保留，网络或页面恢复后继续下载。');
+    else this.launch();
+  }
+  setEnvironment(environment) {
+    const previous = this.environment;
+    this.environment = { ...previous, ...environment };
+    if (this.status === 'running' && (!this.environment.online || this.environment.frozen)) this.finish('recovering', '任务进度已保留，网络或页面恢复后继续下载。');
+    else if (this.status === 'recovering' && this.environment.online && !this.environment.frozen) this.resume();
+    else if (this.status === 'running' && previous.hidden && !this.environment.hidden && this.now() - this.lastActivity >= 15000) {
+      // A resumed page can retain a stalled connection whose timeout was suspended.
+      this.finish('recovering', '正在重新连接服务器，继续原任务。'); this.resume();
+    }
+    return this.snapshot();
   }
   launch() {
     const generation = ++this.generation;
-    this.status = 'running'; this.activeSince = this.now(); this.nextRequestAt = this.now(); this.reserved = 0; this.samples = [];
+    this.status = 'running'; this.activeSince = this.now(); this.nextRequestAt = this.now(); this.lastActivity = this.now(); this.reserved = 0; this.samples = [];
+    this.message = '';
+    for (const worker of this.workers) { worker.failures = 0; worker.error = ''; worker.status = '等待'; }
     this.timer = setInterval(() => {
       if (this.config.durationMs && this.snapshot().elapsedMs >= this.config.durationMs) this.finish('completed', '已达到设定持续时间。');
       else this.emit(true);
@@ -94,24 +130,25 @@ export class DownloadRunner {
       }
     });
   }
-  pause() { if (this.status === 'running') this.finish('paused', '已暂停，下载连接已关闭。'); }
-  resume() { if (this.status === 'paused') { if (this.config.limitBytes && this.bytes >= this.config.limitBytes) this.finish('completed', '已达到设定流量。'); else this.launch(); } }
-  stop() { if (['running', 'paused'].includes(this.status)) this.finish('stopped', '已手动结束。'); }
+  pause() { if (['running', 'recovering'].includes(this.status)) this.finish('paused', '已暂停，下载连接已关闭。'); return this.snapshot(); }
+  resume() { if (['paused', 'recovering'].includes(this.status)) { if (this.atLimit()) this.finish('completed', '已达到设定流量或持续时间。'); else this.resumeFromEnvironment(); } return this.snapshot(); }
+  stop() { if (['running', 'paused', 'recovering'].includes(this.status)) this.finish('stopped', '已手动结束。'); return this.snapshot(); }
   finish(status, message) {
     if (this.status === 'running') this.elapsed += this.now() - this.activeSince;
     this.status = status; this.message = message; ++this.generation;
     clearInterval(this.timer);
     for (const controller of this.controllers) controller.abort();
     this.controllers.clear(); this.reserved = 0;
-    for (const w of this.workers) if (w.status !== '失败') w.status = status === 'paused' ? '暂停' : '结束';
+    for (const w of this.workers) if (w.status !== '失败') w.status = status === 'paused' ? '暂停' : status === 'recovering' ? '等待恢复' : '结束';
     this.emit();
   }
   updateLimits(limits) {
     if (!this.config) return;
     this.config = validateConfig({ ...this.config, ...limits });
     this.nextRequestAt = this.now();
-    if (this.config.limitBytes && this.bytes >= this.config.limitBytes && ['running', 'paused'].includes(this.status)) this.finish('completed', '已达到设定流量。');
+    if (this.atLimit() && ['running', 'paused', 'recovering'].includes(this.status)) this.finish('completed', '已达到设定流量或持续时间。');
     else this.emit();
+    return this.snapshot();
   }
   async worker(worker, generation) {
     const alive = () => this.generation === generation && this.status === 'running';
@@ -127,7 +164,13 @@ export class DownloadRunner {
       this.reserved += allocated;
       const controller = new AbortController(); this.controllers.add(controller);
       let received = 0, reader, timeout;
-      const armTimeout = () => { clearTimeout(timeout); timeout = setTimeout(() => controller.abort(), 15000); };
+      const armTimeout = () => {
+        clearTimeout(timeout); const armedAt = this.now();
+        timeout = setTimeout(() => {
+          if (this.environment.hidden && this.now() - armedAt > 16500) armTimeout();
+          else controller.abort();
+        }, 15000);
+      };
       try {
         if (this.config.rateBps) {
           const due = Math.max(this.now(), this.nextRequestAt);
@@ -139,7 +182,7 @@ export class DownloadRunner {
         armTimeout(); worker.status = '连接中';
         const spec = requestSpec(this.config, allocated, this.sequence++);
         const response = await this.fetcher(spec.url, { signal: controller.signal, headers: spec.headers, cache: 'no-store', credentials: 'omit', redirect: 'follow' });
-        if (!response.ok) throw new Error(`服务器返回 HTTP ${response.status}`);
+        if (!response.ok) { const error = new Error(`服务器返回 HTTP ${response.status}`); error.retryable = response.status === 408 || response.status === 429 || response.status >= 500; throw error; }
         if (/text\/html|application\/json|text\/xml/.test(response.headers.get('content-type') || '')) throw new Error('地址返回网页或接口数据，请填写真实下载文件地址');
         if (!response.body) throw new Error('服务器没有返回可读取的数据流');
         worker.status = '下载中'; worker.requests++;
@@ -150,21 +193,23 @@ export class DownloadRunner {
           if (!alive()) break;
           const length = value.byteLength;
           received += length; this.bytes += length; worker.bytes += length;
-          this.samples.push({ t: this.now(), bytes: length }); armTimeout();
+          this.lastActivity = this.now(); this.samples.push({ t: this.now(), bytes: length }); armTimeout();
           // Count the entire received chunk even if a server ignores Range; never silently clip totals.
           if (this.config.limitBytes && this.bytes >= this.config.limitBytes) { this.finish('completed', '已达到设定流量。'); break; }
           if (received >= allocated) break;
         }
         if (!received && alive()) throw new Error('服务器返回空文件');
         worker.failures = 0; worker.error = '';
+        if (this.workers.every(w => !w.error)) this.message = '';
         if (response.status !== 206 && this.config.kind !== 'cloudflare' && (this.config.rateBps || this.config.limitBytes)) this.message = '此服务器不支持 Range，停止时可能有额外预读流量；建议选择 Cloudflare 或支持 Range 的文件服务器。';
       } catch (error) {
         if (!alive()) return;
         worker.failures++; worker.status = '重试';
         worker.error = controller.signal.aborted ? '连接或读取超时' : error instanceof TypeError ? '连接失败：请检查 CORS、HTTPS、服务器和网络；也可使用 Windows 版' : String(error?.message || error);
         this.message = `线程 ${worker.index + 1}：${worker.error}`;
-        if (worker.failures >= 3) { worker.status = '失败'; this.emit(); return; }
-        this.emit(); await wait(worker.failures * 500);
+        const retryable = controller.signal.aborted || error instanceof TypeError || error?.retryable;
+        if (worker.failures >= 3 && !(retryable && this.environment.hidden)) { worker.status = '失败'; this.emit(); return; }
+        this.emit(); await wait(Math.min(worker.failures * 500, 5000), controller.signal).catch(() => {});
       } finally {
         clearTimeout(timeout); controller.abort(); this.controllers.delete(controller);
         if (this.generation === generation) this.reserved = Math.max(0, this.reserved - allocated);

@@ -37,7 +37,7 @@ export class Reporter {
     // Acknowledging a checkpoint removes the queue entry, never the task identity.
     this.storage.setItem(identityKey, token);
     this.storage.setItem(key, JSON.stringify({ ...previous, id: state.id, token, bytes: state.bytes,
-      durationMs: Math.round(state.elapsedMs), finished: !['running', 'paused'].includes(state.status) }));
+      durationMs: Math.round(state.elapsedMs), finished: !['running', 'paused', 'recovering'].includes(state.status) }));
   }
   async request(path, body) {
     const response = await fetchApi(this.api, path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
