@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, CircleHelp, Globe2, Network, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { CopyButton } from "@/components/CopyButton";
+import { IpAiRisk } from "@/components/IpAiRisk";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { useVisitorNetwork } from "@/hooks/useVisitorNetwork";
 import { isPublicIp, normalizeIp, IP_SIGNAL_LABELS, type IpReport, type IpSource } from "@/lib/ip";
@@ -29,7 +30,7 @@ function SourceCard({ source }: { source: IpSource }) {
 }
 
 export default function Ip() {
-  useDocumentMeta("IP 纯净度", "查看当前公网 IP 与 ASN，结合多个风险数据库、Tor 出口与恶意地址名单核对 IP 纯净度，并展示原始结果和评分依据。");
+  useDocumentMeta("IP 纯净度", "查看公网 IP 与 ASN，交叉核对 IP 纯净度、原始资料和评分依据，并结合网络标记与官方地区规则提示常见 AI 网站的访问风险。");
   const visitor = useVisitorNetwork();
   const [input, setInput] = useState(""), [loading, setLoading] = useState(false), [error, setError] = useState<string | null>(null), [report, setReport] = useState<IpReport | null>(null);
   const controller = useRef<AbortController | null>(null);
@@ -75,6 +76,7 @@ export default function Ip() {
         <p className="ip-result-foot">此分数反映地址属性和公开记录，不代表个人信誉，也不保证任何网站放行。VPN、代理和机房属性本身不等于恶意行为。</p>
       </section>
     </div>
+    <IpAiRisk report={report} loading={loading} />
     <section className="ip-sources" aria-labelledby="ip-sources-title"><div className="ip-section-heading"><div><p className="eyebrow">THE EVIDENCE</p><h2 id="ip-sources-title">让结果，有据可查。</h2></div><span>{report ? `${sources.length} 个来源 · ${assessment!.scoredSources} 个原始评分` : "查询后展示各来源的真实响应"}</span></div>{report ? <div className="ip-source-grid">{sources.map(source => <SourceCard key={source.id} source={source} />)}</div> : <div className="ip-source-empty">IPQuery · proxycheck.io · IPWHOIS.io · Tor Project · Spamhaus DROP · abuse.ch Feodo Tracker</div>}</section>
     <details className="ip-method"><summary><CircleHelp size={17} /> 综合评分是怎样计算的？</summary><div><p><strong>综合纯净度 = 100 − 综合风险。</strong>先对成功返回的 IPQuery 与 proxycheck 原始风险分数取等权平均，再应用已检出标记的风险下限。不会将失败、缺失或不支持的结果当作零风险；两家风险数据库都没有有效分数时，不生成纯净度分数。</p><p>风险下限：机房 20、VPN / 匿名网络 35、公开代理 50、Tor 出口 70、被入侵记录 80、近期恶意 C2 或 DROP 命中 95。同类标记只算一次，下限之间取最大值。此规则是本站的可解释启发式模型，分数不表示统计概率。</p><p>IPWHOIS 仅核对 ASN、运营商和位置。Tor 与恶意名单只对命中项提供依据，“未命中”不会稀释风险平均值。公开 Tor 与 Feodo 名单仅核对 IPv4，Spamhaus DROP 同时支持 IPv4 / IPv6 网段。Feodo 超过 30 天的记录不参与判断。</p><p>风险接口结果缓存最多 10 分钟；Tor 名单缓存 10 分钟，Feodo 5 分钟，DROP 全站共享且最多每小时刷新一次。每张来源卡保留核对时间、数据日期与缓存标记。分歧、限制和失败始终显示。</p><p>© The Spamhaus Project SLU，数据版权和日期保留在来源卡。<a href="https://www.spamhaus.org/drop/terms/" target="_blank" rel="noreferrer">DROP 使用说明 <ArrowUpRight size={12} /></a></p></div></details>
   </div>;

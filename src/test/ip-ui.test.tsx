@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import Ip from "../pages/Ip";
@@ -32,6 +32,28 @@ describe("IP visitor and purity UI", () => {
     fireEvent.change(screen.getByLabelText("要查询的公网 IP"), { target: { value: "192.168.1.1" } }); fireEvent.click(screen.getByRole("button", { name: "查询纯净度" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("不支持内网地址"); expect(queryIp).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "IPv4 示例" })); expect(screen.getByLabelText("要查询的公网 IP")).toHaveValue("1.1.1.1");
+  });
+  it("shows all AI risk cards after one lookup without sending platform probes", async () => {
+    mount(<Ip />); await waitFor(() => expect(screen.getByLabelText("要查询的公网 IP")).toHaveValue(current.ip));
+    expect(screen.queryByTestId("ai-risk-chatgpt")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "查询纯净度" }));
+    const ai = await screen.findByTestId("ai-risk-chatgpt");
+    expect(within(ai).getAllByText("网络风险较高").length).toBeGreaterThan(0);
+    expect(within(ai).getByText("位置未提供")).toBeVisible();
+    for (const id of ["claude", "gemini", "copilot", "perplexity", "grok"]) expect(screen.getByTestId(`ai-risk-${id}`)).toBeVisible();
+    expect(queryIp).toHaveBeenCalledTimes(1);
+  });
+  it("labels regional restrictions for the queried target while retaining the visitor identity", async () => {
+    const targetSources = sources.map((source, index) => ({ ...source, status: "ok" as const, risk: 0, signals: { vpn: false, proxy: false, tor: false, hosting: false }, country: "China", countryCode: "CN", id: `cn-${index}` }));
+    vi.mocked(queryIp).mockResolvedValue({ ip: "1.1.1.1", version: "IPv4", checkedAt: current.checkedAt, model: "yukino-ip-v1", sources: targetSources, assessment: assessIp(targetSources) });
+    mount(<Ip />); await waitFor(() => expect(screen.getByLabelText("要查询的公网 IP")).toHaveValue(current.ip));
+    fireEvent.click(screen.getByRole("button", { name: "IPv4 示例" })); fireEvent.click(screen.getByRole("button", { name: "查询纯净度" }));
+    const ai = await screen.findByTestId("ai-risk-chatgpt");
+    expect(within(ai).getByText("地区访问风险较高")).toBeVisible();
+    expect(within(ai).getByText("网络风险较低")).toBeVisible();
+    expect(within(screen.getByTestId("ai-risk-gemini")).getByText("个人版名单外")).toBeVisible();
+    expect(screen.getByTestId("ip-ai-risk")).toHaveTextContent("核对地址 1.1.1.1");
+    expect(screen.getByLabelText("当前访问者连接")).toHaveTextContent(current.ip);
   });
   it("does not turn a total service failure into a score and permits another query", async () => {
     vi.mocked(queryIp).mockRejectedValueOnce(new Error("本次查询超时")); mount(<Ip />);

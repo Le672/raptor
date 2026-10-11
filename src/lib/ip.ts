@@ -5,7 +5,7 @@ export type IpSource = {
   id: string; name: string; href: string; kind: "reputation" | "geolocation" | "exit-list" | "threat-list";
   status: "ok" | "error" | "unsupported"; detail: string; risk: number | null;
   signals: Partial<Record<IpSignal, boolean>>; checkedAt: string; updatedAt?: string; cached?: boolean;
-  asn?: string; organization?: string; country?: string; city?: string; network?: string; attribution?: string;
+  asn?: string; organization?: string; country?: string; countryCode?: string; city?: string; network?: string; attribution?: string;
 };
 export type IpAssessment = {
   purity: number | null; risk: number | null; baselineRisk: number | null;

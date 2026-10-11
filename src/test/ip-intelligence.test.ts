@@ -55,9 +55,9 @@ describe("visitor identity and multi-source service", () => {
       const url = new URL(address), ip = decodeURIComponent(url.pathname.split("/").filter(Boolean).at(-1) || "");
       const override = overrides[url.hostname]; if (override instanceof Error) throw override; if (override) return override.clone();
       const json = (data: unknown) => new Response(JSON.stringify(data), { headers: { "content-type": "application/json" } });
-      if (url.hostname === "api.ipquery.io") return json({ ip, isp: { asn: "AS13335", org: "Cloudflare" }, location: { country: "Australia" }, risk: { risk_score: 10, is_proxy: false, is_vpn: false, is_tor: false, is_datacenter: false } });
-      if (url.hostname === "proxycheck.io") return json({ status: "ok", [ip]: { network: { asn: "AS13335", provider: "Cloudflare" }, detections: { risk: 20, proxy: false, vpn: false, hosting: false, tor: false } } });
-      if (url.hostname === "ipwho.is") return json({ success: true, ip, connection: { asn: 13335, isp: "Cloudflare" } });
+      if (url.hostname === "api.ipquery.io") return json({ ip, isp: { asn: "AS13335", org: "Cloudflare" }, location: { country: "Australia", country_code: "AU" }, risk: { risk_score: 10, is_proxy: false, is_vpn: false, is_tor: false, is_datacenter: false } });
+      if (url.hostname === "proxycheck.io") return json({ status: "ok", [ip]: { network: { asn: "AS13335", provider: "Cloudflare" }, location: { country_name: "Australia", country_code: "AU" }, detections: { risk: 20, proxy: false, vpn: false, hosting: false, tor: false } } });
+      if (url.hostname === "ipwho.is") return json({ success: true, ip, country: "Australia", country_code: "AU", connection: { asn: 13335, isp: "Cloudflare" } });
       if (url.hostname === "check.torproject.org") return new Response("# exit list\n1.2.3.4\n", { headers: { "content-type": "text/plain" } });
       if (url.hostname === "www.spamhaus.org") return new Response(JSON.stringify({ cidr: "1.10.16.0/20", sblid: "SBL-test" }) + "\n" + JSON.stringify({ type: "metadata", timestamp: Math.floor(Date.now() / 1000), copyright: "(c) The Spamhaus Project SLU" }), { headers: { "content-type": "application/json" } });
       if (url.hostname === "feodotracker.abuse.ch") return json([]);
@@ -78,6 +78,7 @@ describe("visitor identity and multi-source service", () => {
   it("combines actual supported schemas and retains feed copyright and observation dates", async () => {
     vi.stubGlobal("fetch", fakeSources()); const { inspectIp } = await import("../../functions/_utils/ip-service");
     const report = await inspectIp("1.1.1.1");
+    expect(report.sources.filter(source => source.countryCode === "AU")).toHaveLength(3);
     expect(report.sources).toHaveLength(6); expect(report.assessment).toMatchObject({ purity: 85, baselineRisk: 15, scoredSources: 2, availableSources: 6, confidence: "good" });
     expect(report.sources.find(s => s.id === "spamhaus")).toMatchObject({ attribution: "(c) The Spamhaus Project SLU", signals: { drop: false } });
     expect(report.sources.find(s => s.id === "spamhaus")?.updatedAt).toBeTruthy();

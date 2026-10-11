@@ -10,6 +10,7 @@ const initializing = new WeakMap<object, Promise<void>>();
 const callers = new Map<string, { until: number; count: number }>();
 class UpstreamError extends Error {}
 const text = (value: unknown) => typeof value === "string" ? value.slice(0, 300) : undefined;
+const countryCode = (value: unknown) => { const code = text(value)?.trim().toUpperCase(); return code && /^[A-Z]{2}$/.test(code) ? code : undefined; };
 export const asnLabel = (value: unknown): string | undefined => /^(?:AS)?\d{1,10}$/.test(String(value)) && Number(String(value).replace(/^AS/, "")) > 0 ? `AS${String(value).replace(/^AS/, "")}` : undefined;
 
 export function ipJson(data: unknown, status = 200) {
@@ -138,19 +139,19 @@ async function inspectSource(definition: typeof definitions[number], ip: string,
         base.signals.malware = !!match; base.detail = match ? `命中近期 ${text(match.malware) || "Botnet"} C2 记录；最后在线 ${text(match.last_online)}。` : "未命中近期恶意 C2 名单；仅代表这一项检查。";
       } else if (id === "ipquery") {
         if (normalizeIp(data?.ip)?.ip !== ip || score(data.risk?.risk_score) === null) throw new Error("未返回目标 IP 的有效风险分数");
-        base.risk = score(data.risk.risk_score); base.asn = asnLabel(data.isp?.asn); base.organization = text(data.isp?.org); base.country = text(data.location?.country); base.city = text(data.location?.city);
+        base.risk = score(data.risk.risk_score); base.asn = asnLabel(data.isp?.asn); base.organization = text(data.isp?.org); base.country = text(data.location?.country); base.countryCode = countryCode(data.location?.country_code); base.city = text(data.location?.city);
         base.signals = { vpn: flag(data.risk.is_vpn), proxy: flag(data.risk.is_proxy), tor: flag(data.risk.is_tor), hosting: flag(data.risk.is_datacenter) };
         base.detail = "风险分数 0–100，越高表示提供方判断的风险越高。";
       } else if (id === "proxycheck") {
         if (!["ok", "warning"].includes(data?.status)) throw new Error("查询受限或数据源未返回有效结果");
         const entry = Object.entries(data).find(([key]) => normalizeIp(key)?.ip === ip)?.[1] as any;
         if (!entry || score(entry.detections?.risk) === null) throw new Error("未返回目标 IP 的有效风险分数");
-        base.risk = score(entry.detections.risk); base.asn = asnLabel(entry.network?.asn); base.organization = text(entry.network?.provider); base.network = text(entry.network?.range); base.country = text(entry.location?.country_name); base.city = text(entry.location?.city_name); base.updatedAt = text(entry.last_updated);
+        base.risk = score(entry.detections.risk); base.asn = asnLabel(entry.network?.asn); base.organization = text(entry.network?.provider); base.network = text(entry.network?.range); base.country = text(entry.location?.country_name); base.countryCode = countryCode(entry.location?.country_code ?? entry.location?.country_iso); base.city = text(entry.location?.city_name); base.updatedAt = text(entry.last_updated);
         base.signals = { vpn: flag(entry.detections.vpn), proxy: flag(entry.detections.proxy), tor: flag(entry.detections.tor), hosting: flag(entry.detections.hosting), anonymous: flag(entry.detections.anonymous), compromised: flag(entry.detections.compromised) };
         base.detail = `原始风险分数 ${base.risk} / 100${data.status === "warning" ? "；提供方返回额度或频率警告" : ""}。`;
       } else {
         if (data?.success !== true || normalizeIp(data.ip)?.ip !== ip || !data.connection) throw new Error("未返回目标 IP 的有效网络资料");
-        base.asn = asnLabel(data.connection.asn); base.organization = text(data.connection.isp); base.country = text(data.country); base.city = text(data.city);
+        base.asn = asnLabel(data.connection.asn); base.organization = text(data.connection.isp); base.country = text(data.country); base.countryCode = countryCode(data.country_code); base.city = text(data.city);
         base.detail = "核对 ASN、运营商与位置；免费接口未提供风险数据，不参与分数平均。";
       }
     }

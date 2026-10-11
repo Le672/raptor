@@ -41,3 +41,22 @@
 这是本站的启发式综合指标，不是统计概率、个人信誉评分、金融风控决定或网站放行保证。代理和托管本身不是恶意行为。结果应结合各来源记录日期判断，查询时明确说明目标 IP 会发送至风险和网络资料提供方。
 
 Spamhaus 数据使用保留 `© The Spamhaus Project SLU`、数据时间及来源链接；未替换其版权或将本站分数当作提供方原始分数。
+
+## AI 网站访问风险
+
+IP 页面复用本次查询资料，新增 ChatGPT、Claude、Gemini、Microsoft Copilot、Perplexity 和 Grok 提示。此功能不向 AI 网站发送目标 IP、不测试账号或登录，不添加上游查询，不生成封禁概率，也不声称知道平台内部风险阈值。判断对象为 `report.ip`，不会用当前访问者的国家代替手动查询目标的资料。
+
+网络风险使用本站启发式规则：综合风险至少 60，或已有 Tor、被入侵、近期 C2、DROP 标记时显示较高风险；综合风险至少 25，或已有 VPN、公开代理、匿名网络、机房标记时提示存在验证风险。只有至少两家有效风险分数、无评分或标记分歧、关键标记 VPN／公开代理／Tor／机房均有覆盖时，才能给出较低网络风险。资料缺失不能当成安全；即使纯净度因无完整分数而留空，已命中的名单仍保留风险提示。各平台共用网络规则，不编造各站权重。
+
+地区资格单独检查成功来源返回的国家代码或可识别国家名，并保留出处。来源间或同一来源的国家名／代码有冲突时不选取其中一个。国家位置不能证明实际居住地，支持名单内也不保证账号、功能或所有子地区可用。没有完整地区名单时保持未知；明确地区例外会显示较高地区访问风险，不改动原有纯净度分数。
+
+以下来源于 2026-10-11 核对；`src/data/ai-access-policies.ts` 保存消费网页范围的地区快照和公开依据，页面显示核对日期。公开规则变更需重新核对更新，不会将快照冒充实时平台查询。
+
+| 平台 | 官方依据 | 范围与例外 |
+| --- | --- | --- |
+| ChatGPT | [网页地区名单](https://help.openai.com/en/articles/7947663-chatgpt-supported-countries)、[异常活动说明](https://help.openai.com/en/articles/10471992-why-am-i-receiving-a-suspicious-activity-alert) | 网页个人账号，国家级信息不能判断乌克兰的子地区例外 |
+| Claude | [消费者地区名单](https://support.claude.com/en/articles/8461763-where-can-i-access-claude)、[IP 与位置用途](https://privacy.claude.com/en/articles/11186740-does-claude-use-my-location) | 乌克兰子地区与名单中含糊的 Mariana Islands 保留待核对，不将后者扩写为肯定准入 |
+| Gemini | [网页地区名单](https://support.google.com/gemini/answer/13575153?hl=en)、[账号资格](https://support.google.com/gemini/answer/13278668?hl=en) | 按个人账号判断，中国大陆仅列为 Workspace 可用；[Google 搜索共享网络说明](https://support.google.com/websearch/answer/86640?hl=en) 仅作参考，不冒充 Gemini 风控阈值 |
+| Copilot | [地区和语言说明](https://support.microsoft.com/en-us/microsoft-365-copilot/supported-languages-for-microsoft-365-copilot) | 仅自动标注明确的中国大陆例外，香港不套用该排除项；其他市场和功能保持待核对 |
+| Perplexity | [账号管理与 VPN 说明](https://www.perplexity.ai/help-center/en/articles/10352998-account-management-and-security) | VPN 与 Cloudflare 验证有公开排查依据，未核实完整地区名单 |
+| Grok | [X 内入口说明](https://help.x.com/en/using-x/about-grok)、[独立站条款](https://x.ai/legal/terms-of-service) | 不将 X 内入口的地区说明当作 grok.com 的完整支持名单 |
