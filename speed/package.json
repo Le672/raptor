@@ -1,6 +1,6 @@
 {
   "name": "yukino-speed",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Yukino 网络测速与流量消耗工具",
   "author": "Yukino <Le672@users.noreply.github.com>",
@@ -10,25 +10,66 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5190",
     "check": "tsc --noEmit",
-    "test": "vitest run && node --test test/native.test.mjs test/api.test.mjs test/storage.test.mjs",
+    "test": "vitest run && node --test test/native.test.mjs test/system-fetch.test.mjs test/api.test.mjs test/storage.test.mjs",
     "build": "tsc --noEmit && vite build",
     "desktop": "pnpm run build && install-electron && electron .",
     "dist:win": "pnpm run build && install-electron && electron-builder --win --publish never"
   },
-  "dependencies": { "react": "18.3.1", "react-dom": "18.3.1", "lucide-react": "0.511.0" },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "lucide-react": "0.511.0"
+  },
   "devDependencies": {
-    "@types/react": "18.3.12", "@types/react-dom": "18.3.1", "@types/node": "22.15.30",
-    "@vitejs/plugin-react": "4.4.1", "vite": "6.3.6", "typescript": "5.8.3", "vitest": "3.2.4",
-    "electron": "44.7.0", "electron-builder": "26.15.3", "wrangler": "4.115.0"
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@types/node": "22.15.30",
+    "@vitejs/plugin-react": "4.4.1",
+    "vite": "6.3.6",
+    "typescript": "5.8.3",
+    "vitest": "3.2.4",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "wrangler": "4.115.0"
   },
   "build": {
-    "appId": "bond.yukino.speed", "productName": "Yukino Speed",
+    "appId": "bond.yukino.speed",
+    "productName": "Yukino Speed",
     "electronDist": "node_modules/electron/dist",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "desktop/**/*", "src/engine.mjs", "src/storage.mjs", "package.json", "LICENSE"],
-    "win": { "icon": "public/icon.ico", "target": ["nsis", "portable"], "artifactName": "Yukino-Speed-${version}-${arch}.${ext}" },
-    "nsis": { "artifactName": "Yukino-Speed-${version}-${arch}-setup.exe", "oneClick": false, "allowToChangeInstallationDirectory": true, "perMachine": false, "createDesktopShortcut": true },
-    "portable": { "artifactName": "Yukino-Speed-${version}-${arch}-portable.exe" },
-    "publish": { "provider": "github", "owner": "Le672", "repo": "yukino-speed" }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "desktop/**/*",
+      "src/engine.mjs",
+      "src/storage.mjs",
+      "package.json",
+      "LICENSE",
+      "src/servers.mjs"
+    ],
+    "win": {
+      "icon": "public/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "Yukino-Speed-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "artifactName": "Yukino-Speed-${version}-${arch}-setup.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true
+    },
+    "portable": {
+      "artifactName": "Yukino-Speed-${version}-${arch}-portable.exe"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Le672",
+      "repo": "yukino-speed"
+    }
   }
 }

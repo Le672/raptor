@@ -141,3 +141,13 @@ body:has(>.ys-app),body:has(#root>.ys-app) { margin:0; }
 @media(max-width:720px) { .ys-main { padding:26px 18px 18px; } .ys-header { padding:16px 18px; } .ys-header nav { gap:15px; } .ys-edition { display:none; } .ys-brand { font-size:22px; } .ys-intro h1 { font-size:32px; } .ys-intro { display:block; margin-bottom:23px; } .ys-intro-note { margin-top:17px; } .ys-workspace { grid-template-columns:1fr; } .ys-config { order:0; } .ys-monitor { order:1; } .ys-metrics { grid-template-columns:repeat(4,1fr); gap:8px; } .ys-metrics strong { font-size:15px; } .ys-metrics>div:nth-child(2) { border-right:1px solid #edf0e7; } .ys-metrics>div>span { font-size:9px; } .ys-metrics>div>span svg { display:none; } .ys-totals { grid-template-columns:1fr; gap:20px; padding:22px; } .ys-totals>div+div { border-left:0; border-top:1px solid #dfe5d4; padding:20px 0 0; } .ys-actions>span { width:auto; margin-left:auto; } .ys-section-heading h2 span { display:none; } .ys-footer { padding:17px 18px; flex-wrap:wrap; } }
 @media(max-width:390px) { .ys-header nav a span { display:none; } .ys-gauge { transform:scale(.92); transform-origin:center; } .ys-metrics { grid-template-columns:1fr 1fr; } .ys-metrics>div:nth-child(2) { border:0; } .ys-actions>span { width:100%; margin:0; } }
 @media(prefers-reduced-motion:reduce) { .ys-app * { transition:none!important; } }
+
+.ys-source-shortcuts { display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 8px; }
+.ys-source-shortcuts button { border:1px solid var(--ys-line); border-radius:7px; background:transparent; padding:6px 9px; color:#829372; font:inherit; font-size:10px; }
+.ys-source-shortcuts button[aria-pressed=true] { background:#e9eedf; border-color:#b0bd9d; color:#596e48; }
+.ys-catalog-summary { font-size:10px; color:#93a082; margin:0 0 13px; }
+.ys-source-meta { display:flex; flex-wrap:wrap; align-items:center; gap:7px; font-size:10px; color:#8e9a7e; margin:-3px 0 13px; }
+.ys-source-meta a,.ys-compat-note a { display:inline-flex; align-items:center; gap:3px; text-decoration:underline; }
+.ys-compat-note { padding:10px 12px; border:1px solid #dfd8c3; border-radius:8px; color:#8a7c59; font-size:11px; line-height:1.8; background:#f8f6ed; margin:0 0 14px; }
+.ys-compat-note a { display:flex; }
+.ys-start:disabled { opacity:.5; cursor:not-allowed; }

@@ -8,13 +8,19 @@ export function validateConfig(input) {
   for (const key of ['limitBytes', 'rateBps', 'durationMs']) if (!Number.isFinite(config[key]) || config[key] < 0 || config[key] > Number.MAX_SAFE_INTEGER) throw new Error('流量、带宽和持续时间必须是有效的非负数。');
   if (!Number.isSafeInteger(config.limitBytes)) throw new Error('流量配额必须是整数个字节。');
   if (config.kind === 'cloudflare' && (address.hostname !== 'speed.cloudflare.com' || address.pathname !== '/__down')) throw new Error('Cloudflare 模式需要 speed.cloudflare.com/__down 地址。');
+  if (config.referrer) {
+    let referrer;
+    try { referrer = new URL(config.referrer); } catch { throw new Error('来源页须为完整 HTTP / HTTPS 地址。'); }
+    if (!['http:', 'https:'].includes(referrer.protocol) || referrer.username || referrer.password || config.referrer.length > 4096) throw new Error('无效的下载来源页。');
+    config.referrer = referrer.href;
+  }
   config.url = address.href;
   return config;
 }
 
 export function requestSpec(config, bytes, sequence) {
   const url = new URL(config.url);
-  const headers = {};
+  const headers = config.referrer ? { Referer: config.referrer } : {};
   if (config.kind === 'cloudflare') url.searchParams.set('bytes', String(bytes));
   else headers.Range = `bytes=0-${bytes - 1}`;
   if (config.cacheBust) url.searchParams.set('_ys', `${Date.now()}-${sequence}`);

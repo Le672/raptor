@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain, shell, Menu, powerSaveBlocker } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, powerSaveBlocker, session } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { nativeFetch, closeAgents } = require('./native-fetch.cjs');
+const { createSystemFetch } = require('./system-fetch.cjs');
+let nativeFetch;
 let window, runner, reporter, storage, records = {}, blocker, saveAt = 0;
 app.setName('Yukino Speed');
 const ownWindow = event => { if (!window || event.sender !== window.webContents) throw new Error('无效的客户端'); };
@@ -12,6 +13,10 @@ function writeJson(name, value) {
 }
 function readJson(name, fallback) { try { return JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), name), 'utf8')); } catch { return fallback; } }
 async function init() {
+  nativeFetch = createSystemFetch(session.fromPartition('yukino-speed-download', { cache: false }));
+  const { SERVERS } = await import(pathToFileURL(path.join(__dirname, '../src/servers.mjs')).href);
+  const sourceLinks = new Set(SERVERS.map(server => server.source).filter(Boolean));
+  const openAllowed = address => { try { const url = new URL(address); return url.protocol === 'https:' && (['github.com', 'www.yukino.bond'].includes(url.hostname) || sourceLinks.has(url.href)); } catch { return false; } };
   const { DownloadRunner, validateConfig } = await import(pathToFileURL(path.join(__dirname, '../src/engine.mjs')).href);
   const { Reporter } = await import(pathToFileURL(path.join(__dirname, '../src/storage.mjs')).href);
   records = readJson('runs.json', {}); storage = readJson('reports.json', {});
@@ -37,10 +42,10 @@ async function init() {
   ipcMain.handle('speed:state', event => { ownWindow(event); return runner.snapshot(); });
   ipcMain.handle('speed:records', event => { ownWindow(event); return Object.values(records); });
   ipcMain.handle('speed:probe', async (event, address) => {
-    ownWindow(event); const config = validateConfig({ url: address }); const url = new URL(config.url);
+    ownWindow(event); const config = validateConfig(typeof address === 'string' ? { url: address } : { url: address?.url, referrer: address?.referrer }); const url = new URL(config.url);
     if (url.hostname === 'speed.cloudflare.com' && url.pathname === '/__down') url.searchParams.set('bytes', '0');
     const begin = performance.now(); const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 10000);
-    try { const response = await nativeFetch(url.href, { method: 'HEAD', signal: controller.signal }); await response.body.getReader().cancel(); if (!response.ok) throw new Error('HTTP ' + response.status); return { status: response.status, ms: performance.now() - begin }; }
+    try { const response = await nativeFetch(url.href, { method: 'HEAD', signal: controller.signal, headers: config.referrer ? { Referer: config.referrer } : {} }); await response.body?.cancel(); if (!response.ok) throw new Error('HTTP ' + response.status); return { status: response.status, ms: performance.now() - begin }; }
     finally { clearTimeout(timeout); }
   });
   const bounds = readJson('window.json', {});
@@ -49,24 +54,34 @@ async function init() {
     title: 'Yukino Speed', icon: path.join(__dirname, '../dist/icon.ico'), backgroundColor: '#f8f9f5', show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: false },
   });
-  window.webContents.setWindowOpenHandler(({ url }) => { if (/^https:\/\/(github\.com|www\.yukino\.bond)(\/|$)/.test(url)) void shell.openExternal(url); return { action: 'deny' }; });
-  window.webContents.on('will-navigate', (event, address) => { if (address !== pathToFileURL(path.join(__dirname, '../dist/index.html')).href) { event.preventDefault(); if (/^https:\/\/(github\.com|www\.yukino\.bond)(\/|$)/.test(address)) void shell.openExternal(address); } });
+  window.webContents.setWindowOpenHandler(({ url }) => { if (openAllowed(url)) void shell.openExternal(url); return { action: 'deny' }; });
+  window.webContents.on('will-navigate', (event, address) => { if (address !== pathToFileURL(path.join(__dirname, '../dist/index.html')).href) { event.preventDefault(); if (openAllowed(address)) void shell.openExternal(address); } });
   window.on('close', () => { runner.stop(); try { writeJson('window.json', window.getBounds()); } catch {} });
-  window.once('ready-to-show', () => window.show());
+  window.once('ready-to-show', () => { if (!process.argv.includes('--smoke')) window.show(); });
   Menu.setApplicationMenu(Menu.buildFromTemplate([{ label: 'Yukino Speed', submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'quit' }] }, { role: 'editMenu' }, { role: 'viewMenu' }]));
   await window.loadFile(path.join(__dirname, '../dist/index.html'));
   const timer = setInterval(() => void reporter.flush(), 5000); timer.unref(); void reporter.flush();
-  // Automated packaged smoke checks only use a bounded task and emit a local proof artifact.
+  // The packaged smoke uses only built-in, bounded public sources and records real bytes.
   if (process.argv.includes('--smoke')) {
-    const proof = { version: app.getVersion(), packaged: app.isPackaged, bridge: await window.webContents.executeJavaScript('typeof window.yukinoSpeed?.start'), title: window.getTitle() };
-    runner.start({ url: 'https://speed.cloudflare.com/__down', kind: 'cloudflare', threads: 2, limitBytes: 1_000_000, rateBps: 250_000, durationMs: 12000 });
-    setTimeout(() => { proof.result = runner.snapshot(); proof.result.history = []; proof.result.workers = runner.snapshot().workers; proof.blockerActive = blocker !== undefined; writeJson('smoke.json', proof); app.quit(); }, 12500);
+    const sourceId = process.argv.find(value => value.startsWith('--smoke-source='))?.split('=')[1] || 'cloudflare';
+    const selected = SERVERS.find(server => server.id === sourceId && server.url);
+    if (!selected) throw new Error('无效的内置核验源');
+    const proof = { version: app.getVersion(), packaged: app.isPackaged, sourceId,
+      bridge: await window.webContents.executeJavaScript('typeof window.yukinoSpeed?.start'), title: window.getTitle(),
+      catalog: await window.webContents.executeJavaScript("Array.from(document.querySelectorAll(\"select\")[0].options).map(option => ({id:option.value,label:option.textContent}))") };
+    runner.start({ url: selected.url, kind: selected.kind, referrer: selected.referrer, threads: 2, limitBytes: 1_000_000, rateBps: 500_000, durationMs: 20000 });
+    await runner.task;
+    await reporter.flush();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    proof.result = runner.snapshot(); proof.result.history = []; proof.blockerActive = blocker !== undefined;
+    writeJson('smoke.json', proof); app.quit();
   }
+
 }
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
   app.whenReady().then(init).catch(error => { console.error(error.message); app.quit(); });
   app.on('window-all-closed', () => app.quit());
-  app.on('before-quit', () => { runner?.stop(); closeAgents(); });
+  app.on('before-quit', () => { runner?.stop(); });
 }
