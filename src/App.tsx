@@ -25,6 +25,7 @@ const Status = lazy(() => import("@/pages/Status"));
 const Uses = lazy(() => import("@/pages/Uses"));
 const Focus = lazy(() => import("@/pages/Focus"));
 const F1 = lazy(() => import("@/pages/F1"));
+const Speed = lazy(() => import("@/pages/Speed"));
 import { isElectronApp } from "@/lib/runtime";
 import { isRailHost, RAIL_FEATURE_PATHS } from "@/lib/rail-navigation";
 
@@ -44,6 +45,7 @@ const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
   focus: "/focus",
   news: "/news",
   f1: "/f1",
+  speed: "/speed",
   www: "/",
 };
 
@@ -92,6 +94,7 @@ export default function App() {
           <Route path="/news" element={<News />} />
           <Route path="/cr" element={<Rail />} />
           <Route path="/f1" element={<F1 />} />
+          <Route path="/speed" element={<Speed />} />
           <Route path="/uses" element={<Uses />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

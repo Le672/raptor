@@ -11,6 +11,7 @@ import {
   Timer,
   Monitor,
   FlagTriangleRight,
+  Gauge,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { siteProfile } from "@/data/site";
@@ -44,6 +45,7 @@ const corners = [
   { icon: Timer, title: "专注角落", en: "FOCUS", text: "选一件事，留一段安静的时间。", to: "/focus" },
   { icon: Monitor, title: "设备与环境", en: "EVERYDAY SETUP", text: "那些陪着我写代码、过日子的工具。", to: "/uses" },
   { icon: FlagTriangleRight, title: "Formula 1 围场", en: "YUKINO MOTORSPORT", text: "每一圈，都值得期待。赛历、计时与观赛入口。", to: "/f1" },
+  { icon: Gauge, title: "网络测速", en: "YUKINO SPEED", text: "让速度看得见。自选服务器、线程与流量配额。", to: "/speed" },
 ];
 export default function Home() {
   const published = usePublicPosts();

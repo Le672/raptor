@@ -8,6 +8,7 @@ export const siteNavigation = [
   { label: "专注", to: "/focus", description: "番茄钟、待办清单与随手记" },
   { label: "余票", to: "/cr", description: "列车余票与行程查询" },
   { label: "F1", to: "/f1", description: "Formula 1 赛历、成绩、积分榜、直播入口与实时计时" },
+  { label: "测速", to: "/speed", description: "网络测速、流量消耗、多线程与带宽限制" },
   { label: "资源", to: "/box", description: "资源收藏与下载" },
   { label: "博客", to: "/blog", description: "完整文章与写作记录" },
   { label: "设备", to: "/uses", description: "使用的设备、软件与环境" },

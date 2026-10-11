@@ -6,6 +6,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig(({ mode }) => ({
   // Web deep links need root assets; file:// desktop builds need relative assets.
   base: mode === 'desktop' ? './' : '/',
+  resolve: { dedupe: ['react', 'react-dom'] },
   server: { proxy: { '/api/rail': { target: 'https://www.yukino.bond', changeOrigin: true }, '/api/f1': { target: 'http://127.0.0.1:8788', changeOrigin: true } } },
   build: {
     sourcemap: 'hidden',
