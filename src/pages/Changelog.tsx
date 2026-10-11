@@ -18,6 +18,17 @@ const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-11",
     type: "feature",
+    title: "访问者网络信息与 IP 纯净度查询",
+    changes: [
+      "主站首页与页脚显示当前访问者公网 IP、ASN 和网络组织，可复制 IP 并进入纯净度查询；连接信息来自 Cloudflare，独立请求且不共享缓存，不会显示服务器的出口地址",
+      "新增 ip.yukino.bond 网页站与主站 IP 入口，支持单个公网 IPv4／IPv6 查询，综合 IPQuery、proxycheck、Tor 官方出口、Spamhaus DROP 和 abuse.ch 公开名单，IPWHOIS 核对 ASN 与位置",
+      "展示各来源原始分数、网络标记、核对时间、数据日期、缓存和失败状态，资料不足时不生成分数；综合纯净度采用公开的平均与风险下限规则，保留来源分歧，未命中单项名单不会稀释风险",
+      "支持一键填入当前 IP、IPv4／IPv6 示例、内网与保留地址校验、接口超时和频率限制；DROP 名单全站共享并最多每小时刷新，过旧的恶意 C2 记录不参与判断，手机保持单列布局",
+    ],
+  },
+  {
+    date: "2026-10-11",
+    type: "feature",
     title: "Yukino Speed 网络测速与流量消耗工具",
     changes: [
       "新增 speed.yukino.bond 独立测速站和主站测速入口，独立域名支持 HTTPS 直达与刷新；支持 Cloudflare、公开测试文件、运营商测速目录与自定义 Steam／游戏 CDN 文件链接，可选择 1–32 个并发下载任务，显示实际接收流量、持续时间、实时网速、带宽曲线、平均与峰值带宽",

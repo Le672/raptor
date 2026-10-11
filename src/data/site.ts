@@ -28,6 +28,14 @@ export const siteProfile = {
 
 export const domainLinks: DomainLink[] = [
   {
+    title: "IP 纯净度",
+    hostname: "ip.yukino.bond",
+    href: "https://ip.yukino.bond",
+    description: "查询公网 IP、ASN、风险数据库及公开名单，查看综合纯净度与评分依据。",
+    status: "online",
+    category: "core",
+  },
+  {
     title: "邮箱",
     hostname: "mail.yukino.bond",
     href: "https://mail.yukino.bond",

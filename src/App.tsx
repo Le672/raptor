@@ -26,6 +26,7 @@ const Uses = lazy(() => import("@/pages/Uses"));
 const Focus = lazy(() => import("@/pages/Focus"));
 const F1 = lazy(() => import("@/pages/F1"));
 const Speed = lazy(() => import("@/pages/Speed"));
+const Ip = lazy(() => import("@/pages/Ip"));
 import { isElectronApp } from "@/lib/runtime";
 import { isRailHost, RAIL_FEATURE_PATHS } from "@/lib/rail-navigation";
 
@@ -46,6 +47,7 @@ const SUBDOMAIN_ROUTE_MAP: Record<string, string> = {
   news: "/news",
   f1: "/f1",
   speed: "/speed",
+  ip: "/ip",
   www: "/",
 };
 
@@ -76,7 +78,7 @@ export default function App() {
       <SubdomainRouter />
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={isRailHost() ? <Rail /> : <Home />} />
+          <Route path="/" element={isRailHost() ? <Rail /> : window.location.hostname === "ip.yukino.bond" ? <Ip /> : <Home />} />
           {isRailHost() && Object.values(RAIL_FEATURE_PATHS).map(path => <Route key={path} path={path} element={<Rail />} />)}
           <Route path="/notes" element={<Notes />} />
           <Route path="/about-me" element={<AboutMe />} />
@@ -95,6 +97,7 @@ export default function App() {
           <Route path="/cr" element={<Rail />} />
           <Route path="/f1" element={<F1 />} />
           <Route path="/speed" element={<Speed />} />
+          <Route path="/ip" element={<Ip />} />
           <Route path="/uses" element={<Uses />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

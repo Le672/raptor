@@ -12,6 +12,7 @@ import {
   Monitor,
   FlagTriangleRight,
   Gauge,
+  ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { siteProfile } from "@/data/site";
@@ -19,6 +20,7 @@ import { usePublicPosts } from "@/hooks/usePublicContent";
 import { ContentNotice } from "@/components/ContentNotice";
 import { contentDate, postHref } from "@/lib/content";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { VisitorNetwork } from "@/components/VisitorNetwork";
 const corners = [
   {
     icon: Code2,
@@ -46,6 +48,7 @@ const corners = [
   { icon: Monitor, title: "设备与环境", en: "EVERYDAY SETUP", text: "那些陪着我写代码、过日子的工具。", to: "/uses" },
   { icon: FlagTriangleRight, title: "Formula 1 围场", en: "YUKINO MOTORSPORT", text: "每一圈，都值得期待。赛历、计时与观赛入口。", to: "/f1" },
   { icon: Gauge, title: "网络测速", en: "YUKINO SPEED", text: "让速度看得见。自选服务器、线程与流量配额。", to: "/speed" },
+  { icon: ShieldCheck, title: "IP 纯净度", en: "YUKINO IP", text: "查看网络归属，对照多个来源了解 IP 的公开记录。", to: "/ip" },
 ];
 export default function Home() {
   const published = usePublicPosts();
@@ -88,6 +91,7 @@ export default function Home() {
               <Mail size={16} /> 打个招呼 <ArrowUpRight size={12} />
             </a>
           </div>
+          <VisitorNetwork />
         </div>
         <div className="hero-art" aria-hidden="true">
           <div className="art-top">
