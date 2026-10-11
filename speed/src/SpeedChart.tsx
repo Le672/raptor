@@ -6,21 +6,23 @@ export default function SpeedChart({ history, rateBps = 0 }: { history: { t: num
   const gradient = 'ys-chart-' + useId().replace(/:/g, '');
   const { points } = chartGeometry(history, rateBps);
   const [selectedTime, setSelectedTime] = useState<number | null>(null);
+  const [keyboardInspection, setKeyboardInspection] = useState(false);
   const selected = selectedTime === null ? null : points.find(p => p.t === selectedTime);
   const path = points.map(p => `${p.x},${p.y}`).join(' ');
   const pick = (event: React.PointerEvent<SVGSVGElement>) => {
+    setKeyboardInspection(false);
     const bounds = event.currentTarget.getBoundingClientRect();
     const point = nearestPoint(points, Math.max(0, Math.min(680, (event.clientX - bounds.left) / Math.max(1, bounds.width) * 680)));
     setSelectedTime(point?.t ?? null);
   };
   return <div className="ys-chart">
     <svg viewBox="0 0 680 130" preserveAspectRatio="none" role="img" aria-label="实时下载带宽曲线" tabIndex={points.length ? 0 : -1}
-      onPointerMove={pick} onPointerDown={pick} onPointerLeave={e => { if (e.pointerType !== 'touch') setSelectedTime(null); }}
-      onFocus={() => setSelectedTime(points.at(-1)?.t ?? null)} onBlur={() => setSelectedTime(null)}
+      onPointerMove={pick} onPointerDown={pick} onPointerLeave={e => { if (e.pointerType !== 'touch' && !keyboardInspection) setSelectedTime(null); }}
+      onFocus={() => setSelectedTime(current => current ?? points.at(-1)?.t ?? null)} onBlur={() => { setSelectedTime(null); setKeyboardInspection(false); }}
       onKeyDown={event => {
         const index = Math.max(0, points.findIndex(p => p.t === selectedTime));
         const next = event.key === 'Home' ? 0 : event.key === 'End' ? points.length - 1 : event.key === 'ArrowLeft' ? Math.max(0, index - 1) : event.key === 'ArrowRight' ? Math.min(points.length - 1, index + 1) : null;
-        if (next !== null) { event.preventDefault(); setSelectedTime(points[next]?.t ?? null); }
+        if (next !== null) { event.preventDefault(); setKeyboardInspection(true); setSelectedTime(points[next]?.t ?? null); }
         if (event.key === 'Escape') setSelectedTime(null);
       }}>
       <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#70936b" stopOpacity=".22"/><stop offset="100%" stopColor="#70936b" stopOpacity="0"/></linearGradient></defs>
