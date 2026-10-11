@@ -17,7 +17,9 @@ if (process.argv.includes('--domain')) {
     const zoneId = domain.zone_tag || zones.find(zone => zone.name === 'yukino.bond')?.id;
     if (!zoneId) throw new Error('Missing yukino.bond DNS permissions');
     const endpoint = `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
-    const records = await request(endpoint + '?name=' + encodeURIComponent(name));
+    let records;
+    try { records = await request(endpoint + '?name=' + encodeURIComponent(name)); }
+    catch (error) { if (!/^Error: Cloudflare API 403:/.test(String(error))) throw error; records = []; }
     if (!records.length) await request(endpoint, { method: 'POST', body: JSON.stringify({ type: 'CNAME', name, content: project.subdomain, proxied: true }) });
     else if (records.length !== 1 || records[0].type !== 'CNAME' || records[0].content !== project.subdomain) throw new Error('speed.yukino.bond has a conflicting DNS record; it was preserved');
   }
