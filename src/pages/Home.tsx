@@ -22,6 +22,7 @@ import { contentDate, postHref } from "@/lib/content";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { VisitorNetwork } from "@/components/VisitorNetwork";
 import { SiteVisits } from "@/components/SiteVisits";
+import { WeatherCard } from "@/components/WeatherCard";
 const corners = [
   {
     icon: Code2,
@@ -95,6 +96,7 @@ export default function Home() {
           <VisitorNetwork />
           <SiteVisits />
         </div>
+        <div className="hero-aside">
         <div className="hero-art" aria-hidden="true">
           <div className="art-top">
             <span>YUKINO / PERSONAL JOURNAL</span>
@@ -118,6 +120,8 @@ export default function Home() {
             <span>CODE · NOTES · LIFE</span>
             <span>01 — ∞</span>
           </div>
+        </div>
+        <WeatherCard />
         </div>
       </section>
       <div className="home-divider">
