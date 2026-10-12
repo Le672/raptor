@@ -5,14 +5,15 @@ export type AiRiskLevel = "low" | "caution" | "high" | "unknown";
 export type AiNetworkRisk = { level: AiRiskLevel; label: string; reasons: string[] };
 export type IpCountryEvidence = { code: string; label: string; sources: string[] };
 export type AiRegionAssessment = { status: "listed" | "restricted" | "unknown" | "conflict"; label: string; detail: string };
-export type AiSiteAssessment = { policy: AiSitePolicy; level: AiRiskLevel; label: string; network: AiNetworkRisk; region: AiRegionAssessment };
+export type AiSiteAssessment = { policy: AiSitePolicy; level: AiRiskLevel; label: string; network: AiNetworkRisk; region: AiRegionAssessment; conclusion: string; nextSteps: string[] };
+export type AiEvidenceDimension = { id: string; title: string; level: AiRiskLevel; label: string; detail: string; sources: string[] };
 
 const knownCodes = new Set(KNOWN_COUNTRY_CODES);
-const normalizeName = (value: string) => value.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const normalizeName = (value: string) => value.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
 const countryNames = new Map<string, string>();
 const englishNames = new Intl.DisplayNames(["en"], { type: "region" });
 const chineseNames = new Intl.DisplayNames(["zh-CN"], { type: "region" });
-for (const code of KNOWN_COUNTRY_CODES) countryNames.set(normalizeName(englishNames.of(code) || code), code);
+for (const code of KNOWN_COUNTRY_CODES) { countryNames.set(normalizeName(englishNames.of(code) || code), code); countryNames.set(normalizeName(chineseNames.of(code) || code), code); }
 for (const [name, code] of Object.entries({
   "United States of America": "US", "United Kingdom": "GB", "Czech Republic": "CZ", "Republic of Cyprus": "CY",
   "Cabo Verde": "CV", "Congo (Brazzaville)": "CG", "Congo (DRC)": "CD", "Republic of the Congo": "CG",
@@ -49,7 +50,9 @@ export function assessAiNetwork(report: IpReport): AiNetworkRisk {
   if (assessment.purity !== null) reasons.unshift(`综合纯净度 ${assessment.purity} / 100，综合风险 ${assessment.risk} / 100。`);
   if (assessment.scoredSources < 2) reasons.push("有效风险评分不足两家，不能据此给出低风险结论。");
   if (assessment.disagreement) reasons.push("来源评分或网络标记有分歧，需要核对原始结果。");
-  const strong: IpSignal[] = ["tor", "compromised", "malware", "drop"];
+  const unavailable = report.sources.filter(source => source.status === "error" || source.status === "unsupported");
+  if (unavailable.length) reasons.push(`${unavailable.length} 个来源未完成或不覆盖此地址类型，未把缺失项按安全处理。`);
+  const strong: IpSignal[] = ["tor", "compromised", "malware", "drop", "abuse"];
   if (positive.some(signal => strong.includes(signal.signal)) || (assessment.risk !== null && assessment.risk >= 60)) {
     if (assessment.purity === null) reasons.push("风险数据库未给出完整分数，已命中的名单或网络标记仍保留提示。");
     return { level: "high", label: "网络风险较高", reasons };
@@ -82,13 +85,38 @@ export function assessAiRegion(policy: AiSitePolicy, countries: IpCountryEvidenc
   return { status: "unknown", label: "地区仍需核对", detail: policy.regionPolicy === "copilot" ? "官方说明覆盖多个市场，但没有在该页提供逐国完整名单，需核对具体入口与功能。" : "本次未核实到此网页入口的完整地区名单，不能把未查到限制视为全球可用。" };
 }
 
-export function assessAiSites(report: IpReport): { countries: IpCountryEvidence[]; network: AiNetworkRisk; sites: AiSiteAssessment[] } {
+export function assessAiEvidence(report: IpReport, countries = getIpCountries(report.sources)): AiEvidenceDimension[] {
+  const scores = report.sources.filter(source => source.status === "ok" && source.kind === "reputation" && typeof source.risk === "number" && Number.isFinite(source.risk) && source.risk >= 0 && source.risk <= 100);
+  const dimension = (id: string, title: string, keys: IpSignal[], positiveLevel: AiRiskLevel, clearLabel: string): AiEvidenceDimension => {
+    const signals = report.assessment.signals.filter(signal => keys.includes(signal.signal));
+    const detected = signals.filter(signal => signal.detected === true), covered = signals.filter(signal => signal.detected !== null);
+    const sourceNames = [...new Set(signals.flatMap(signal => [...signal.positive, ...signal.negative]))];
+    const conflict = signals.some(signal => signal.disagreement), missing = keys.filter(key => !covered.some(signal => signal.signal === key));
+    return { id, title, level: detected.length ? positiveLevel : missing.length || conflict ? "unknown" : "low", label: detected.length ? "有公开风险线索" : missing.length || conflict ? "覆盖不完整" : clearLabel,
+      detail: detected.length ? `${detected.map(signal => IP_SIGNAL_LABELS[signal.signal]).join("、")}被检出${conflict ? "，来源有分歧" : ""}；名单命中不等于平台已经封禁。` : missing.length ? `尚未覆盖 ${missing.map(key => IP_SIGNAL_LABELS[key]).join("、")}；已核对的非命中仅说明这些项目。` : "已覆盖的公开检查未检出标记；未查询的平台内部记录仍然未知。", sources: sourceNames };
+  };
+  const reputation: AiEvidenceDimension = { id: "reputation", title: "原始风险评分", level: scores.length < 2 || report.assessment.disagreement ? "unknown" : report.assessment.baselineRisk! >= 60 ? "high" : report.assessment.baselineRisk! >= 25 ? "caution" : "low", label: scores.length < 2 ? "评分来源不足" : report.assessment.disagreement ? "来源有分歧" : `${scores.length} 家有效评分`, detail: scores.length ? scores.map(source => `${source.name} ${source.risk}/100`).join(" · ") + "；不是 AI 封禁概率。" : "没有有效的广义风险分数，不能生成安全承诺。", sources: scores.map(source => source.name) };
+  const geography: AiEvidenceDimension = { id: "geography", title: "出口位置一致性", level: countries.length === 1 ? "low" : "unknown", label: !countries.length ? "位置未提供" : countries.length > 1 ? "位置有分歧" : "地区资料一致", detail: countries.length ? countries.map(country => `${country.label} (${country.code})`).join(" / ") + "；数据库位置不证明实际居住地。" : "没有可识别的 IP 位置资料，ASN 注册国家不用于替代。", sources: [...new Set(countries.flatMap(country => country.sources))] };
+  return [reputation, dimension("anonymity", "匿名网络与出口类型", ["vpn", "proxy", "tor", "hosting"], "caution", "未检出匿名属性"), dimension("threats", "公开威胁与滥用记录", ["malware", "drop", "abuse", "compromised"], "high", "已覆盖项未命中"), geography];
+}
+
+export function assessAiSites(report: IpReport): { countries: IpCountryEvidence[]; network: AiNetworkRisk; evidence: AiEvidenceDimension[]; sites: AiSiteAssessment[] } {
   const countries = getIpCountries(report.sources), network = assessAiNetwork(report);
   const sites = AI_SITE_POLICIES.map(policy => {
     const region = assessAiRegion(policy, countries);
     const level = region.status === "restricted" ? "high" : network.level === "low" && region.status !== "listed" ? "unknown" : network.level;
     const label = region.status === "restricted" ? "地区访问风险较高" : level === "unknown" && network.level === "low" ? "地区仍需核对" : network.label;
-    return { policy, region, network, level, label };
+    const conclusion = region.status === "restricted" ? `${policy.name} 首先存在地区资格风险；即使网络纯净度较高，也不能据此判断允许访问。`
+      : region.status === "conflict" ? `位置来源有分歧，暂不判断 ${policy.name} 的地区资格。${network.level === "high" || network.level === "caution" ? "同时保留已检出的网络风险提示。" : ""}`
+      : network.level === "high" ? `公开记录提示较高网络风险，使用 ${policy.name} 时需留意验证或访问限制；平台是否已限制此 IP 未检测。`
+      : network.level === "caution" ? `匿名网络、出口属性或原始评分带来验证风险；${policy.name} 的账号与功能资格仍需单独核对。`
+      : network.level === "unknown" ? `当前网络资料不足，不能为 ${policy.name} 给出低风险结论。`
+      : region.status !== "listed" ? `网络侧线索较低，但 ${policy.name} 地区范围尚未核实，不能保证可用。`
+      : `当前网络线索较低，且 IP 地区位于 ${policy.name} 公开网页名单内；实际账号、设备及功能资格未检测。`;
+    const nextSteps = [...policy.checks];
+    if (region.status === "conflict") nextSteps.unshift("先核对位置分歧，提供方对同一出口的地区判断可能不同。");
+    if (report.assessment.signals.some(signal => signal.detected && ["abuse", "drop", "malware", "compromised"].includes(signal.signal))) nextSteps.unshift("核对名单日期、地址或网段范围；若记录与实际情况不符，可向名单维护方或网络服务商申请复核。");
+    return { policy, region, network, level, label, conclusion, nextSteps };
   });
-  return { countries, network, sites };
+  return { countries, network, evidence: assessAiEvidence(report, countries), sites };
 }

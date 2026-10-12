@@ -1,11 +1,12 @@
 export type IpVersion = "IPv4" | "IPv6";
 export type VisitorNetwork = { ip: string | null; version: IpVersion | null; asn: string | null; organization: string | null; country: string | null; city: string | null; source: "Cloudflare"; checkedAt: string };
-export type IpSignal = "vpn" | "proxy" | "tor" | "hosting" | "anonymous" | "compromised" | "malware" | "drop";
+export type IpSignal = "vpn" | "proxy" | "tor" | "hosting" | "anonymous" | "compromised" | "malware" | "drop" | "abuse";
 export type IpSource = {
   id: string; name: string; href: string; kind: "reputation" | "geolocation" | "exit-list" | "threat-list";
-  status: "ok" | "error" | "unsupported"; detail: string; risk: number | null;
+  status: "ok" | "error" | "unsupported" | "not-configured"; detail: string; risk: number | null;
   signals: Partial<Record<IpSignal, boolean>>; checkedAt: string; updatedAt?: string; cached?: boolean;
   asn?: string; organization?: string; country?: string; countryCode?: string; city?: string; network?: string; attribution?: string;
+  riskLabel?: string; metrics?: { label: string; value: string }[]; retryAt?: string;
 };
 export type IpAssessment = {
   purity: number | null; risk: number | null; baselineRisk: number | null;
@@ -15,7 +16,7 @@ export type IpAssessment = {
   disagreement: boolean; reasons: { signal: IpSignal; label: string; floor: number; sources: string[] }[];
   signals: { signal: IpSignal; detected: boolean | null; disagreement: boolean; positive: string[]; negative: string[] }[];
 };
-export type IpReport = { ip: string; version: IpVersion; checkedAt: string; model: "yukino-ip-v1"; sources: IpSource[]; assessment: IpAssessment };
+export type IpReport = { ip: string; version: IpVersion; checkedAt: string; model: "yukino-ip-v1" | "yukino-ip-v2"; sources: IpSource[]; assessment: IpAssessment };
 
 const ipv4 = (value: string) => /^(?:0|[1-9]\d{0,2})(?:\.(?:0|[1-9]\d{0,2})){3}$/.test(value) && value.split(".").every(part => Number(part) <= 255);
 export function normalizeIp(value: unknown): { ip: string; version: IpVersion } | null {
@@ -63,9 +64,9 @@ export function isPublicIp(value: string): boolean {
 }
 
 export const IP_SIGNAL_LABELS: Record<IpSignal, string> = {
-  vpn: "VPN", proxy: "公开代理", tor: "Tor 出口", hosting: "机房 / 托管", anonymous: "匿名网络", compromised: "被入侵记录", malware: "恶意 C2 名单", drop: "Spamhaus DROP",
+  vpn: "VPN", proxy: "公开代理", tor: "Tor 出口", hosting: "机房 / 托管", anonymous: "匿名网络", compromised: "被入侵记录", malware: "恶意 C2 名单", drop: "Spamhaus DROP", abuse: "滥用 / 扫描记录",
 };
-const SIGNAL_FLOORS: Record<IpSignal, number> = { hosting: 20, vpn: 35, anonymous: 35, proxy: 50, tor: 70, compromised: 80, malware: 95, drop: 95 };
+const SIGNAL_FLOORS: Record<IpSignal, number> = { hosting: 20, vpn: 35, anonymous: 35, proxy: 50, tor: 70, abuse: 70, compromised: 80, malware: 95, drop: 95 };
 export function assessIp(sources: IpSource[]): IpAssessment {
   const available = sources.filter(s => s.status === "ok");
   const scored = available.filter(s => s.kind === "reputation" && typeof s.risk === "number" && Number.isFinite(s.risk) && s.risk >= 0 && s.risk <= 100);
@@ -73,7 +74,8 @@ export function assessIp(sources: IpSource[]): IpAssessment {
   const signals = (Object.keys(IP_SIGNAL_LABELS) as IpSignal[]).map(signal => {
     const positive = available.filter(s => s.signals[signal] === true).map(s => s.name);
     const negative = available.filter(s => s.signals[signal] === false).map(s => s.name);
-    return { signal, detected: positive.length ? true : negative.length ? false : null, disagreement: !!positive.length && !!negative.length, positive, negative };
+    // Abuse feeds describe different event windows and scopes; a non-hit elsewhere is not a contradiction.
+    return { signal, detected: positive.length ? true : negative.length ? false : null, disagreement: signal !== "abuse" && !!positive.length && !!negative.length, positive, negative };
   });
   const reasons = signals.filter(s => s.detected).map(s => ({ signal: s.signal, label: IP_SIGNAL_LABELS[s.signal], floor: SIGNAL_FLOORS[s.signal], sources: s.positive }));
   // Narrow lists never dilute a reputation score. No usable broad source means no purity score.
@@ -81,6 +83,7 @@ export function assessIp(sources: IpSource[]): IpAssessment {
   const purity = risk === null ? null : 100 - risk;
   const riskRange: [number, number] | null = scored.length ? [Math.min(...scored.map(s => s.risk!)), Math.max(...scored.map(s => s.risk!))] : null;
   const disagreement = !!riskRange && riskRange[1] - riskRange[0] >= 40 || signals.some(s => s.disagreement);
-  const confidence = !scored.length ? "insufficient" : scored.length < 2 || disagreement || available.length < sources.length ? "limited" : "good";
-  return { purity, risk, baselineRisk, label: purity === null ? "资料不足" : purity >= 80 ? "较高纯净度" : purity >= 60 ? "中等纯净度" : "较低纯净度", tone: purity === null ? "unknown" : purity >= 80 ? "good" : purity >= 60 ? "medium" : "poor", confidence, scoredSources: scored.length, availableSources: available.length, totalSources: sources.length, riskRange, disagreement, reasons, signals };
+  const active = sources.filter(s => s.status !== "not-configured");
+  const confidence = !scored.length ? "insufficient" : scored.length < 2 || disagreement || active.some(s => s.status === "error" || s.status === "unsupported") ? "limited" : "good";
+  return { purity, risk, baselineRisk, label: purity === null ? "资料不足" : purity >= 80 ? "较高纯净度" : purity >= 60 ? "中等纯净度" : "较低纯净度", tone: purity === null ? "unknown" : purity >= 80 ? "good" : purity >= 60 ? "medium" : "poor", confidence, scoredSources: scored.length, availableSources: available.length, totalSources: active.length, riskRange, disagreement, reasons, signals };
 }

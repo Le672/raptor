@@ -40,7 +40,7 @@ describe("IP visitor and purity UI", () => {
     const ai = await screen.findByTestId("ai-risk-chatgpt");
     expect(within(ai).getAllByText("网络风险较高").length).toBeGreaterThan(0);
     expect(within(ai).getByText("位置未提供")).toBeVisible();
-    for (const id of ["claude", "gemini", "copilot", "perplexity", "grok"]) expect(screen.getByTestId(`ai-risk-${id}`)).toBeVisible();
+    for (const id of ["claude", "gemini", "copilot", "perplexity", "grok", "deepseek", "qwen", "mistral", "poe"]) expect(screen.getByTestId(`ai-risk-${id}`)).toBeVisible();
     expect(queryIp).toHaveBeenCalledTimes(1);
   });
   it("labels regional restrictions for the queried target while retaining the visitor identity", async () => {
@@ -60,5 +60,28 @@ describe("IP visitor and purity UI", () => {
     await waitFor(() => expect(screen.getByLabelText("要查询的公网 IP")).toHaveValue(current.ip)); fireEvent.click(screen.getByRole("button", { name: "查询纯净度" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("本次查询超时"); expect(screen.getByRole("img", { name: "尚无可用的纯净度评分" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "查询纯净度" })); expect(await screen.findByRole("img", { name: "综合纯净度 20 分" })).toBeVisible();
+  });
+  it("expands service-specific analysis and filters without launching another lookup", async () => {
+    mount(<Ip />); await waitFor(() => expect(screen.getByLabelText("要查询的公网 IP")).toHaveValue(current.ip));
+    fireEvent.click(screen.getByRole("button", { name: "查询纯净度" }));
+    const poe = await screen.findByTestId("ai-risk-poe");
+    expect(within(poe).getAllByText("未检测")).toHaveLength(2);
+    fireEvent.click(within(poe).getByText("查看账号、功能与排查建议"));
+    expect(within(poe).getByText(/不同机器人消耗不同点数/)).toBeVisible();
+    fireEvent.click(within(screen.getByRole("group", { name: "筛选 AI 风险" })).getByRole("button", { name: /网络线索较低/ }));
+    expect(screen.queryByTestId("ai-risk-poe")).not.toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("group", { name: "筛选 AI 风险" })).getByRole("button", { name: /全部服务/ }));
+    expect(screen.getByTestId("ai-risk-poe")).toBeVisible(); expect(queryIp).toHaveBeenCalledTimes(1);
+  });
+  it("filters failed sources and uses the queried target in manual review links", async () => {
+    vi.mocked(queryIp).mockResolvedValue({ ip: "1.1.1.1", version: "IPv4", checkedAt: current.checkedAt, model: "yukino-ip-v2", sources, assessment: assessIp(sources) });
+    mount(<Ip />); await waitFor(() => expect(screen.getByLabelText("要查询的公网 IP")).toHaveValue(current.ip));
+    fireEvent.click(screen.getByRole("button", { name: "IPv4 示例" })); fireEvent.click(screen.getByRole("button", { name: "查询纯净度" }));
+    await screen.findByTestId("ip-source-one");
+    expect(screen.getByRole("link", { name: /Scamalytics/ })).toHaveAttribute("href", "https://scamalytics.com/ip/1.1.1.1");
+    expect(screen.getByRole("link", { name: /AbuseIPDB.*近期滥用报告/ })).toHaveAttribute("href", "https://www.abuseipdb.com/check/1.1.1.1");
+    fireEvent.click(within(screen.getByRole("group", { name: "筛选数据来源" })).getByRole("button", { name: /缺失与限制/ }));
+    expect(screen.queryByTestId("ip-source-one")).not.toBeInTheDocument(); expect(screen.getByTestId("ip-source-two")).toBeVisible();
+    expect(queryIp).toHaveBeenCalledTimes(1);
   });
 });

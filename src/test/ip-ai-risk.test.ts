@@ -14,10 +14,10 @@ const forSite = (result: ReturnType<typeof assessAiSites>, id: string) => result
 describe("AI website risk with independent network and region evidence", () => {
   it("keeps low network risk separate from unpublished regional eligibility", () => {
     const result = assessAiSites(report([source("first"), source("second")]));
-    expect(result.sites).toHaveLength(6);
+    expect(result.sites).toHaveLength(10);
     expect(result.network.level).toBe("low");
     for (const id of ["chatgpt", "claude", "gemini"]) expect(forSite(result, id)).toMatchObject({ level: "low", region: { status: "listed" } });
-    for (const id of ["copilot", "perplexity", "grok"]) expect(forSite(result, id)).toMatchObject({ level: "unknown", region: { status: "unknown" } });
+    for (const id of ["copilot", "perplexity", "grok", "deepseek", "qwen", "mistral", "poe"]) expect(forSite(result, id)).toMatchObject({ level: "unknown", region: { status: "unknown" } });
   });
   it("flags known mainland China restrictions even with perfect reputation scores", () => {
     const result = assessAiSites(report([source("first", { country: "China", countryCode: "CN" }), source("second", { country: "China", countryCode: "CN" })]));
@@ -97,5 +97,26 @@ describe("AI website risk with independent network and region evidence", () => {
       expect(policy.links.length).toBeGreaterThan(0);
       expect(policy.links.every(link => link.href.startsWith("https://"))).toBe(true);
     }
+  });
+  it("explains source coverage and does not turn a partial threat check into an all-clear", () => {
+    const result = assessAiSites(report([source("first"), source("second"), source("list", { kind: "threat-list", risk: null, signals: { drop: false } })]));
+    expect(result.evidence).toHaveLength(4);
+    expect(result.evidence.find(item => item.id === "threats")).toMatchObject({ level: "unknown", sources: ["list"] });
+    expect(result.evidence.find(item => item.id === "threats")?.detail).toContain("尚未覆盖");
+    expect(forSite(result, "poe").conclusion).toContain("地区范围尚未核实");
+    expect(forSite(result, "chatgpt").conclusion).toContain("未检测");
+  });
+  it("preserves adverse feed provenance and recommends checking scope and freshness", () => {
+    const result = assessAiSites(report([source("first"), source("second"), source("CINS", { kind: "threat-list", risk: null, signals: { abuse: true } })]));
+    expect(result.network.level).toBe("high");
+    expect(result.evidence.find(item => item.id === "threats")).toMatchObject({ level: "high", sources: ["CINS"] });
+    expect(forSite(result, "chatgpt").nextSteps[0]).toContain("地址或网段范围");
+  });
+  it("normalizes Chinese country names and keeps account and plan guidance service-specific", () => {
+    expect(getIpCountries([source("chinese", { country: "美国", countryCode: undefined })]).map(item => item.code)).toEqual(["US"]);
+    const result = assessAiSites(report([source("first"), source("second")]));
+    expect(forSite(result, "poe").policy.features).toContain("点数");
+    expect(forSite(result, "gemini").policy.account).toContain("管理员");
+    expect(forSite(result, "perplexity").policy.account).toContain("Cloudflare");
   });
 });

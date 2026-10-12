@@ -52,15 +52,21 @@ describe("visitor identity and multi-source service", () => {
   function fakeSources(overrides: Record<string, Response | Error> = {}) {
     return vi.fn(async (address: string, options?: RequestInit) => {
       if (options?.redirect !== "manual") throw new TypeError("Unsupported Workers redirect mode");
-      const url = new URL(address), ip = decodeURIComponent(url.pathname.split("/").filter(Boolean).at(-1) || "");
+      const url = new URL(address), parts = url.pathname.split("/").filter(Boolean), ip = url.searchParams.get("q") || url.searchParams.get("ipAddress") || decodeURIComponent(parts.at(-1) === "json" ? parts.at(-2)! : parts.at(-1) || "");
       const override = overrides[url.hostname]; if (override instanceof Error) throw override; if (override) return override.clone();
       const json = (data: unknown) => new Response(JSON.stringify(data), { headers: { "content-type": "application/json" } });
       if (url.hostname === "api.ipquery.io") return json({ ip, isp: { asn: "AS13335", org: "Cloudflare" }, location: { country: "Australia", country_code: "AU" }, risk: { risk_score: 10, is_proxy: false, is_vpn: false, is_tor: false, is_datacenter: false } });
       if (url.hostname === "proxycheck.io") return json({ status: "ok", [ip]: { network: { asn: "AS13335", provider: "Cloudflare" }, location: { country_name: "Australia", country_code: "AU" }, detections: { risk: 20, proxy: false, vpn: false, hosting: false, tor: false } } });
       if (url.hostname === "ipwho.is") return json({ success: true, ip, country: "Australia", country_code: "AU", connection: { asn: 13335, isp: "Cloudflare" } });
+      if (url.hostname === "api.ipapi.is") return json({ ip, company: "Cloudflare", asn: "AS13335 Cloudflare", country: "Australia", city: "Sydney" });
+      if (url.hostname === "ip.guide") return json({ ip, network: { cidr: "1.1.1.0/24", autonomous_system: { asn: 13335, organization: "Cloudflare", country: "US" } }, location: { country: "AU", city: "Sydney" } });
+      if (url.hostname === "ipapi.co") return json({ ip, asn: "AS13335", org: "Cloudflare", country_name: "Australia", country_code: "AU" });
       if (url.hostname === "check.torproject.org") return new Response("# exit list\n1.2.3.4\n", { headers: { "content-type": "text/plain" } });
       if (url.hostname === "www.spamhaus.org") return new Response(JSON.stringify({ cidr: "1.10.16.0/20", sblid: "SBL-test" }) + "\n" + JSON.stringify({ type: "metadata", timestamp: Math.floor(Date.now() / 1000), copyright: "(c) The Spamhaus Project SLU" }), { headers: { "content-type": "application/json" } });
       if (url.hostname === "feodotracker.abuse.ch") return json([]);
+      if (url.hostname === "feeds.dshield.org") return new Response(`# updated: ${new Date().toISOString()}\n2.3.4.0\t2.3.4.255\t24\t200\n`, { headers: { "content-type": "text/plain" } });
+      if (url.hostname === "cinsscore.com") return new Response("2.3.4.5\n", { headers: { "content-type": "text/plain", "last-modified": new Date().toUTCString() } });
+      if (url.hostname === "raw.githubusercontent.com") return new Response(`# Last update: ${new Date().toUTCString()}\n2.3.4.5\t4\n1.1.1.1\t1\n`, { headers: { "content-type": "text/plain" } });
       throw new Error("Unexpected host");
     });
   }
@@ -78,8 +84,9 @@ describe("visitor identity and multi-source service", () => {
   it("combines actual supported schemas and retains feed copyright and observation dates", async () => {
     vi.stubGlobal("fetch", fakeSources()); const { inspectIp } = await import("../../functions/_utils/ip-service");
     const report = await inspectIp("1.1.1.1");
-    expect(report.sources.filter(source => source.countryCode === "AU")).toHaveLength(3);
-    expect(report.sources).toHaveLength(6); expect(report.assessment).toMatchObject({ purity: 85, baselineRisk: 15, scoredSources: 2, availableSources: 6, confidence: "good" });
+    expect(report.sources.filter(source => source.country === "Australia" || source.countryCode === "AU")).toHaveLength(6);
+    expect(report.sources).toHaveLength(15); expect(report.assessment).toMatchObject({ purity: 85, baselineRisk: 15, scoredSources: 2, availableSources: 12, totalSources: 12, confidence: "good" });
+    expect(report.sources.filter(source => source.status === "not-configured")).toHaveLength(3);
     expect(report.sources.find(s => s.id === "spamhaus")).toMatchObject({ attribution: "(c) The Spamhaus Project SLU", signals: { drop: false } });
     expect(report.sources.find(s => s.id === "spamhaus")?.updatedAt).toBeTruthy();
   });
@@ -89,7 +96,7 @@ describe("visitor identity and multi-source service", () => {
     const [one, two] = await Promise.all([inspectIp("1.1.1.1"), inspectIp("1.1.1.1")]);
     expect(one.assessment).toMatchObject({ purity: 90, scoredSources: 1, confidence: "limited" });
     expect(one.sources.find(s => s.id === "proxycheck")).toMatchObject({ status: "error", risk: null, signals: {} });
-    expect(two.ip).toBe("1.1.1.1"); expect(fetcher).toHaveBeenCalledTimes(6);
+    expect(two.ip).toBe("1.1.1.1"); expect(fetcher).toHaveBeenCalledTimes(12);
     await inspectIp("1.1.1.1"); expect(fetcher.mock.calls.filter(call => String(call[0]).includes("api.ipquery.io"))).toHaveLength(1);
   });
   it("rejects wrong-target responses and does not fabricate security data from a geolocation service", async () => {
@@ -121,7 +128,8 @@ describe("visitor identity and multi-source service", () => {
     const report = await inspectIp("2001:678:254::123"); expect(report.assessment).toMatchObject({ purity: 5, risk: 95 });
     expect(report.sources.find(s => s.id === "tor")).toMatchObject({ status: "unsupported", signals: {} });
     expect(report.sources.find(s => s.id === "feodo")).toMatchObject({ status: "unsupported", signals: {} });
-    expect(fetcher).toHaveBeenCalledTimes(4);
+    for (const id of ["dshield", "cins", "ipsum"]) expect(report.sources.find(s => s.id === id)).toMatchObject({ status: "unsupported", signals: {} });
+    expect(fetcher).toHaveBeenCalledTimes(7);
   });
   it("does not turn an obsolete C2 feed into a clean result", async () => {
     const old = new Response(JSON.stringify([{ ip_address: "1.1.1.1", status: "online", last_online: "2010-01-01" }]), { headers: { "content-type": "application/json" } });
@@ -130,17 +138,17 @@ describe("visitor identity and multi-source service", () => {
   });
   it("uses a shared fresh D1 feed without any additional feed downloads", async () => {
     const fetcher = fakeSources(); vi.stubGlobal("fetch", fetcher);
-    const feedBodies = { tor: "1.2.3.4\n", spamhaus: JSON.stringify({ cidr: "1.10.16.0/20" }) + "\n" + JSON.stringify({ type: "metadata", timestamp: Math.floor(Date.now() / 1000), copyright: "(c) Spamhaus" }), feodo: "[]" };
-    const DB = { prepare: vi.fn((sql: string) => ({ run: async () => ({ meta: { changes: 1 } }), bind: (url: string) => ({ first: async () => ({ body: url.includes("torproject") ? feedBodies.tor : url.includes("spamhaus") ? feedBodies.spamhaus : feedBodies.feodo, fetched_at: Date.now(), next_fetch_at: Date.now() + 3600000, updated_at: null }) }) })) };
+    const feedBody = (url: string) => url.includes("torproject") ? "1.2.3.4\n" : url.includes("spamhaus") ? JSON.stringify({ cidr: "1.10.16.0/20" }) + "\n" + JSON.stringify({ type: "metadata", timestamp: Math.floor(Date.now() / 1000), copyright: "(c) Spamhaus" }) : url.includes("dshield") ? `# updated: ${new Date().toISOString()}\n2.3.4.0\t2.3.4.255\t24\t200\n` : url.includes("cinsscore") ? "2.3.4.5\n" : url.includes("githubusercontent") ? `# Last update: ${new Date().toUTCString()}\n2.3.4.5\t4\n` : "[]";
+    const DB = { prepare: vi.fn((sql: string) => ({ run: async () => ({ meta: { changes: 1 } }), bind: (url: string) => ({ first: async () => sql.includes("ip_source_backoff") ? null : ({ body: feedBody(url), fetched_at: Date.now(), next_fetch_at: Date.now() + 3600000, updated_at: new Date().toUTCString() }) }) })) };
     const { inspectIp } = await import("../../functions/_utils/ip-service"); const report = await inspectIp("1.1.1.1", { DB });
-    expect(fetcher).toHaveBeenCalledTimes(3); expect(report.sources.filter(s => ["tor", "spamhaus", "feodo"].includes(s.id)).every(s => s.cached)).toBe(true);
+    expect(fetcher).toHaveBeenCalledTimes(6); expect(report.sources.filter(s => ["tor", "spamhaus", "feodo", "dshield", "cins", "ipsum"].includes(s.id)).every(s => s.cached && s.status === "ok")).toBe(true);
     expect(report.assessment.purity).toBe(85);
   });
   it("does not refetch a feed when another edge location holds the shared refresh lease", async () => {
     const fetcher = fakeSources(); vi.stubGlobal("fetch", fetcher);
     const DB = { prepare: vi.fn((sql: string) => ({ run: async () => ({ meta: { changes: 1 } }), bind: () => ({ first: async () => null, run: async () => ({ meta: { changes: 0 } }) }) })) };
     const { inspectIp } = await import("../../functions/_utils/ip-service"); const report = await inspectIp("1.1.1.1", { DB });
-    expect(fetcher).toHaveBeenCalledTimes(3); expect(report.sources.find(s => s.id === "spamhaus")).toMatchObject({ status: "error", signals: {} });
+    expect(fetcher).toHaveBeenCalledTimes(6); expect(report.sources.find(s => s.id === "spamhaus")).toMatchObject({ status: "error", signals: {} });
   });
   it("rejects private targets and unsupported methods before contacting an upstream", async () => {
     const fetcher = fakeSources(); vi.stubGlobal("fetch", fetcher); const { onRequest } = await import("../../functions/api/ip/check");
@@ -148,6 +156,56 @@ describe("visitor identity and multi-source service", () => {
     const privateRequest = await onRequest({ request: new Request("https://test/api/ip/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ip: "::ffff:127.0.0.1" }) }) }); expect(privateRequest.status).toBe(400);
     const tooLarge = await onRequest({ request: new Request("https://test/api/ip/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ip: "1.1.1.1", padding: "x".repeat(1100) }) }) }); expect(tooLarge.status).toBe(400);
     expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("does not manufacture anonymous ipapi.is security flags or use ASN registration country as IP geography", async () => {
+    const guide = new Response(JSON.stringify({ ip: "1.1.1.1", network: { autonomous_system: { asn: 13335, organization: "Cloudflare", country: "US" } }, location: { country: null } }));
+    vi.stubGlobal("fetch", fakeSources({ "ip.guide": guide })); const { inspectIp } = await import("../../functions/_utils/ip-service");
+    const report = await inspectIp("1.1.1.1");
+    expect(report.sources.find(s => s.id === "ipapiis")).toMatchObject({ kind: "geolocation", risk: null, signals: {}, asn: "AS13335", country: "Australia" });
+    expect(report.sources.find(s => s.id === "ipguide")).toMatchObject({ asn: "AS13335", country: undefined, countryCode: undefined });
+  });
+  it("treats aggregate and subnet hits as one abuse floor, not multiple independent scores", async () => {
+    const ipsum = new Response(`# Last update: ${new Date().toUTCString()}\n1.1.1.1\t8\n`);
+    const dshield = new Response(`# updated: ${new Date().toISOString()}\n1.1.1.0\t1.1.1.255\t24\t331\n`);
+    vi.stubGlobal("fetch", fakeSources({ "raw.githubusercontent.com": ipsum, "feeds.dshield.org": dshield })); const { inspectIp } = await import("../../functions/_utils/ip-service");
+    const report = await inspectIp("1.1.1.1");
+    expect(report.assessment).toMatchObject({ baselineRisk: 15, risk: 70, purity: 30, scoredSources: 2, disagreement: false });
+    expect(report.assessment.reasons.filter(reason => reason.signal === "abuse")).toHaveLength(1);
+    expect(report.sources.find(source => source.id === "dshield")).toMatchObject({ network: "1.1.1.0/24", signals: { abuse: true } });
+    expect(report.sources.find(source => source.id === "ipsum")?.metrics).toContainEqual({ label: "公开名单交叉收录", value: "8 份" });
+  });
+  it("keeps authorized fraud, abuse and geolocation scores distinct and credentials server-side", async () => {
+    const json = (body: unknown) => new Response(JSON.stringify(body));
+    const fetcher = fakeSources({
+      "ipqualityscore.com": json({ success: true, fraud_score: 60, vpn: false, proxy: false, tor: false, ASN: 13335, country_code: "AU" }),
+      "api.abuseipdb.com": json({ data: { ipAddress: "1.1.1.1", abuseConfidenceScore: 90, totalReports: 3, lastReportedAt: new Date().toISOString(), isTor: false, countryCode: "AU" } }),
+      "api.ipinfo.io": json({ ip: "1.1.1.1", asn: "AS13335", as_name: "Cloudflare", country: "Australia", country_code: "AU" }),
+    });
+    vi.stubGlobal("fetch", fetcher); const { inspectIp } = await import("../../functions/_utils/ip-service");
+    const report = await inspectIp("1.1.1.1", { IPQS_API_KEY: "private-ipqs-key", ABUSEIPDB_API_KEY: "private-abuse-key", IPINFO_TOKEN: "private-ipinfo-token" });
+    expect(report.assessment).toMatchObject({ baselineRisk: 30, scoredSources: 3, risk: 70, totalSources: 15 });
+    expect(report.sources.find(s => s.id === "abuseipdb")).toMatchObject({ kind: "threat-list", risk: 90, riskLabel: "滥用置信分" });
+    const abuseCall = fetcher.mock.calls.find(([url]) => String(url).includes("api.abuseipdb.com"))!;
+    expect(abuseCall[1]?.headers).toMatchObject({ Key: "private-abuse-key" });
+    const infoCall = fetcher.mock.calls.find(([url]) => String(url).includes("api.ipinfo.io"))!;
+    expect(infoCall[1]?.headers).toMatchObject({ Authorization: "Bearer private-ipinfo-token" });
+    expect(JSON.stringify(report)).not.toContain("private-");
+  });
+  it("honors a provider-wide Retry-After across different target IPs", async () => {
+    const fetcher = fakeSources({ "api.ipapi.is": new Response("{}", { status: 429, headers: { "Retry-After": "7200" } }) });
+    vi.stubGlobal("fetch", fetcher); const { inspectIp } = await import("../../functions/_utils/ip-service");
+    const one = await inspectIp("1.1.1.1"), two = await inspectIp("8.8.8.8");
+    expect(one.sources.find(s => s.id === "ipapiis")?.retryAt).toBeTruthy();
+    expect(two.sources.find(s => s.id === "ipapiis")).toMatchObject({ status: "error", risk: null, signals: {}, detail: "数据源额度受限，等待提供方允许后再查询" });
+    expect(fetcher.mock.calls.filter(([url]) => String(url).includes("api.ipapi.is"))).toHaveLength(1);
+    expect(two.assessment.scoredSources).toBe(2);
+  });
+  it("reads a shared provider cooldown before making a new request", async () => {
+    const fetcher = fakeSources(); vi.stubGlobal("fetch", fetcher);
+    const DB = { prepare: (sql: string) => ({ run: async () => ({ meta: { changes: 1 } }), bind: (provider: string) => ({ first: async () => sql.includes("ip_source_backoff") && provider === "ipapiis:public" ? { retry_at: Date.now() + 3600000 } : null, run: async () => ({ meta: { changes: 0 } }) }) }) };
+    const { inspectIp } = await import("../../functions/_utils/ip-service"); const report = await inspectIp("1.1.1.1", { DB });
+    expect(report.sources.find(s => s.id === "ipapiis")).toMatchObject({ status: "error", signals: {} });
+    expect(fetcher.mock.calls.some(([url]) => String(url).includes("api.ipapi.is"))).toBe(false);
   });
   it("returns a retry interval for a saturated visitor budget", async () => {
     const { allowIpQuery } = await import("../../functions/_utils/ip-service");

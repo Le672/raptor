@@ -16,6 +16,16 @@ type ChangelogEntry = {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: "2026-10-12",
+    type: "improvement",
+    title: "IP 纯净度来源扩充与 AI 服务详细分析",
+    changes: [
+      "IP 查询从 6 个公开来源扩展到 12 个，新增 ipapi.is、IP Guide、ipapi.co、DShield、CINS Army 和 IPsum；分别标明风险评分、网络资料、地址与网段名单，显示日期、覆盖范围、缓存和限额，不把缺失或名单未命中算成安全",
+      "增加 10 个外部评测网站复核入口，支持带入待查地址或复制 IP；另提供 IPQualityScore、AbuseIPDB、IPinfo 授权来源，未启用时明确显示且不计入评分或覆盖率，滥用置信分与广义风险分数分开展示",
+      "AI 分析覆盖 ChatGPT、Claude、Gemini、Copilot、Perplexity、Grok、DeepSeek、Qwen Chat、Mistral Le Chat 和 Poe；按网络证据、地区资格、账号条件、功能额度分别说明，支持风险筛选与展开各服务的常见提示和排查顺序，保留官方依据，不将推断当作平台实际封禁结果",
+    ],
+  },
+  {
     date: "2026-10-11",
     type: "fix",
     title: "统一全站域名导航与累计访问量",

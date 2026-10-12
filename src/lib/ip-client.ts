@@ -3,7 +3,7 @@ import { normalizeIp, type IpReport, type VisitorNetwork } from "./ip";
 
 export async function ipRequest<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const controller = new AbortController(), abort = () => controller.abort();
-  const timer = setTimeout(abort, 14000);
+  const timer = setTimeout(abort, body === undefined ? 14000 : 20000);
   signal?.addEventListener("abort", abort, { once: true }); if (signal?.aborted) abort();
   try {
     const response = await fetch(`${getApiBase()}/ip/${path}`, { method: body === undefined ? "GET" : "POST", headers: body === undefined ? undefined : { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body), credentials: "same-origin", cache: "no-store", signal: controller.signal });
