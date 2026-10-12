@@ -1,13 +1,17 @@
 import { latestByDriver, sessionState } from "../../src/lib/f1";
 import type { F1Session, TimingRow, TrackDriver, RaceControl, LiveData, F1Stint, RaceDashboardData, F1Race, F1Result, LeclercFourth } from "../../src/lib/f1";
 import { parseFeed } from "../_utils/news-feed";
+import { cachedF1, retrySeconds } from "../_utils/f1-cache";
+import type { PortalDatabase } from "../_utils/db";
+import snapshots from "../_data/f1-snapshots.json";
 
-type Context = { request: Request; env?: { OPENF1_TOKEN?: string }; waitUntil?: (promise: Promise<unknown>) => void };
+type Context = { request: Request; env?: { OPENF1_TOKEN?: string; DB?: PortalDatabase; F1_CACHE_WARMUP?: boolean }; waitUntil?: (promise: Promise<unknown>) => void };
 type Json = Record<string, any>;
 class UpstreamError extends Error { constructor(public status: number, public label: string) { super(`${label} ${status === 429 ? "请求频率受限，请稍后重试" : status === 401 || status === 403 ? "需要有效的实时数据订阅凭据" : `暂时不可用（HTTP ${status}）`}`); } }
 const localCache = new Map<string, { until: number; value: any }>();
 const pending = new Map<string, Promise<any>>();
 let nextOpenRequest = 0;
+let nextJolpicaRequest = 0, jolpicaRetryAt = 0;
 async function upstream(address: string, token?: string, ttl = 60000) {
   const key = `${address}|${token ? "authenticated" : "public"}`;
   const stored = localCache.get(key); if (stored && stored.until > Date.now()) return stored.value;
@@ -15,11 +19,17 @@ async function upstream(address: string, token?: string, ttl = 60000) {
   const task = (async () => {
     const isOpen = address.startsWith("https://api.openf1.org/");
     if (isOpen) { const start = Math.max(Date.now(), nextOpenRequest); nextOpenRequest = start + 400; const delay = start - Date.now(); if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay)); }
+    else {
+      const start = Math.max(Date.now(), nextJolpicaRequest); nextJolpicaRequest = start + 500;
+      if (start > Date.now()) await new Promise(resolve => setTimeout(resolve, start - Date.now()));
+      if (jolpicaRetryAt > Date.now()) throw new UpstreamError(429, "Jolpica");
+    }
     const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 11000);
     try {
       const headers: Record<string, string> = { Accept: "application/json", "User-Agent": "Yukino-F1/1.0 (+https://f1.yukino.bond)" };
       if (isOpen && token) headers.Authorization = `Bearer ${token}`;
       const response = await fetch(address, { headers, signal: controller.signal });
+      if (!isOpen && response.status === 429) jolpicaRetryAt = Date.now() + retrySeconds(response.headers.get("Retry-After")) * 1000;
       if (!response.ok) throw new UpstreamError(response.status, isOpen ? "OpenF1" : "Jolpica");
       const body = await response.text(); if (body.length > 5000000) throw new Error("数据源响应过大，请缩小查询范围");
       const value = JSON.parse(body);
@@ -189,15 +199,21 @@ export async function onRequestGet(context: Context) {
   const cache = typeof caches !== "undefined" ? (caches as CacheStorage & { default?: Cache }).default : undefined;
   const cacheUrl = new URL(`${url.origin}${url.pathname}`); cacheUrl.search = new URLSearchParams({ v: "2", action, year: String(year), round, kind, session, drivers, access: token ? "configured" : "public" }).toString();
   const cacheKey = new Request(cacheUrl.href);
-  try { const cached = await cache?.match(cacheKey); if (cached) return cached; } catch { /* Edge caching is optional. */ }
+  const key = new URLSearchParams({ action, year: String(year), round: action === "results" ? round : "last", kind: action === "results" ? kind : "results", session: "latest", drivers: "" }).toString();
+  const durable = ["season", "results", "leclerc"].includes(action) && !!context.env?.DB && !context.env.F1_CACHE_WARMUP;
+  const load = async () => {
+  if (!durable && !context.env?.F1_CACHE_WARMUP) { try { const cached = await cache?.match(cacheKey); if (cached) return cached; } catch { /* Edge caching is optional. */ } }
   try {
     const value = action === "season" ? await loadSeason(year) : action === "weekend" ? await loadWeekend(year, token) : action === "results" ? await loadResults(year, round, kind) : action === "leclerc" ? await loadLeclerc(year) : action === "live" ? await loadLive(session, token, year) : action === "dashboard" ? await loadDashboard(session, token) : action === "laps" ? await loadLaps(session, drivers, token) : action === "drivers" ? { drivers: await openf1("drivers", { session_key: session }, token, 3600000), errors: [], source: "OpenF1" } : await loadNews();
     const errors = [...new Set(value.errors)];
     const payload = { ...value, errors, fetchedAt: new Date().toISOString() };
     const status = "unavailable" in value && value.unavailable ? 503 : 200;
     const seconds = errors.length || action === "live" || action === "dashboard" ? 30 : action === "news" ? 300 : action === "weekend" || action === "laps" ? 3600 : 300;
-    const response = new Response(JSON.stringify(payload), { status, headers: { ...headers, "Cache-Control": status === 200 ? `public, max-age=${seconds}` : "no-store" } });
-    if (cache && status === 200) { const save = cache.put(cacheKey, response.clone()).catch(() => {}); if (context.waitUntil) context.waitUntil(save); else await save; }
+    const retry = errors.length && jolpicaRetryAt > Date.now() ? { "Retry-After": String(Math.ceil((jolpicaRetryAt - Date.now()) / 1000)) } : {};
+    const response = new Response(JSON.stringify(payload), { status, headers: { ...headers, ...retry, "Cache-Control": status === 200 ? `public, max-age=${seconds}` : "no-store" } });
+    if (!durable && cache && status === 200 && !context.env?.F1_CACHE_WARMUP) { const save = cache.put(cacheKey, response.clone()).catch(() => {}); if (context.waitUntil) context.waitUntil(save); else await save; }
     return response;
-  } catch (error) { return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "数据源暂不可用，请稍后重试", fetchedAt: new Date().toISOString() }), { status: 503, headers: { ...headers, "Cache-Control": "no-store" } }); }
+  } catch (error) { return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "数据源暂不可用，请稍后重试", fetchedAt: new Date().toISOString() }), { status: 503, headers: { ...headers, "Cache-Control": "no-store", "Retry-After": String(Math.max(60, Math.ceil((jolpicaRetryAt - Date.now()) / 1000))) } }); }
+  };
+  return durable ? cachedF1({ key, db: context.env!.DB!, seed: (snapshots as Record<string, unknown>)[key], load, waitUntil: context.waitUntil ? task => context.waitUntil!(task) : undefined }) : load();
 }

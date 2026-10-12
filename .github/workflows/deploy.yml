@@ -26,6 +26,9 @@ jobs:
 
       - run: npm run build
 
+      - name: Preserve verified F1 schedules and results for edge cold starts
+        run: node scripts/warm-f1-snapshots.mjs
+
       - name: Ensure private portal signing secret
         run: node scripts/ensure-auth-secret.mjs
         env:

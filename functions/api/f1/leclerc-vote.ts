@@ -1,16 +1,20 @@
 import { errorResponse, getCurrentUser, jsonResponse } from "../../_utils/auth";
 import { ensureF1Schema } from "../../_utils/f1-schema";
-import { jolpica } from "../f1";
+import { jolpica, onRequestGet as getF1Data } from "../f1";
 import type { F1Race } from "../../../src/lib/f1";
 import type { P4Poll } from "../../../src/lib/f1-community";
 
-type Context = { request: Request; env: { DB: any; JWT_SECRET?: string } };
+type Context = { request: Request; env: { DB: any; JWT_SECRET?: string }; waitUntil?: (promise: Promise<unknown>) => void };
 
-export async function nextGrandPrix(now = Date.now()): Promise<P4Poll["poll"]> {
+export async function nextGrandPrix(now = Date.now(), context?: Context): Promise<P4Poll["poll"]> {
   const year = new Date(now).getUTCFullYear();
   for (const season of [year, year + 1]) {
-    const value = await jolpica(String(season));
-    const races = value?.MRData?.RaceTable?.Races;
+    let races: unknown;
+    if (context) {
+      const response = await getF1Data({ ...context, request: new Request(`https://f1.yukino.bond/api/f1?action=season&year=${season}`) });
+      if (!response.ok) throw new Error("赛历暂时无法读取");
+      races = (await response.json()).races;
+    } else races = (await jolpica(String(season)))?.MRData?.RaceTable?.Races;
     if (!Array.isArray(races)) throw new Error("赛历格式异常");
     const upcoming = races.map((race: F1Race) => ({ race, start: Date.parse(`${race.date}T${race.time || "00:00:00Z"}`) }))
       .filter(({ race, start }) => Number(race.season) === season && /^[1-9]\d?$/.test(race.round) && Number.isFinite(start) && start > now)
@@ -34,7 +38,7 @@ async function readPoll(context: Context, poll: P4Poll["poll"], user: Awaited<Re
 
 export async function onRequestGet(context: Context) {
   try {
-    const [poll, user] = await Promise.all([nextGrandPrix(), getCurrentUser(context.request, context.env)]);
+    const [poll, user] = await Promise.all([nextGrandPrix(Date.now(), context), getCurrentUser(context.request, context.env)]);
     await ensureF1Schema(context.env.DB);
     return jsonResponse(await readPoll(context, poll, user));
   } catch { return errorResponse("暂时无法读取下场大奖赛投票，请稍后重试", 503); }
@@ -53,7 +57,7 @@ export async function onRequestPost(context: Context) {
       body = JSON.parse(raw);
     } catch { return errorResponse("投票格式不正确"); }
     if (!body || !["yes", "no"].includes(body.choice) || typeof body.pollKey !== "string") return errorResponse("请选择能或不能拿第四");
-    const poll = await nextGrandPrix();
+    const poll = await nextGrandPrix(Date.now(), context);
     if (!poll || poll.key !== body.pollKey || Date.now() >= Date.parse(poll.closesAt)) return errorResponse("这场投票已经截止或赛事已更新，请刷新后参与下场投票", 409);
     await ensureF1Schema(context.env.DB);
     await context.env.DB.prepare(`INSERT INTO f1_leclerc_votes (poll_key, user_id, choice, updated_at) VALUES (?, ?, ?, ?)

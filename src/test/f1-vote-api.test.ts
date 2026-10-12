@@ -17,12 +17,13 @@ async function user(name = "reader") {
 }
 beforeEach(async () => {
   vi.resetModules(); vi.useFakeTimers({toFake:["Date"]}); vi.setSystemTime(new Date("2026-10-08T12:00:00Z"));
+  vi.doMock("../../functions/_data/f1-snapshots.json", () => ({ default: {} }));
   db = createPortalDb(); env = { DB:db, JWT_SECRET:"f1-vote-tests-only-private-signing-value" };
   races = [race("2026","16","2026-10-04"),race(),race("2026","18","2026-11-01")];
   vi.stubGlobal("fetch",vi.fn(async (address: string) => Response.json({MRData:{RaceTable:{Races:address.includes("/2027.") ? [] : races}}})));
   endpoint = await import("../../functions/api/f1/leclerc-vote");
 });
-afterEach(() => { db.sqlite.close(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(() => { db.sqlite.close(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.doUnmock("../../functions/_data/f1-snapshots.json"); });
 
 describe("Leclerc next Grand Prix authenticated voting", () => {
   it("allows public counts but rejects anonymous and forged-token voting before writing", async () => {

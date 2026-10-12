@@ -7,7 +7,7 @@ export function External({ href, children, className = "" }: { href?: string; ch
   const safe = safeF1Url(href); return safe ? <a href={safe} className={className} target="_blank" rel="noreferrer">{children}<ArrowUpRight size={14} aria-hidden="true" /></a> : <span>{children}</span>;
 }
 export function DataStatus({ loading, error, data, reload, timezone = "Asia/Singapore" }: { loading: boolean; error: string; data?: F1Meta | null; reload: () => void; timezone?: string }) {
-  return <div className="f1-data-status" aria-live="polite"><span>{loading ? "正在读取赛事数据…" : error ? `${error}${data ? " · 当前保留上次记录" : ""}` : data ? `${data.source} · 更新于 ${formatF1Date(data.fetchedAt, timezone)}` : "选择场次后读取数据"}</span><button type="button" onClick={reload} disabled={loading} aria-label="刷新数据"><RefreshCw size={13} className={loading ? "f1-spinning" : ""} />刷新</button>{!!data?.errors?.length && <p className="f1-warning">部分数据未能更新：{data.errors.join("；")}</p>}</div>;
+  return <div className="f1-data-status" aria-live="polite"><span>{loading ? "正在读取赛事数据…" : error ? `${error}${data ? " · 当前保留上次记录" : ""}` : data ? `${data.source}${data.stale ? " · 缓存记录" : ""} · 更新于 ${formatF1Date(data.fetchedAt, timezone)}` : "选择场次后读取数据"}</span><button type="button" onClick={reload} disabled={loading} aria-label="刷新数据"><RefreshCw size={13} className={loading ? "f1-spinning" : ""} />刷新</button>{!!data?.errors?.length && <p className="f1-warning">部分数据未能更新：{data.errors.join("；")}</p>}</div>;
 }
 export function Empty({ children }: { children: ReactNode }) { return <div className="f1-empty">{children}</div>; }
 export function meetingForRace(race: F1Race, meetings: F1Meeting[]) {

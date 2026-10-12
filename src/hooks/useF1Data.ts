@@ -12,7 +12,7 @@ export function useF1Data<T>(query: string | null, refreshSeconds = 0) {
     try {
       const response = await fetch(`${F1_API}?${query}`, { signal: active.signal });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "数据源暂不可用，请稍后重试");
+      if (!response.ok) throw new Error(payload.error || (Array.isArray(payload.errors) ? payload.errors.filter((value: unknown) => typeof value === "string").slice(0, 3).join("；") : "") || "数据源暂不可用，请稍后重试");
       if (!active.signal.aborted && identity.current === query) { setData(payload); setError(""); }
     } catch (e) { if (identity.current === query && controller.current === active) setError(active.signal.aborted ? "请求超时，请重试" : e instanceof Error ? e.message : "网络连接失败"); }
     finally { clearTimeout(timer); if (controller.current === active) { running.current = false; setLoading(false); } }
