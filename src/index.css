@@ -92,7 +92,13 @@ svg {
   border-bottom: 1px solid #e0e5db;
   background: #f8f9f5f2;
   backdrop-filter: blur(16px);
+  /* Clip the extra row without changing document height or scroll anchoring. */
+  clip-path: inset(0);
+  transition: clip-path 200ms ease;
 }
+.site-header.is-navigation-hidden { clip-path: inset(0 0 max(0px, calc(100% - var(--brand-row-height, 64px))) 0); }
+.site-header::after { content: ""; position: absolute; top: calc(var(--brand-row-height, 64px) - 1px); right: 0; left: 0; height: 1px; background: #e0e5db; opacity: 0; pointer-events: none; transition: opacity 180ms ease; }
+.site-header.is-navigation-hidden::after { opacity: 1; }
 
 .search-toggle { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--line); border-radius: 999px; background: #fff; padding: .45rem .7rem; color: var(--ink-soft); font-size: .78rem; transition: .2s ease; }
 .search-toggle:hover { border-color: var(--ink); color: var(--ink); }
@@ -158,7 +164,9 @@ svg {
   padding-top: 5px;
   font-size: 13px;
   color: #727b70;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 0s;
 }
+.site-header.is-navigation-hidden .site-navigation { opacity: 0; transform: translateY(-6px); visibility: hidden; pointer-events: none; transition: opacity 160ms ease, transform 180ms ease, visibility 0s 180ms; }
 .site-navigation > a { display: inline-flex; gap: 2px; justify-content: center; align-items: center; border-radius: 7px; padding: 9px 10px; white-space: nowrap; }
 .site-navigation a:hover,
 .text-link:hover {

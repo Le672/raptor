@@ -18,6 +18,15 @@ const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-12",
     type: "improvement",
+    title: "顶部导航随滚动收起",
+    changes: [
+      "向下滚动时收起顶栏的功能入口，保留 Logo、搜索和账号；向上滚动或回到顶部时重新展开，主站和共用顶栏的子站保持一致",
+      "轻微滚动不反复切换，导航收起不改变正文位置；兼容手机多行入口、键盘聚焦与减少动态效果设置，切换页面恢复完整导航",
+    ],
+  },
+  {
+    date: "2026-10-12",
+    type: "improvement",
     title: "IP 纯净度来源扩充与 AI 服务详细分析",
     changes: [
       "IP 查询从 6 个公开来源扩展到 12 个，新增 ipapi.is、IP Guide、ipapi.co、DShield、CINS Army 和 IPsum；分别标明风险评分、网络资料、地址与网段名单，显示日期、覆盖范围、缓存和限额，不把缺失或名单未命中算成安全",
