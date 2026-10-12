@@ -1,9 +1,11 @@
-export const siteNavigation = [
+export type SiteNavigationItem = { label: string; to: string; description: string; href?: string };
+export const siteNavigation: SiteNavigationItem[] = [
   { label: "首页", to: "/", description: "Yukino 的个人入口站" },
   { label: "笔记", to: "/notes", description: "开发记录、随笔与收藏" },
   { label: "工具", to: "/dev", description: "JSON、时间戳、编码和文本工具" },
   { label: "导航", to: "/links", description: "常用网站与服务入口" },
   { label: "游戏", to: "/games", description: "小游戏、每日挑战与游戏收藏" },
+  { label: "姬漫", to: "/jm", href: "https://jm.yukino.bond/", description: "姬漫图书馆 · JM Comic · 漫画搜索、阅读、收藏与章节导出" },
   { label: "新闻", to: "/news", description: "科技、开发、科学与国际资讯" },
   { label: "专注", to: "/focus", description: "番茄钟、待办清单与随手记" },
   { label: "余票", to: "/cr", description: "列车余票与行程查询" },

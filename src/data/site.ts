@@ -60,10 +60,10 @@ export const domainLinks: DomainLink[] = [
     category: "core",
   },
   {
-    title: "漫画阅读",
+    title: "姬漫图书馆",
     hostname: "jm.yukino.bond",
     href: "https://jm.yukino.bond",
-    description: "搜索、阅读、收藏和导出漫画章节。",
+    description: "姬漫 / JM Comic，漫画搜索、阅读、收藏和章节导出。",
     status: "online",
     category: "content",
   },

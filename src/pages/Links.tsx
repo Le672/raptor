@@ -135,9 +135,9 @@ const linkGroups = [
         desc: "Formula 1 赛历、成绩、积分、计时与观赛入口",
       },
       {
-        label: "jm.yukino.bond",
+        label: "姬漫图书馆 · JM Comic",
         url: "https://jm.yukino.bond",
-        desc: "漫画搜索、阅读、收藏与章节导出",
+        desc: "jm.yukino.bond · 姬漫搜索、阅读、收藏与章节导出",
       },
       {
         label: "Music For Programming",

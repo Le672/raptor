@@ -117,6 +117,24 @@ describe("tools and small experiments", () => {
   });
 });
 describe("catalogs and global search", () => {
+  it.each(["姬漫", "JM", "漫画"])("finds a single JM destination for %s and opens the independent site", async keyword => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null), close = vi.fn();
+    await act(async () => { mount(<QuickSearch open onClose={close} />); });
+    const input = screen.getByRole("combobox", { name: "搜索内容" });
+    fireEvent.change(input, { target: { value: keyword } });
+    const results = screen.getAllByRole("option").filter(option => /姬漫/.test(option.textContent || ""));
+    expect(results).toHaveLength(1); fireEvent.click(results[0]);
+    expect(open).toHaveBeenCalledWith("https://jm.yukino.bond/", "_blank", "noopener,noreferrer");
+    expect(close).toHaveBeenCalled();
+  });
+  it("exposes JM on the home cards and in navigation search", async () => {
+    const home = mount(<Home />);
+    await screen.findByRole("heading", { name: article.title });
+    expect(screen.getByRole("link", { name: /姬漫图书馆/ })).toHaveAttribute("href", "/jm");
+    home.unmount(); mount(<Links />);
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索导航名称或说明" }), { target: { value: "姬漫" } });
+    expect(screen.getByRole("link", { name: /姬漫图书馆 · JM Comic/ })).toHaveAttribute("href", "https://jm.yukino.bond");
+  });
   it("filters navigation, retains local favorites, and exposes bookmark export", () => {
     mount(<Links />); fireEvent.change(screen.getByRole("textbox", { name: "搜索导航名称或说明" }), { target: { value: "Regex101" } });
     fireEvent.click(screen.getByRole("button", { name: "收藏 Regex101" })); expect(JSON.parse(localStorage.getItem("yukino.links.favorites")!)).toContain("https://regex101.com"); expect(screen.getByRole("button", { name: "导出当前书签" })).toBeEnabled();

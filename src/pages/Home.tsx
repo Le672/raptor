@@ -13,6 +13,7 @@ import {
   FlagTriangleRight,
   Gauge,
   ShieldCheck,
+  BookOpen,
 } from "lucide-react";
 import { SiteLink as Link } from "@/components/SiteLink";
 import { siteProfile } from "@/data/site";
@@ -46,6 +47,7 @@ const corners = [
     to: "/games",
   },
   { icon: Newspaper, title: "新闻阅读室", en: "READING ROOM", text: "从不同的视角，看看今天的世界。", to: "/news" },
+  { icon: BookOpen, title: "姬漫图书馆", en: "JM COMIC", text: "漫画搜索、阅读、收藏与章节导出，在这里直接进入。", to: "/jm" },
   { icon: Timer, title: "专注角落", en: "FOCUS", text: "选一件事，留一段安静的时间。", to: "/focus" },
   { icon: Monitor, title: "设备与环境", en: "EVERYDAY SETUP", text: "那些陪着我写代码、过日子的工具。", to: "/uses" },
   { icon: FlagTriangleRight, title: "Formula 1 围场", en: "YUKINO MOTORSPORT", text: "每一圈，都值得期待。赛历、计时与观赛入口。", to: "/f1" },
@@ -199,7 +201,7 @@ export default function Home() {
         </div>
         <div className="corner-grid">
           {corners.map((item) => (
-            <Link to={item.to} key={item.to} className="corner-card">
+            <Link to={item.to} key={item.to} className="corner-card" target={item.to === "/jm" ? "_blank" : undefined} rel={item.to === "/jm" ? "noreferrer" : undefined}>
               <div className="corner-top">
                 <item.icon size={23} strokeWidth={1.5} />
                 <ArrowUpRight size={18} />

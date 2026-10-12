@@ -102,6 +102,7 @@ export function TopNav() {
         </div>
         <nav className="site-navigation" aria-label="主导航" aria-hidden={navigationHidden || undefined}>
           {siteNavigation.map((item) => (
+            item.href ? <a key={item.to} href={item.href} target="_blank" rel="noreferrer" tabIndex={navigationHidden ? -1 : undefined} title={`${item.description}，打开新标签页`}>{item.label}<ArrowUpRight size={11}/></a> :
             isRailHost() && item.to === "/cr" ? <Link key={item.to} to="/ticket" tabIndex={navigationHidden ? -1 : undefined} title={item.description} className={isRailPath(location.pathname) ? "active" : undefined} aria-current={isRailPath(location.pathname) ? "page" : undefined}>{item.label}</Link> :
             <Link key={item.to} to={item.to} tabIndex={navigationHidden ? -1 : undefined} title={item.description} className={activePath === item.to && !(item.to === '/' && isRailHost()) ? 'active' : undefined} aria-current={activePath === item.to && !(item.to === '/' && isRailHost()) ? 'page' : undefined}>{item.label}</Link>
           ))}

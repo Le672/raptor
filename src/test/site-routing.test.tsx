@@ -13,6 +13,7 @@ const destinations = [
   ['首页','https://www.yukino.bond/'], ['笔记','https://www.yukino.bond/notes'],
   ['工具','https://dev.yukino.bond/dev'], ['导航','https://links.yukino.bond/links'],
   ['游戏','https://games.yukino.bond/games'], ['新闻','https://news.yukino.bond/news'],
+  ['姬漫','https://jm.yukino.bond/'],
   ['专注','https://focus.yukino.bond/focus'], ['余票','https://cr.yukino.bond/cr'],
   ['F1','https://f1.yukino.bond/f1'], ['测速','https://speed.yukino.bond/'],
   ['IP','/ip'], ['资源','https://box.yukino.bond/box'], ['博客','https://blog.yukino.bond/blog'],
@@ -28,6 +29,7 @@ describe('canonical site navigation', () => {
     for (const [name, href] of destinations) expect(nav.getByRole('link',{name})).toHaveAttribute('href',href);
     expect(nav.getByRole('link',{name:'IP'})).toHaveAttribute('aria-current','page');
     expect(nav.getByRole('link',{name:'首页'})).not.toHaveAttribute('aria-current');
+    expect(nav.getByRole('link',{name:'姬漫'})).toHaveAttribute('target','_blank');
     expect(screen.getByRole('link',{name:/登录/})).toHaveAttribute('href','https://www.yukino.bond/login');
     const footer = within(screen.getByRole('navigation',{name:'页脚导航'}));
     expect(footer.getByRole('link',{name:'订阅'})).toHaveAttribute('href','https://rss.yukino.bond/rss');
@@ -39,6 +41,7 @@ describe('canonical site navigation', () => {
     expect(screen.getByRole('link',{name:'文章'})).toHaveAttribute('href','https://blog.yukino.bond/blog?post=a%2Fb#section-4');
     expect(siteHref('/focus','localhost')).toBe('/focus');
     expect(siteHref('/speed','raptor.pages.dev')).toBe('/speed');
+    expect(siteHref('/jm','www.yukino.bond')).toBe('https://jm.yukino.bond/');
   });
   it.each(['www','ip','focus','dev','blog','cr','f1','games','rss'])('corrects legacy paths on %s without redirect loops', host => {
     const input = `https://${host}.yukino.bond/f1?tab=calendar&year=2024#round-3`;

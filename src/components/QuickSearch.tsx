@@ -7,10 +7,11 @@ import { gameCatalog } from "@/data/games";
 import { DEV_TOOLS } from "@/lib/dev-tools";
 import { usePublicPosts } from "@/hooks/usePublicContent";
 import { contentDate, postHref } from "@/lib/content";
+import { MAIN_ORIGIN, siteHref } from "@/lib/site-routing";
 
 type QuickSearchProps = { open: boolean; onClose: () => void };
 type Result = { title: string; description: string; href: string; external?: boolean };
-const pages = siteNavigation.map(page => ({ title: page.label, description: page.description, href: page.to }));
+const pages = siteNavigation.map(page => ({ title: page.label, description: page.description, href: page.href || page.to, external: !!page.href }));
 export function QuickSearch({ open, onClose }: QuickSearchProps) {
   const [query, setQuery] = useState(""), [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null), dialog = useRef<HTMLElement>(null), close = useRef(onClose);
@@ -33,7 +34,12 @@ export function QuickSearch({ open, onClose }: QuickSearchProps) {
       ...gameCatalog.filter(game => matches(game.name + " " + game.nameEn + " " + game.description)).map(game => ({ title: game.name, description: "小游戏 · " + game.description, href: "/games?game=" + game.id })),
       ...domainLinks.filter(item => matches(item.title + " " + item.hostname + " " + item.description)).map(item => ({ title: item.title, description: item.hostname, href: item.href, external: true })),
     ];
-    return all.slice(0, 10);
+    const seen = new Set<string>();
+    return all.filter(result => {
+      const key = new URL(siteHref(result.href), MAIN_ORIGIN).href;
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    }).slice(0, 10);
   }, [query, published.data]);
   const index = Math.max(0, Math.min(selected, results.length - 1));
   const openResult = (result: Result) => { close.current(); if (result.external) window.open(result.href, "_blank", "noopener,noreferrer"); else navigate(result.href); };
