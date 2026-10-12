@@ -17,6 +17,15 @@ type ChangelogEntry = {
 const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-12",
+    type: "fix",
+    title: "测速同步提示不再常驻页面",
+    changes: [
+      "旧测速记录在后台补报，同步成功不再占据首页和子页顶部；失败提示保留重试及测速站入口，并新增关闭按钮，关闭后当前标签页会话内不再弹出",
+      "关闭提示不影响后台补报，本机测速历史和待同步记录继续保留",
+    ],
+  },
+  {
+    date: "2026-10-12",
     type: "improvement",
     title: "顶部导航随滚动收起",
     changes: [

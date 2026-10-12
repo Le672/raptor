@@ -11,4 +11,9 @@
 .site-handoff p { line-height: 1.9; margin-bottom: 18px; }
 .site-handoff .text-link { display: inline-flex; margin: 15px; }
 .legacy-sync-notice { max-width: 1104px; margin: 14px auto; padding: 12px 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border: 1px solid #e3e9db; border-radius: 12px; background: #eff3e8; color: #637455; font-size: 12px; }
+.legacy-sync-notice > span { flex: 1 1 240px; }
+.legacy-sync-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.legacy-sync-close { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; border: 1px solid #d4ddca; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
+.legacy-sync-close:hover { background: #e3e9db; color: #2f503f; }
+.legacy-sync-close:focus-visible { outline: 2px solid #637455; outline-offset: 2px; }
 @media (max-width: 600px) { .site-visits > div { gap: 4px 10px; } .site-visits small { flex-basis: 100%; } .site-handoff { margin: 8vh 15px; padding: 20px; } }
