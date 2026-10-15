@@ -4,6 +4,7 @@ import App from './App'
 import { isElectronApp } from '@/lib/runtime'
 import './index.css'
 import './enhancements.css'
+import './styles/visual-system.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

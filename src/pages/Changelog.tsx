@@ -16,6 +16,16 @@ type ChangelogEntry = {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: "2026-10-15",
+    type: "improvement",
+    title: "全站视觉与首页布局焕新",
+    changes: [
+      "保留 Yukino 头像与墨绿品牌，加入暖纸色、雾蓝与杏色点缀；首页以代码窗口与手帐插画替代大字装饰，重新组织首屏、笔记、探索入口及天气和网络信息，功能卡片按色彩建立清晰层次",
+      "全站共用导航增加色彩标记与清晰选中态，保留全部平铺入口及向下滚动收起功能；页脚统一为墨绿信息区，搜索、账号、累计访问量和跨子域名链接保持可用",
+      "统一笔记、工具、导航、设备、新闻、游戏及其他子页的标题区、卡片、表单和按钮，补齐搜索框的颜色变量；优化手机排版、键盘聚焦和减少动态效果下的展示",
+    ],
+  },
+  {
     date: "2026-10-12",
     type: "improvement",
     title: "F1 百科详解与姬漫入口",
@@ -588,8 +598,8 @@ export default function Changelog() {
   useEffect(() => { try { const id = decodeURIComponent(window.location.hash.slice(1)); if (id) document.getElementById(id)?.scrollIntoView(); } catch { /* Ignore malformed fragments. */ } }, [query, type]);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
-      <div>
+    <div className="portal-page mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
+      <div className="portal-heading">
         <div className="flex items-center gap-3">
           <HomeLink
             className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/30 px-3 py-1.5 text-xs text-stone-600 backdrop-blur-xl transition hover:border-white/60 hover:text-stone-900"

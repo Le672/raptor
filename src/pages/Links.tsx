@@ -169,8 +169,8 @@ export default function Links() {
   const exportLinks = () => downloadText("yukino-bookmarks.html", '<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Yukino 导航书签</TITLE><H1>Yukino 导航书签</H1><DL><p>' + groups.map(group => '<DT><H3>' + xmlEscape(group.title) + '</H3><DL><p>' + group.links.map(link => '<DT><A HREF="' + xmlEscape(link.url) + '">' + xmlEscape(link.label) + '</A>').join("\n") + '</DL><p>').join("\n") + '</DL><p>', "text/html;charset=utf-8");
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
-      <div>
+    <div className="portal-page mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
+      <div className="portal-heading">
         <div className="flex items-center gap-3">
           <HomeLink
             className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/30 px-3 py-1.5 text-xs text-stone-600 backdrop-blur-xl transition hover:border-white/60 hover:text-stone-900"
@@ -197,7 +197,7 @@ export default function Links() {
       {!count && <p className="empty-notes">没有匹配的链接。<button type="button" className="ml-3 underline" onClick={() => { setQuery(""); setCategory("全部"); setFavoritesOnly(false); }}>重置筛选</button></p>}
       <div className="grid gap-6 sm:grid-cols-2">
         {groups.map((group) => (
-          <div key={group.title} className="glass-panel rounded-[28px] p-6">
+          <div key={group.title} className="portal-card glass-panel rounded-[28px] p-6">
             <div className="mb-4 flex items-center gap-2">
               <group.icon className="size-4 text-stone-500" />
               <h2 className="text-sm uppercase tracking-[0.24em] text-stone-500">

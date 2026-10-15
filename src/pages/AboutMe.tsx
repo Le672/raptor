@@ -48,8 +48,8 @@ export default function AboutMe() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
-      <div>
+    <div className="portal-page mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
+      <div className="portal-heading">
         <div className="flex items-center gap-3">
           <HomeLink
             className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/30 px-3 py-1.5 text-xs text-stone-600 backdrop-blur-xl transition hover:border-white/60 hover:text-stone-900"
@@ -70,7 +70,7 @@ export default function AboutMe() {
       </div>
 
       {/* Avatar & Basic Info */}
-      <div className="glass-panel rounded-[32px] p-6 sm:p-8">
+      <div className="portal-card glass-panel rounded-[32px] p-6 sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
           <div className="inline-flex size-24 shrink-0 items-center justify-center rounded-3xl bg-stone-200 text-stone-500">
             <img src="/favicon.png" alt="Yukino 头像" className="size-24 rounded-full object-contain" />
@@ -117,7 +117,7 @@ export default function AboutMe() {
       </div>
 
       {/* Skills */}
-      <div className="glass-panel rounded-[32px] p-6 sm:p-8">
+      <div className="portal-card glass-panel rounded-[32px] p-6 sm:p-8">
         <h2 className="font-display text-2xl text-stone-900">技术栈</h2>
         <div className="mt-5 flex flex-wrap gap-2">
           {skills.map((skill) => (
@@ -132,7 +132,7 @@ export default function AboutMe() {
       </div>
 
       {/* Timeline */}
-      <div className="glass-panel rounded-[32px] p-6 sm:p-8">
+      <div className="portal-card glass-panel rounded-[32px] p-6 sm:p-8">
         <h2 className="font-display text-2xl text-stone-900">经历</h2>
         <div className="mt-6 space-y-1">
           {timeline.map((item, index) => (

@@ -4,17 +4,20 @@ import { Footer } from "@/components/Footer";
 import { TopNav } from "@/components/TopNav";
 import { PageUtilities } from "@/components/PageUtilities";
 import { useSiteStore } from "@/hooks/useSiteStore";
-import { isRailPath } from "@/lib/rail-navigation";
+import { isRailHost, isRailPath } from "@/lib/rail-navigation";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { api, ApiError } from "@/lib/api";
 import { SiteVisitsProvider } from "@/components/SiteVisits";
 import { LegacySpeedRecovery } from "@/components/LegacySpeedRecovery";
+import { SUBDOMAIN_ROUTES } from "@/lib/site-routing";
 
 export function AppShell() {
   const location = useLocation();
   const isRailPage = isRailPath(location.pathname);
   const isF1Page = location.pathname.replace(/\/+$/, "").toLowerCase() === "/f1";
+  const visualPath = location.pathname === "/" ? SUBDOMAIN_ROUTES[window.location.hostname.split(".")[0]] || "/" : location.pathname;
+  const visualPage = isRailPage || isRailHost() ? "rail" : visualPath.split("/").filter(Boolean)[0] || "home";
   const closeMobileMenu = useSiteStore((state) => state.closeMobileMenu);
   const token = useAuthStore(state => state.token);
   useEffect(() => {
@@ -34,7 +37,7 @@ export function AppShell() {
 
   return (
     <SiteVisitsProvider>
-    <div className="site-shell">
+    <div className="site-shell site-refresh" data-page={visualPage}>
       <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); const main = document.getElementById("main-content"); main?.focus(); main?.scrollIntoView(); }}>
         跳转到正文
       </a>

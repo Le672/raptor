@@ -64,8 +64,8 @@ export default function Friends() {
   const filtered = friends.filter(friend => (friend.name + " " + friend.desc + " " + friend.note).toLowerCase().includes(query.trim().toLowerCase()));
   const exchange = `站点：${siteProfile.name}\n地址：https://www.yukino.bond/\n简介：${siteProfile.intro}\n联系：${siteProfile.email}`;
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
-      <div>
+    <div className="portal-page mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
+      <div className="portal-heading">
         <div className="flex items-center gap-3">
           <HomeLink
             className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/30 px-3 py-1.5 text-xs text-stone-600 backdrop-blur-xl transition hover:border-white/60 hover:text-stone-900"
@@ -92,7 +92,7 @@ export default function Friends() {
         {filtered.map((friend) => (
           <a
             key={friend.name}
-            className="glass-panel group flex flex-col gap-4 rounded-[28px] p-6 transition hover:-translate-y-1"
+            className="portal-card glass-panel group flex flex-col gap-4 rounded-[28px] p-6 transition hover:-translate-y-1"
             href={friend.url}
             rel="noreferrer"
             target="_blank"
@@ -120,7 +120,7 @@ export default function Friends() {
         ))}
       </div>
 
-      <div className="glass-panel rounded-[28px] p-6 text-center">
+      <div className="portal-card glass-panel rounded-[28px] p-6 text-center">
         <p className="text-sm text-stone-600">
           想交换友链？发送邮件到{" "}
           <a

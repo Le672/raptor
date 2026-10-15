@@ -10,6 +10,7 @@ import { QuickSearch } from "@/components/QuickSearch";
 import { siteNavigation } from "@/data/navigation";
 import { isRailHost, isRailPath } from "@/lib/rail-navigation";
 import { SUBDOMAIN_ROUTES, isPortalHost } from "@/lib/site-routing";
+import "@/styles/chrome-refresh.css";
 
 export function TopNav() {
   const { user, logout } = useAuthStore();
@@ -84,10 +85,13 @@ export function TopNav() {
       if (event.target instanceof HTMLElement && event.target.matches(":focus-visible")) setNavigationHidden(false);
     }}>
       <div className="nav-inner">
-        <HomeLink className="brand">
-          <img className="brand-mark" src="/favicon.png" alt="" width="40" height="40" decoding="async" />
-          <span>Yukino<span className="brand-dot">.</span></span>
-        </HomeLink>
+        <div className="brand-lockup">
+          <HomeLink className="brand" aria-label="Yukino.">
+            <img className="brand-mark" src="/favicon.png" alt="" width="40" height="40" decoding="async" />
+            <span>Yukino<span className="brand-dot">.</span></span>
+          </HomeLink>
+          <span className="brand-caption">一处慢慢生长的数字花园<small>CODE, NOTES & EVERYDAY LIFE</small></span>
+        </div>
         <div className="nav-tools">
           <button className="search-toggle" onClick={() => setSearchOpen(true)} aria-label="搜索站内内容">
             <Search size={17} /><span>搜索</span><kbd>Ctrl K</kbd>

@@ -14,6 +14,8 @@ import {
   Gauge,
   ShieldCheck,
   BookOpen,
+  Coffee,
+  NotebookPen,
 } from "lucide-react";
 import { SiteLink as Link } from "@/components/SiteLink";
 import { siteProfile } from "@/data/site";
@@ -24,6 +26,7 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { VisitorNetwork } from "@/components/VisitorNetwork";
 import { SiteVisits } from "@/components/SiteVisits";
 import { WeatherCard } from "@/components/WeatherCard";
+import "@/styles/home-refresh.css";
 const corners = [
   {
     icon: Code2,
@@ -61,11 +64,11 @@ export default function Home() {
     "Yukino 的个人空间，记录开发日常、折腾笔记和一些值得留下来的东西。",
   );
   return (
-    <div className="home-page">
+    <div className="home-page home-refresh">
       <section className="home-hero" aria-labelledby="hero-title">
         <div className="hero-copy">
           <p className="eyebrow">
-            <span className="status-dot" /> A LITTLE SPACE ON THE INTERNET
+            <span className="hero-edition">Y / PERSONAL SPACE</span> 欢迎来我的小站坐坐
           </p>
           <h1 id="hero-title">
             你好，我是{" "}
@@ -77,7 +80,7 @@ export default function Home() {
           <p className="hero-description">
             {siteProfile.intro}
             <br />
-            这里是我的数字花园，也是慢慢生长的生活切片。
+            把好奇变成作品，把日常写成故事。
           </p>
           <div className="hero-actions">
             <Link className="primary-link" to="/notes">
@@ -95,45 +98,30 @@ export default function Home() {
               <Mail size={16} /> 打个招呼 <ArrowUpRight size={12} />
             </a>
           </div>
-          <VisitorNetwork />
-          <SiteVisits />
         </div>
         <div className="hero-aside">
-        <div className="hero-art" aria-hidden="true">
-          <div className="art-top">
-            <span>YUKINO / PERSONAL JOURNAL</span>
-            <Sparkles size={18} />
+          <div className="desk-art" aria-hidden="true">
+            <div className="desk-art-heading"><span>A CORNER FOR IDEAS</span><Sparkles size={18} /></div>
+            <svg className="desk-art-orbit" viewBox="0 0 520 410" fill="none"><path d="M48 290C-1 154 167-24 356 66c156 75 139 257-53 301C106 412 50 239 205 173c142-61 274 42 236 125" stroke="currentColor" strokeWidth="1.5" strokeDasharray="5 8" /><path d="m424 287 17 12 12-17" stroke="currentColor" strokeWidth="1.5" /></svg>
+            <div className="desk-code-window">
+              <div className="desk-window-bar"><span><i /><i /><i /></span><small>little-things.ts</small><Code2 size={13} /></div>
+              <div className="desk-code-content"><span className="desk-code-comment">// make room for curiosity</span><p><span>const</span> life = &#123;</p><p className="desk-code-indent">create: <em>"something useful"</em>,</p><p className="desk-code-indent">keep: <em>"a little wonder"</em></p><p>&#125;;</p><div className="desk-code-footer"><span>hello, world<span className="desk-code-cursor">_</span></span><span>↗</span></div></div>
+            </div>
+            <div className="desk-journal"><span className="desk-journal-tape" /><div className="desk-journal-header"><NotebookPen size={19} /><span>NOTES TO KEEP</span></div><h2>拾起一个想法，<br />慢慢把它做出来。</h2><div className="desk-journal-lines"><i /><i /></div><span className="desk-journal-signature">Yukino.</span></div>
+            <div className="desk-coffee"><Coffee size={24} strokeWidth={1.5} /><span>慢一点，也没关系。</span></div>
+            <span className="desk-art-label">CODE, NOTES & LITTLE JOYS</span>
+            <span className="desk-art-spark">✳</span>
           </div>
-          <div className="art-orbit orbit-one" />
-          <div className="art-orbit orbit-two" />
-          <div className="art-sun" />
-          <span className="art-word">记录</span>
-          <div className="art-hill hill-back" />
-          <div className="art-hill hill-front" />
-          <div className="art-caption">
-            <span>日常切片</span>
-            <span>
-              把平凡的日子，
-              <br />
-              慢慢写成故事。
-            </span>
-          </div>
-          <div className="art-bottom">
-            <span>CODE · NOTES · LIFE</span>
-            <span>01 — ∞</span>
-          </div>
-        </div>
-        <WeatherCard />
         </div>
       </section>
       <div className="home-divider">
-        <span>保持好奇，持续折腾。</span>
-        <span>一点代码 / 一些记录 / 很多可能</span>
+        <span><Sparkles size={15} aria-hidden="true" /> 保持好奇，持续折腾。</span>
+        <span><b>CODE</b><i />一些记录<i /><b>LIFE</b><i />很多可能</span>
       </div>
       <section className="home-writing" aria-labelledby="writing-title">
         <div className="section-top">
           <div>
-            <p className="eyebrow">THE JOURNAL</p>
+            <p className="eyebrow"><span className="section-index">01</span> THE JOURNAL</p>
             <h2 id="writing-title">
               最近写下的<span> / Notes</span>
             </h2>
@@ -148,7 +136,7 @@ export default function Home() {
             {!published.loading && !published.error && !published.data.length && <p className="empty-notes">还没有公开笔记，之后再来看看。</p>}
             {published.data.slice(0, 4).map((post, index) => (
               <Link className="writing-row" to={postHref(post.slug)} key={post.id}>
-                <span className="writing-number">0{index + 1}</span>
+                <span className="writing-number">{String(index + 1).padStart(2, "0")}</span>
                 <div>
                   <div className="writing-meta">
                     <span>{post.tag}</span>
@@ -164,14 +152,11 @@ export default function Home() {
             ))}
           </div>
           <aside className="margin-note">
-            <span className="eyebrow">A NOTE TO SELF</span>
-            <span className="note-asterisk" aria-hidden="true">
-              ✳
-            </span>
+            <div className="margin-note-top"><span className="eyebrow">A NOTE TO SELF</span><NotebookPen size={20} aria-hidden="true" /></div>
             <h3>
-              不必等到完美，
+              好的故事，
               <br />
-              才开始记录。
+              从一个小念头开始。
             </h3>
             <p>
               有些是解决问题的过程，
@@ -190,7 +175,7 @@ export default function Home() {
       <section className="home-corners" aria-labelledby="corners-title">
         <div className="section-top">
           <div>
-            <p className="eyebrow">BEYOND THE WORDS</p>
+            <p className="eyebrow"><span className="section-index">02</span> BEYOND THE WORDS</p>
             <h2 id="corners-title">
               其他小角落<span> / Explore</span>
             </h2>
@@ -200,27 +185,32 @@ export default function Home() {
           </Link>
         </div>
         <div className="corner-grid">
-          {corners.map((item) => (
-            <Link to={item.to} key={item.to} className="corner-card" target={item.to === "/jm" ? "_blank" : undefined} rel={item.to === "/jm" ? "noreferrer" : undefined}>
+          {corners.map((item, index) => (
+            <Link to={item.to} key={item.to} className={`corner-card corner-tone-${index % 4}`} target={item.to === "/jm" ? "_blank" : undefined} rel={item.to === "/jm" ? "noreferrer" : undefined}>
               <div className="corner-top">
-                <item.icon size={23} strokeWidth={1.5} />
+                <span className="corner-icon"><item.icon size={23} strokeWidth={1.5} /></span>
                 <ArrowUpRight size={18} />
               </div>
               <span className="eyebrow">{item.en}</span>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
+              <span className="corner-bottom"><span>去看看</span><span>{String(index + 1).padStart(2, "0")}</span></span>
             </Link>
           ))}
         </div>
       </section>
+      <section className="home-daily" aria-labelledby="daily-title">
+        <div className="section-top"><div><p className="eyebrow"><span className="section-index">03</span> A LITTLE EVERYDAY</p><h2 id="daily-title">日常，一角<span> / Everyday</span></h2></div><span className="daily-heading-note">看看天气，再开始今天。</span></div>
+        <div className="home-daily-grid"><WeatherCard /><div className="daily-side"><div className="daily-connection"><span className="eyebrow">YOUR CONNECTION</span><h3>从世界的某一处，来到这里。</h3><VisitorNetwork /><SiteVisits /></div><Link className="daily-focus" to="/focus"><span className="daily-focus-icon"><Timer size={23} strokeWidth={1.5} /></span><div><span className="eyebrow">A MOMENT OF FOCUS</span><h3>给自己一段专注的时间。</h3></div><ArrowUpRight size={20} /></Link></div></div>
+      </section>
       <section className="hello-strip">
         <div>
-          <span className="eyebrow">NICE TO MEET YOU</span>
+          <span className="eyebrow"><span className="hello-star" aria-hidden="true">✳</span> NICE TO MEET YOU</span>
           <h2>很高兴，在这里遇见你。</h2>
           <p>如果有想交流的事，欢迎给我写封邮件。</p>
         </div>
         <a className="text-link" href={`mailto:${siteProfile.email}`}>
-          聊一聊 <ArrowUpRight size={22} />
+          给我写信 <ArrowUpRight size={22} />
         </a>
       </section>
     </div>

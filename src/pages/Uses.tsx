@@ -94,8 +94,8 @@ export default function Uses() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-10 lg:px-8">
-      <div>
+    <div className="portal-page mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-10 lg:px-8">
+      <div className="portal-heading">
         <div className="flex flex-wrap items-center gap-3">
           <HomeLink className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/30 px-3 py-1.5 text-xs text-stone-600">
             <ArrowLeft className="size-3.5" />返回主页
@@ -125,7 +125,7 @@ export default function Uses() {
       {loading ? <p role="status" className="inline-flex items-center gap-2 text-sm text-stone-500"><Loader2 size={16} className="animate-spin" />正在读取清单…</p> : editing && canEdit ? (
         <form onSubmit={save} className="space-y-6">
           <fieldset disabled={saving} className="space-y-6 disabled:opacity-60">
-            <div className="glass-panel rounded-[28px] p-6">
+            <div className="portal-card glass-panel rounded-[28px] p-6">
               <label className="block text-sm text-stone-600">页面介绍
                 <textarea className={inputClass} rows={3} maxLength={1200} value={draft.description}
                   onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} />
@@ -133,7 +133,7 @@ export default function Uses() {
               <p className="mt-3 text-xs text-stone-500">修改后点击保存，清单将公开展示。取消编辑会放弃本次修改。</p>
             </div>
             {draft.categories.map((category, categoryIndex) => (
-              <section key={category.id} aria-label={`编辑分类 ${categoryIndex + 1}`} className="glass-panel min-w-0 space-y-4 rounded-[28px] p-5 sm:p-6">
+              <section key={category.id} aria-label={`编辑分类 ${categoryIndex + 1}`} className="portal-card glass-panel min-w-0 space-y-4 rounded-[28px] p-5 sm:p-6">
                 <div className="flex flex-wrap gap-2"><button type="button" className={buttonClass} disabled={categoryIndex === 0} aria-label={`上移分类 ${category.title}`} onClick={() => setDraft(current => ({ ...current, categories: move(current.categories, categoryIndex, -1) }))}>↑ 上移</button><button type="button" className={buttonClass} disabled={categoryIndex === draft.categories.length - 1} aria-label={`下移分类 ${category.title}`} onClick={() => setDraft(current => ({ ...current, categories: move(current.categories, categoryIndex, 1) }))}>↓ 下移</button></div>
                 <div className="grid min-w-0 items-end gap-3 sm:grid-cols-[1fr_120px_auto]">
                   <label className="min-w-0 text-xs text-stone-600">分类名称
@@ -192,7 +192,7 @@ export default function Uses() {
         <div className="grid gap-6 sm:grid-cols-2">
           {filteredCategories.map((category) => {
             const Icon = icons[category.icon];
-            return <section key={category.id} className="glass-panel min-w-0 rounded-[28px] p-6">
+            return <section key={category.id} className="portal-card glass-panel min-w-0 rounded-[28px] p-6">
               <div className="mb-5 flex items-center gap-2"><Icon className="size-4 shrink-0 text-stone-500" /><h2 className="break-words text-sm tracking-[0.16em] text-stone-500">{category.title}</h2></div>
               <div className="space-y-3">
                 {category.items.map((item) => <div key={item.id} className="rounded-2xl border border-white/30 bg-white/20 px-4 py-3">
