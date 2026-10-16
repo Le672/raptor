@@ -131,9 +131,13 @@
 .site-refresh .f1-tab-nav button[aria-current="page"] { background: #dceaff; color: #31435f; }
 .site-refresh .quick-search-backdrop { background: rgb(49 67 95 / 35%); }
 .site-refresh .skip-link { background: #dceaff; color: #31435f; }
+.site-refresh[data-page="changelog"] .changelog-entry-body { min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 760px) {
   .site-refresh :is(.portal-page, .feature-page) { padding-top: 22px; }
   .site-refresh .portal-heading, .site-refresh .feature-page > div:has(> .feature-title) { padding: 23px 20px; border-radius: 19px; }
+  .site-refresh[data-page="changelog"] .portal-heading > .flex:first-child { flex-wrap: wrap; }
+  .site-refresh[data-page="changelog"] .portal-heading > .flex:first-child > a { flex-shrink: 0; white-space: nowrap; }
+  .site-refresh[data-page="changelog"] .portal-heading > .flex:first-child > span { max-width: 100%; font-size: 11px; letter-spacing: .08em; overflow-wrap: anywhere; }
   .site-refresh .portal-heading h1 { font-size: 31px; }
   .site-refresh .feature-title { font-size: 30px; }
   .site-refresh .feature-title span { display: block; margin: 9px 0 0; }

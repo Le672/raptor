@@ -22,6 +22,7 @@ const changelog: ChangelogEntry[] = [
     changes: [
       "首页、全站导航与页脚统一采用淡蓝和淡粉；代码窗口、手帐插画、功能入口和天气卡片同步换色，搭配深蓝灰文字保持清晰可读",
       "子页标题、卡片、筛选按钮、表单、搜索弹窗与返回顶部统一新配色，保留状态提示、游戏棋子和 F1 车队的含义颜色",
+      "修复手机更新日志标题区的返回入口排版，长域名徽标可换行，返回主页保持横向显示；窄屏下长内容自动折行，避免日志记录横向溢出",
     ],
   },
   {
@@ -646,7 +647,7 @@ export default function Changelog() {
                   <div className="mt-1 w-px flex-1 bg-stone-200" />
                 )}
               </div>
-              <div className="pb-8">
+              <div className="changelog-entry-body pb-8">
                 <div className="flex flex-wrap items-center gap-3">
                   {entry.version && (
                     <span className="font-display text-xl text-stone-900">
