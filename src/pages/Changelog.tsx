@@ -16,6 +16,15 @@ type ChangelogEntry = {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: "2026-10-16",
+    type: "improvement",
+    title: "全站切换淡蓝与淡粉配色",
+    changes: [
+      "首页、全站导航与页脚统一采用淡蓝和淡粉；代码窗口、手帐插画、功能入口和天气卡片同步换色，搭配深蓝灰文字保持清晰可读",
+      "子页标题、卡片、筛选按钮、表单、搜索弹窗与返回顶部统一新配色，保留状态提示、游戏棋子和 F1 车队的含义颜色",
+    ],
+  },
+  {
     date: "2026-10-15",
     type: "improvement",
     title: "全站视觉与首页布局焕新",
