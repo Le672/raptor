@@ -7,7 +7,7 @@ const targets = Object.freeze({
 });
 
 export default {
-  async fetch(request) {
+  async fetch(request, env = {}) {
     const url = new URL(request.url);
     const target = Object.hasOwn(targets, url.hostname) ? targets[url.hostname] : undefined;
     if (!target) return new Response("Unknown Yukino service", { status: 404 });
@@ -27,11 +27,14 @@ export default {
     try {
       // Manual redirects prevent forwarding upload credentials or cookies to a
       // different destination. Never retry a POST whose result is uncertain.
-      const upstream = await fetch(upstreamUrl.href, {
+      const options = {
         method: request.method, headers,
         body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
         redirect: "manual", cache: "no-store", signal: request.signal,
-      });
+      };
+      const upstream = env.PRIVATE_LAB
+        ? await env.PRIVATE_LAB.fetch(new URL(target.prefix + url.pathname + url.search, "http://lab.internal").href, options)
+        : await fetch(upstreamUrl.href, options);
       const response = new Response(upstream.body, upstream);
       const location = response.headers.get("Location");
       if (location) {

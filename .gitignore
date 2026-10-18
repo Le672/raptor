@@ -36,3 +36,4 @@ android/local.properties
 *.njsproj
 *.sln
 *.sw?
+.lab-connector/

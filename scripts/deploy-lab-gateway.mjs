@@ -26,7 +26,13 @@ for (const domain of existing.filter(item => domains.includes(item.hostname))) {
 }
 const source = await readFile(new URL("../workers/lab-gateway/worker.mjs", import.meta.url), "utf8");
 const upload = new FormData();
-upload.set("metadata", JSON.stringify({ main_module: "worker.mjs", compatibility_date: "2026-10-01", compatibility_flags: ["allow_custom_ports"] }));
+let bindings = [];
+try {
+  const service = JSON.parse(await readFile(".lab-connector/service.json", "utf8"));
+  if (typeof service.serviceId !== "string" || !service.serviceId) throw new Error("Missing private service ID");
+  bindings = [{ type: "vpc_service", name: "PRIVATE_LAB", service_id: service.serviceId }];
+} catch (error) { if (error.code !== "ENOENT") throw error; }
+upload.set("metadata", JSON.stringify({ main_module: "worker.mjs", compatibility_date: "2026-10-01", compatibility_flags: ["allow_custom_ports"], bindings }));
 upload.set("worker.mjs", new Blob([source], { type: "application/javascript+module" }), "worker.mjs");
 await request(root, "Publish fixed Lab gateway", "PUT", upload);
 const origins = domains.map(hostname => ({ hostname, zone_id: zone.id, zone_name: "yukino.bond", enabled: true, previews_enabled: false }));
