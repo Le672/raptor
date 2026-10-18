@@ -1,8 +1,8 @@
-import { ArrowUpRight, FileUp, PencilRuler, Wrench } from "lucide-react";
+import { ArrowUpRight, FileUp, PencilRuler, Wrench, Radar, Webhook, Link2 } from "lucide-react";
 import { yukinoServices, type YukinoService } from "@/data/services";
 
 function ServiceIcon({ service }: { service: YukinoService }) {
-  const Icon = service === yukinoServices.drop ? FileUp : service === yukinoServices.draw ? PencilRuler : Wrench;
+  const Icon = service === yukinoServices.drop ? FileUp : service === yukinoServices.draw ? PencilRuler : service === yukinoServices.radar ? Radar : service === yukinoServices.hooks ? Webhook : service === yukinoServices.shortlinks ? Link2 : Wrench;
   return <Icon size={23} strokeWidth={1.5} aria-hidden="true" />;
 }
 

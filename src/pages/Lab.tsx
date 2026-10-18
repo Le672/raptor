@@ -165,7 +165,7 @@ function RandomGradient() {
 }
 
 export default function Lab() {
-  useDocumentMeta("实验室", "视觉实验、前端玩具和各种还不成熟的小项目。");
+  useDocumentMeta("实验室", "网页变化雷达、Webhook 回调信箱、短链工坊与视觉实验。");
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
@@ -185,11 +185,18 @@ export default function Lab() {
           实验室
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-7 text-stone-600">
-          视觉实验、前端玩具和各种还不成熟的小项目。这里的东西可能随时变化。
+          让好奇有个落点。关注网页变化、接住服务回调，或把常用链接收好；也保留一些轻巧的前端实验。
         </p>
       </div>
 
       <ServiceEntry service={yukinoServices.draw} />
+
+      <section className="grid gap-4" aria-label="日常实验项目">
+        <div><p className="eyebrow text-xs tracking-[0.22em] text-stone-500">MADE FOR EVERYDAY</p><h2 className="mt-2 font-display text-2xl text-stone-900">可以反复用到的新项目</h2><p className="mt-2 text-sm leading-7 text-stone-600">使用实验室专用管理口令跨设备访问，数据保存在自己的服务器。</p></div>
+        <ServiceEntry service={yukinoServices.radar} />
+        <ServiceEntry service={yukinoServices.hooks} />
+        <ServiceEntry service={yukinoServices.shortlinks} />
+      </section>
 
       <div className="grid gap-6">
         <div className="glass-panel rounded-[32px] p-6 sm:p-8">
