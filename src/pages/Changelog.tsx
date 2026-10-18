@@ -16,6 +16,16 @@ type ChangelogEntry = {
 
 const changelog: ChangelogEntry[] = [
   {
+    date: "2026-10-18",
+    type: "feature",
+    title: "在线服务接入主站与正式域名",
+    changes: [
+      "临时传送门、在线白板与完整工具箱启用 drop.yukino.bond、draw.yukino.bond 和 tools.yukino.bond 正式入口，统一 Yukino 界面与返回主站导航",
+      "首页新增服务卡片，导航收藏与全站搜索可按服务名、域名或产品名找到；资源站、实验室和开发工具箱分别补充对应入口，原有资源、实验与七种开发工具继续保留",
+      "白板继续将画稿保存在当前浏览器并支持导出；专注沿用主站已有入口，主站账号和浏览器记录的保存方式保持不变",
+    ],
+  },
+  {
     date: "2026-10-16",
     type: "improvement",
     title: "全站切换淡蓝与淡粉配色",

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, FlaskConical, Sparkles } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
+import { ServiceEntry } from "@/components/ServiceEntry";
+import { yukinoServices } from "@/data/services";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { CopyButton } from "@/components/CopyButton";
 
@@ -186,6 +188,8 @@ export default function Lab() {
           视觉实验、前端玩具和各种还不成熟的小项目。这里的东西可能随时变化。
         </p>
       </div>
+
+      <ServiceEntry service={yukinoServices.draw} />
 
       <div className="grid gap-6">
         <div className="glass-panel rounded-[32px] p-6 sm:p-8">

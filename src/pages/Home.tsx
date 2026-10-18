@@ -26,6 +26,8 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { VisitorNetwork } from "@/components/VisitorNetwork";
 import { SiteVisits } from "@/components/SiteVisits";
 import { WeatherCard } from "@/components/WeatherCard";
+import { DomainCard } from "@/components/DomainCard";
+import { serviceDomainLinks } from "@/data/services";
 import "@/styles/home-refresh.css";
 const corners = [
   {
@@ -199,8 +201,12 @@ export default function Home() {
           ))}
         </div>
       </section>
+      <section className="home-corners" aria-labelledby="services-title">
+        <div className="section-top"><div><p className="eyebrow"><span className="section-index">03</span> WITHIN REACH</p><h2 id="services-title">顺手的在线工具<span> / Services</span></h2></div><Link className="text-link" to="/links">全部入口 <ArrowUpRight size={17} /></Link></div>
+        <div className="grid gap-4 md:grid-cols-3">{serviceDomainLinks.map(service => <DomainCard key={service.hostname} domain={service} />)}</div>
+      </section>
       <section className="home-daily" aria-labelledby="daily-title">
-        <div className="section-top"><div><p className="eyebrow"><span className="section-index">03</span> A LITTLE EVERYDAY</p><h2 id="daily-title">日常，一角<span> / Everyday</span></h2></div><span className="daily-heading-note">看看天气，再开始今天。</span></div>
+        <div className="section-top"><div><p className="eyebrow"><span className="section-index">04</span> A LITTLE EVERYDAY</p><h2 id="daily-title">日常，一角<span> / Everyday</span></h2></div><span className="daily-heading-note">看看天气，再开始今天。</span></div>
         <div className="home-daily-grid"><WeatherCard /><div className="daily-side"><div className="daily-connection"><span className="eyebrow">YOUR CONNECTION</span><h3>从世界的某一处，来到这里。</h3><VisitorNetwork /><SiteVisits /></div><Link className="daily-focus" to="/focus"><span className="daily-focus-icon"><Timer size={23} strokeWidth={1.5} /></span><div><span className="eyebrow">A MOMENT OF FOCUS</span><h3>给自己一段专注的时间。</h3></div><ArrowUpRight size={20} /></Link></div></div>
       </section>
       <section className="hello-strip">

@@ -19,8 +19,14 @@ import { downloadText } from "@/lib/browser-actions";
 import { xmlEscape } from "@/lib/rss-catalog";
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { serviceDomainLinks } from "@/data/services";
 
 const linkGroups = [
+  {
+    title: "Yukino 在线服务",
+    icon: Globe,
+    links: serviceDomainLinks.map(service => ({ label: service.title, url: service.href, desc: service.hostname + " · " + service.description, keywords: service.keywords })),
+  },
   {
     title: "常用工具",
     icon: Wrench,
@@ -164,7 +170,7 @@ export default function Links() {
   const [query, setQuery] = useState(""), [category, setCategory] = useState("全部"), [favoritesOnly, setFavoritesOnly] = useState(false);
   const urls = linkGroups.flatMap(group => group.links.map(link => link.url));
   const [favorites, setFavorites, persistent] = useStoredState<string[]>("yukino.links.favorites", [], (value): value is string[] => Array.isArray(value) && value.length <= urls.length && value.every(url => typeof url === "string" && urls.includes(url)));
-  const groups = linkGroups.filter(group => category === "全部" || group.title === category).map(group => ({ ...group, links: group.links.filter(link => (!favoritesOnly || favorites.includes(link.url)) && (link.label + " " + link.desc + " " + group.title).toLowerCase().includes(query.trim().toLowerCase())) })).filter(group => group.links.length);
+  const groups = linkGroups.filter(group => category === "全部" || group.title === category).map(group => ({ ...group, links: group.links.filter(link => (!favoritesOnly || favorites.includes(link.url)) && (link.label + " " + link.desc + " " + group.title + " " + ("keywords" in link ? link.keywords.join(" ") : "")).toLowerCase().includes(query.trim().toLowerCase())) })).filter(group => group.links.length);
   const count = groups.reduce((total, group) => total + group.links.length, 0);
   const exportLinks = () => downloadText("yukino-bookmarks.html", '<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Yukino 导航书签</TITLE><H1>Yukino 导航书签</H1><DL><p>' + groups.map(group => '<DT><H3>' + xmlEscape(group.title) + '</H3><DL><p>' + group.links.map(link => '<DT><A HREF="' + xmlEscape(link.url) + '">' + xmlEscape(link.label) + '</A>').join("\n") + '</DL><p>').join("\n") + '</DL><p>', "text/html;charset=utf-8");
 

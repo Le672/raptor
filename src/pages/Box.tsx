@@ -16,6 +16,8 @@ import {
 import { HomeLink } from "@/components/HomeLink";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { cn } from "@/lib/utils";
+import { ServiceEntry } from "@/components/ServiceEntry";
+import { yukinoServices } from "@/data/services";
 
 type Category = "all" | "software" | "document" | "media" | "other";
 
@@ -66,6 +68,8 @@ export default function Box() {
           常用软件、文档、媒体资源的索引与下载中转，方便快速找到需要的工具和资料。
         </p>
       </div>
+
+      <ServiceEntry service={yukinoServices.drop} />
 
       {/* Search & Filter */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

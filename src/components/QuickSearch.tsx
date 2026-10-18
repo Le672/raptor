@@ -32,7 +32,7 @@ export function QuickSearch({ open, onClose }: QuickSearchProps) {
       ...DEV_TOOLS.filter(tool => matches(tool.label + " " + tool.description)).map(tool => ({ title: tool.label + " 工具", description: tool.description, href: "/dev?tool=" + tool.id })),
       ...pages.filter(page => matches(page.title + " " + page.description)),
       ...gameCatalog.filter(game => matches(game.name + " " + game.nameEn + " " + game.description)).map(game => ({ title: game.name, description: "小游戏 · " + game.description, href: "/games?game=" + game.id })),
-      ...domainLinks.filter(item => matches(item.title + " " + item.hostname + " " + item.description)).map(item => ({ title: item.title, description: item.hostname, href: item.href, external: true })),
+      ...domainLinks.filter(item => matches([item.title, item.hostname, item.description, ...(item.keywords ?? [])].join(" "))).map(item => ({ title: item.title, description: item.hostname, href: item.href, external: true })),
     ];
     const seen = new Set<string>();
     return all.filter(result => {

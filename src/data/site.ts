@@ -1,3 +1,5 @@
+import { serviceDomainLinks } from "@/data/services";
+
 export type DomainCategory = "core" | "content" | "experimental";
 export type DomainStatus = "online" | "planned";
 
@@ -8,6 +10,7 @@ export type DomainLink = {
   description: string;
   status: DomainStatus;
   category: DomainCategory;
+  keywords?: readonly string[];
 };
 
 export type PostPreview = {
@@ -27,6 +30,7 @@ export const siteProfile = {
 };
 
 export const domainLinks: DomainLink[] = [
+  ...serviceDomainLinks,
   {
     title: "IP 纯净度",
     hostname: "ip.yukino.bond",
