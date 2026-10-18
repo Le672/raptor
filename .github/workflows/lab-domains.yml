@@ -1,0 +1,37 @@
+name: Connect VPS Lab domains
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipient_public_key:
+        description: RSA public PEM for encrypting the VPS connector token
+        required: true
+        type: string
+
+concurrency:
+  group: yukino-lab-domains
+  cancel-in-progress: false
+
+jobs:
+  connect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Configure isolated Lab tunnel and hostnames
+        run: node scripts/configure-lab-tunnel.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          LAB_RECIPIENT_PUBLIC_KEY: ${{ inputs.recipient_public_key }}
+      - name: Export encrypted connector handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: lab-connector-encrypted
+          path: .lab-connector/connector.enc.json
+          if-no-files-found: error
+          retention-days: 1
