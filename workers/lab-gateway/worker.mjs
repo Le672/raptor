@@ -41,7 +41,8 @@ export default {
             destination.pathname = destination.pathname.slice(target.prefix.length) || "/";
           }
           destination.protocol = "https:";
-          destination.host = url.host;
+          destination.hostname = url.hostname;
+          destination.port = url.port;
           response.headers.set("Location", destination.href);
         }
       }
