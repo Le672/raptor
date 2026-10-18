@@ -8,6 +8,8 @@ import type { TrainJourney } from "../../src/lib/train-position";
 import { ticketDateError, ticketDateRange } from "../../src/lib/rail-ticket-date";
 import { getJourneyBoardStops, getStationBoard, getStationBoardRow } from "../../src/lib/rail-board-service";
 import { officialStationCatalog, stationNames } from "../../src/lib/rail-official-stations";
+import type { PortalDatabase } from "../_utils/db";
+import { historicalEquipment, recordOfficialEquipment } from "../_utils/rail-equipment-history";
 
 const ORIGIN = "https://kyfw.12306.cn";
 const STATIONS_URL = `${ORIGIN}/otn/resources/js/framework/station_name.js`;
@@ -221,12 +223,16 @@ async function getTrainRoute(date: string, trainCode: string) {
   try { return await request; } finally { trainRoutePending.delete(key); }
 }
 
-async function getEquipment(date: string, train: string) {
+async function getEquipment(date: string, train: string, db?: PortalDatabase, waitUntil?: (promise: Promise<unknown>) => void) {
   const key = `${date}/${train}`, cached = equipmentCache.get(key);
   if (cached && Date.now() - cached.at < (cached.value.model ? 10 * 60000 : 60000)) return cached.value;
   if (equipmentPending.has(key)) return equipmentPending.get(key)!;
   const request = (async () => {
-    await getTrainRoute(date, train); // Confirm that the service belongs to this origin date.
+    let route: TrainRoute | undefined;
+    try { route = await getTrainRoute(date, train); } catch (error) {
+      if (error instanceof QueryError && error.status === 503) throw error;
+      // Missing route data does not turn a historical observation into a dated assignment.
+    }
     const root = `${ORIGIN}/wxxcx/openplatform-inner/miniprogram/wifiapps/appFrontEnd/v2/lounge/open-smooth-common`;
     const car = new URL(`${root}/trainStyleBatch/getCarDetail`);
     for (const [name, value] of Object.entries({ carCode: "", trainCode: train, runningDay: date.replace(/-/g, ""), reqType: "form" })) car.searchParams.set(name, value);
@@ -243,9 +249,18 @@ async function getEquipment(date: string, train: string) {
       if (!response.ok) throw new Error(`12306 车型接口返回 ${response.status}`);
       return response.json();
     };
-    const [carResult, dutyResult] = await Promise.allSettled([read(car, "GET"), read(duty, "POST")]);
-    const value = parseOfficialEquipment(carResult.status === "fulfilled" ? carResult.value : null,
-      dutyResult.status === "fulfilled" ? dutyResult.value : null, date, Date.now());
+    const [carResult, dutyResult] = await Promise.allSettled(route ? [read(car, "GET"), read(duty, "POST")] : []);
+    let value = parseOfficialEquipment(carResult?.status === "fulfilled" ? carResult.value : null,
+      dutyResult?.status === "fulfilled" ? dutyResult.value : null, date, Date.now());
+    if (value.model && route && db) {
+      const save = recordOfficialEquipment(db, train, route, value);
+      if (waitUntil) waitUntil(save); else await save;
+    }
+    if (!value.model) {
+      const inferred = await historicalEquipment(db, train, date, route);
+      if (inferred) value = { ...value, model: inferred.model, number: null,
+        source: inferred.history.source, scope: "inferred", history: inferred.history };
+    }
     if (equipmentCache.size >= 500) equipmentCache.delete(equipmentCache.keys().next().value!);
     equipmentCache.set(key, { at: Date.now(), value });
     return value;
@@ -439,7 +454,8 @@ async function getHubs(date: string, from: Station, to: Station, stations: Stati
   return hubs;
 }
 
-export async function onRequestGet(context: { request: Request }) {
+type RailContext = { request: Request; env?: { DB?: PortalDatabase }; waitUntil?: (promise: Promise<unknown>) => void };
+export async function onRequestGet(context: RailContext) {
   const url = new URL(context.request.url);
   const mode = url.searchParams.get("mode") || "query";
   if (!["stations", "query", "journey", "delays", "fare", "hubs", "equipment", "board", "board-row", "journey-board"].includes(mode)) return json({ error: "未知查询类型" }, 400);
@@ -454,7 +470,7 @@ export async function onRequestGet(context: { request: Request }) {
     if (mode === "equipment") {
       const date = url.searchParams.get("date") || "", train = (url.searchParams.get("train") || "").trim().toUpperCase();
       if (!isValidDate(date) || !TRAIN_CODE.test(train)) return json({ error: "请填写有效车次和始发日期" }, 400);
-      const equipment = await getEquipment(date, train);
+      const equipment = await getEquipment(date, train, context.env?.DB, context.waitUntil?.bind(context));
       return json({ ...equipment, train }, 200, equipment.model ? 60 : 0);
     }
     const stations = await getStations();
@@ -540,7 +556,7 @@ export async function onRequestGet(context: { request: Request }) {
 }
 
 /** Public, read-only queries use an uncacheable transport at the edge. */
-export async function onRequestPost(context: { request: Request }) {
+export async function onRequestPost(context: RailContext) {
   const mode = new URL(context.request.url).searchParams.get("mode") || "query";
   if (!["query", "fare", "hubs", "journey", "delays", "journey-board", "equipment", "board", "board-row"].includes(mode)) return json({ error: "此查询方式不支持 POST" }, 405);
   const response = await onRequestGet(context);
