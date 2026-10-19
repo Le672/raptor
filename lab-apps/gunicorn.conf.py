@@ -7,6 +7,8 @@ graceful_timeout = 20
 umask = 0o111
 accesslog = None
 errorlog = '-'
+# systemd manages this service; no separate Gunicorn control socket is needed.
+control_socket_disable = True
 limit_request_line = 4096
 limit_request_field_size = 4096
 limit_request_fields = 40
