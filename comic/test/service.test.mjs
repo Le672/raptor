@@ -34,7 +34,7 @@ test('uses the Cloudflare-compatible manual redirect mode and refuses source red
   await assert.rejects(upstream(source,{ac:'detail',t:41}),/HTTP 302/);assert.equal(mode,'manual');
 });
 test('serves deep links and protects the media proxy while returning only episode metadata',async t=>{
-  const env={COMIC_MEDIA_SECRET:'test-secret',ASSETS:{fetch:async request=>new URL(request.url).pathname==='/index.html'?new Response('<div id="root"></div>',{headers:{'Content-Type':'text/html'}}):new Response('not found',{status:404})}};
+  const env={COMIC_MEDIA_SECRET:'test-secret',ASSETS:{fetch:async request=>new URL(request.url).pathname==='/'?new Response('<div id="root"></div>',{headers:{'Content-Type':'text/html'}}):new Response('not found',{status:404})}};
   const deep=await worker.fetch(new Request('https://comic.yukino.bond/watch/bf-875/1/0'),env,{});assert.equal(deep.status,200);assert.match(await deep.text(),/id="root"/);assert.match(deep.headers.get('Content-Security-Policy'),/media-src 'self' blob:/);
   assert.equal((await worker.fetch(new Request('https://comic.yukino.bond/api/media?url=https://localhost/x'),env,{})).status,403);assert.equal((await worker.fetch(new Request('https://comic.yukino.bond/api/catalog',{method:'POST'}),env,{})).status,405);
   t.mock.method(globalThis,'fetch',async input=>{const u=new URL(input);if(u.hostname==='bfzyapi.com')return Response.json({code:1,list:[{...sample,vod_id:999}]});if(u.pathname.endsWith('.m3u8'))return new Response('#EXTM3U\n#EXTINF:6,\nchunk.ts\n#EXT-X-ENDLIST',{headers:{'Content-Type':'application/vnd.apple.mpegurl'}});return new Response(new Uint8Array([71,64,0,0]),{headers:{'Content-Type':'video/mp2t'}});});

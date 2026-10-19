@@ -23,7 +23,7 @@ export default {
     const url=new URL(request.url);
     if(!url.pathname.startsWith('/api/')){
       let result=await env.ASSETS.fetch(request);
-      if(result.status===404&&request.method==='GET'&&!/\.[\w]+$/.test(url.pathname))result=await env.ASSETS.fetch(new Request(new URL('/index.html',url),request));
+      if(result.status===404&&request.method==='GET'&&!/\.[\w]+$/.test(url.pathname))result=await env.ASSETS.fetch(new Request(new URL('/',url),request));
       const headers=new Headers(result.headers);for(const[k,v]of Object.entries(policy))headers.set(k,v);
       if(url.pathname==='/sw.js'||headers.get('content-type')?.includes('text/html'))headers.set('Cache-Control','no-cache');
       return new Response(result.body,{status:result.status,headers});
