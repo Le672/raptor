@@ -67,3 +67,11 @@ test('deep links render the app without redirecting the reader to the homepage',
   }
   assert.equal((await call('/missing.png',env)).status,404);
 });
+test('a Wenku server restriction is visible in source health and keeps an external reading entry',async t=>{
+  const pending=[],context={waitUntil:promise=>pending.push(promise)},env=environment();
+  t.mock.method(globalThis,'fetch',async()=>new Response('',{status:403}));
+  const response=await worker.fetch(new Request('https://test/api/book/wenku-8'),env,context);
+  assert.equal(response.status,403);assert.equal((await response.json()).sourceUrl,'https://www.wenku8.net/book/8.htm');
+  await Promise.all(pending);
+  const status=await(await call('/api/status?source=wenku',env)).json();assert.equal(status.data.sources[0].state,'restricted');assert.match(status.data.sources[0].reason,/登录|验证/);
+});

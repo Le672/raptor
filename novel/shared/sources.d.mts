@@ -5,5 +5,6 @@ export function sourceInfo(id: string): SourceInfo | undefined;
 export function bookSource(id: string): SourceId;
 export function bookIdValid(id: string): boolean;
 export function nativeBookId(id: string): string;
+export function sourceBookUrl(id: string): string;
 export function partIdValid(id: string): boolean;
 export function imageSource(input: unknown): string;

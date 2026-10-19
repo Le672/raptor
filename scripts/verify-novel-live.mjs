@@ -2,12 +2,12 @@ import { ProxyAgent, setGlobalDispatcher } from 'undici';
 const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 if (proxy) setGlobalDispatcher(new ProxyAgent(proxy));
 const origin = process.env.NOVEL_ORIGIN || 'https://novel.yukino.bond';
-async function get(path, ready = async () => true) {
+async function get(path, ready = async () => true, allowedStatuses = []) {
   let lastError;
   for (let attempt = 0; attempt < 6; attempt++) {
     try {
       const response = await fetch(origin + path, { signal: AbortSignal.timeout(45000) });
-      if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+      if (!response.ok && !allowedStatuses.includes(response.status)) throw new Error(`${path}: HTTP ${response.status}`);
       if (!await ready(response.clone())) throw new Error(`${path.split('?')[0]}: source data not ready`);
       return response;
     } catch (error) {
@@ -17,7 +17,7 @@ async function get(path, ready = async () => true) {
   }
   throw lastError;
 }
-const getJson = async (path, valid = () => true) => (await get(path,async response=>valid(await response.json()))).json();
+const getJson = async (path, valid = () => true, allowedStatuses = []) => (await get(path,async response=>valid(await response.json()),allowedStatuses)).json();
 const index = await get('/'); if (!(await index.text()).includes('Yukino Novel')) throw new Error('Reader shell is missing');
 const deepLink = await get('/sources',async response=>response.url.endsWith('/sources')); if (!(await deepLink.text()).includes('Yukino Novel')) throw new Error('Deep link app shell is missing');
 const status = await getJson('/api/status?refresh=1',result=>result.data?.sources?.length===4&&result.data?.indexed&&result.data?.persisted&&!result.meta?.stale);
@@ -30,7 +30,7 @@ for (const source of ['sf','linovel']) {
   if (!results.data?.items?.some(book=>book.source===source) || ['error','restricted'].includes(results.data.sources?.[0]?.state)) throw new Error(`${source}: live public search unavailable`);
   console.log(`${source}: ${results.data.total} public search results`);
 }
-for (const id of ['sf-775221','linovel-122429','wenku-1973']) {
+for (const id of ['sf-775221','linovel-122429']) {
   const detail = await getJson(`/api/book/${id}`,result=>result.data?.volumes?.length&&!result.meta?.stale);
   if (!detail.data?.volumes?.length || !detail.data.title) throw new Error(`${id}: missing source detail or TOC`);
   const volume = await (await get(`/api/book/${id}/volume/${detail.data.volumes[0].id}`)).json();
@@ -40,4 +40,7 @@ for (const id of ['sf-775221','linovel-122429','wenku-1973']) {
   if (!body.data?.blocks?.length || body.data.bookId!==id) throw new Error(`${id}: no readable public text`);
   console.log(`${id}: ${detail.data.volumes.length} volumes, ${body.data.blocks.length} public content blocks`);
 }
+const wenku=await getJson('/api/book/wenku-1973',result=>result.data?.volumes?.length||result.sourceUrl==='https://www.wenku8.net/book/1973.htm',[403]);
+if(wenku.error)console.log('wenku: source restricts server access; explicit restriction and external reading entry verified');
+else console.log(`wenku: ${wenku.data.volumes.length} public volumes; full anonymous search remains limited`);
 console.log(`Live novel site verified: ${status.data.indexed} discovered records, four sources, persistent cache, ${status.meta.checkedAt}`);

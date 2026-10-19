@@ -1,5 +1,5 @@
 import { SOURCE, imageSource } from './service.mjs';
-import { bookIdValid } from '../shared/sources.mjs';
+import { bookIdValid, sourceBookUrl } from '../shared/sources.mjs';
 import { allCatalog, findBooks, getBook, getVolume, getChapter, validPartId, refreshKnownSources } from './multi-source.mjs';
 const rate = new Map();
 const policy = {
@@ -60,7 +60,7 @@ export default {
       if (!match || !bookIdValid(match[1]) || (match[3] && !validPartId(match[3]))) return json({ error: '没有这个接口或书籍编号不正确' }, 404);
       const result = match[2] === 'volume' ? await getVolume(env, ctx, match[1], match[3], force) : match[2] === 'chapter' ? await getChapter(env, ctx, match[1], match[3], force) : await getBook(env, ctx, match[1], force);
       return json({ data: result.data, meta: result.meta });
-    } catch (error) { return json({ error: error instanceof Error ? error.message : '书源连接失败，请稍后重试' }, error.status || 503); }
+    } catch (error) { const sourceUrl=sourceBookUrl(url.pathname.match(/^\/api\/book\/([^/]+)/)?.[1]||'');return json({ error: error instanceof Error ? error.message : '书源连接失败，请稍后重试', ...(sourceUrl?{sourceUrl}:{}) }, error.status || 503); }
   },
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(Promise.all([allCatalog(env, ctx, new URLSearchParams('refresh=1')), refreshKnownSources(env,ctx)]).then(([result]) => {

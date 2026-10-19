@@ -6,6 +6,11 @@ const freshMeta = (provider, checkedAt = null) => ({ checkedAt, stale: false, re
 const metadata = book => { const { volumes, ...rest } = book; return rest; };
 const merge = (...groups) => [...new Map(groups.flat().map(item => [item.id, item])).values()];
 const rememberedKey = source => `discovered:v2:${source}`;
+async function wenkuHealth(env,state,reason=''){
+  const key='health:v2:wenku',old=await stored(env,key);
+  if(old?.state===state&&old?.reason===reason&&Date.now()-Date.parse(old.checkedAt)<300000)return;
+  await persist(env,key,{state,reason,checkedAt:new Date().toISOString()},3600);
+}
 export async function remember(env, value) {
   const source = bookSource(value.id);
   if (source === 'bili') return;
@@ -19,7 +24,11 @@ async function feed(source, env, ctx, force) {
     return { ...result, data: result.data.map(item=>({...item,source:'bili',sourceName:sourceInfo('bili').name})) };
   }
   const old = await stored(env, rememberedKey(source));
-  if (source === 'wenku') return { data: old?.data || [], meta: freshMeta(sourceInfo(source).name,old?.checkedAt) };
+  if (source === 'wenku') {
+    const health=await stored(env,'health:v2:wenku');
+    const failed=health&&health.state!=='limited'&&Date.now()-Date.parse(health.checkedAt)<3600000;
+    return { data: old?.data || [], meta: {...freshMeta(sourceInfo(source).name,old?.checkedAt),state:failed?health.state:'limited',reason:failed?health.reason:sourceInfo(source).note,stale:Boolean(failed&&old?.data?.length)} };
+  }
   const result = await cached(env,ctx,`feed:v2:${source}`,()=>adapters[source].catalog(),5*60000,{force,background:true,provider:sourceInfo(source).name});
   return {...result,data:merge(old?.data||[],result.data)};
 }
@@ -31,7 +40,7 @@ function selectedSources(params) {
 function summarize(source, result, error) {
   const info=sourceInfo(source);
   if (error) return {...info,count:0,state:error.state||'error',stale:false,checkedAt:null,reason:error.message || '书源连接失败'};
-  return {...info,count:result.data.length,state:source==='wenku'?'limited':result.meta.stale?'stale':'ok',stale:result.meta.stale,checkedAt:result.meta.checkedAt,reason:source==='wenku'?info.note:result.meta.reason};
+  return {...info,count:result.data.length,state:source==='wenku'?(result.meta.state||'limited'):result.meta.stale?'stale':'ok',stale:result.meta.stale,checkedAt:result.meta.checkedAt,reason:result.meta.reason};
 }
 export async function allCatalog(env,ctx,params=new URLSearchParams()) {
   const force=params.get('refresh')==='1', selected=selectedSources(params);
@@ -80,7 +89,11 @@ export async function findBooks(env,ctx,params) {
 export async function getBook(env,ctx,id,force=false,rememberEntry=true) {
   if(!bookIdValid(id))throw new SourceError('书籍编号不正确',404);
   const source=bookSource(id);if(source==='bili')return book(env,ctx,id,force);
-  const result=await cached(env,ctx,`detail:v2:${id}`,()=>adapters[source].book(nativeBookId(id)),5*60000,{force,background:true,provider:sourceInfo(source).name});
+  let result;
+  try{
+    result=await cached(env,ctx,`detail:v2:${id}`,()=>adapters[source].book(nativeBookId(id)),5*60000,{force,background:true,provider:sourceInfo(source).name});
+    if(source==='wenku'&&!result.meta.stale)ctx.waitUntil(wenkuHealth(env,'limited').catch(()=>{}));
+  }catch(error){if(source==='wenku')ctx.waitUntil(wenkuHealth(env,error.state||'error',error.message).catch(()=>{}));throw error;}
   if(rememberEntry)ctx.waitUntil(remember(env,result.data).catch(()=>{}));return result;
 }
 export async function getVolume(env,ctx,id,vid,force=false) {
