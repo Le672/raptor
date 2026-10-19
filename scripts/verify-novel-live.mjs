@@ -19,7 +19,7 @@ async function get(path, ready = async () => true) {
 }
 const getJson = async (path, valid = () => true) => (await get(path,async response=>valid(await response.json()))).json();
 const index = await get('/'); if (!(await index.text()).includes('Yukino Novel')) throw new Error('Reader shell is missing');
-const deepLink = await get('/sources'); if (!deepLink.url.endsWith('/sources') || !(await deepLink.text()).includes('Yukino Novel')) throw new Error('Deep links redirected away from the requested page');
+const deepLink = await get('/sources',async response=>response.url.endsWith('/sources')); if (!(await deepLink.text()).includes('Yukino Novel')) throw new Error('Deep link app shell is missing');
 const status = await getJson('/api/status?refresh=1',result=>result.data?.sources?.length===4&&result.data?.indexed&&result.data?.persisted&&!result.meta?.stale);
 if (!status.data?.indexed || !status.data?.persisted || status.meta?.stale) throw new Error('Live persistent catalog has not synchronized');
 if (status.data.sources?.length !== 4) throw new Error('Four source definitions are missing');
