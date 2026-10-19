@@ -37,6 +37,9 @@ test('upstream 200 HTML login and failed API envelopes are errors', async () => 
   await assert.rejects(() => upstream('novels', async () => new Response('<html>login</html>', { headers: { 'Content-Type': 'text/html' } })), /非 JSON/);
   await assert.rejects(() => upstream('novels', async () => Response.json({ ok: false })), /有效数据/);
 });
+test('uses Workers-compatible manual redirects and refuses redirects from the source', async () => {
+  await assert.rejects(() => upstream('novels', async (_url, options) => { assert.equal(options.redirect, 'manual'); return new Response(null, { status: 302, headers: { Location: 'https://evil.test' } }); }), /302/);
+});
 test('source failure preserves last successful data and timestamp with a stale reason', async () => {
   const checkedAt = '2026-01-01T00:00:00Z', env = { NOVEL_CACHE: store({ 'test:stale': { data: ['old'], checkedAt } }) };
   const result = await cached(env, ctx, 'test:stale', async () => { throw new Error('HTTP 403'); }, 1000);

@@ -64,9 +64,12 @@ export async function upstream(path, fetcher = fetch) {
   try {
     response = await fetcher(`${SOURCE}/api/bili/${path}`, {
       headers: { Accept: 'application/json', 'User-Agent': 'YukinoNovel/1.0 (+https://novel.yukino.bond)', 'Cache-Control': 'no-cache' },
-      signal: AbortSignal.timeout(22000), redirect: 'error', cache: 'no-store',
+      signal: AbortSignal.timeout(22000), redirect: 'manual', cache: 'no-store',
     });
-  } catch (error) { throw new Error(error?.name === 'TimeoutError' ? '书源连接超时，请稍后重试' : '书源连接失败，请稍后重试'); }
+  } catch (error) {
+    console.warn('novel-source-connection-failed', { name: error?.name, message: error?.message });
+    throw new Error(error?.name === 'TimeoutError' ? '书源连接超时，请稍后重试' : '书源连接失败，请稍后重试');
+  }
   if (!response.ok) throw new Error(`书源暂不可用（HTTP ${response.status}）`);
   if (!(response.headers.get('content-type') || '').includes('application/json')) throw new Error('书源返回了非 JSON 页面，可能需要登录或正在维护');
   const result = await response.json();

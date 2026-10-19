@@ -3,7 +3,7 @@ const rate = new Map();
 const policy = {
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
   'X-Frame-Options': 'DENY', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
 };
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { ...policy, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 function throttle(request) {
@@ -20,7 +20,7 @@ async function image(request, url) {
   const cache = globalThis.caches?.default;
   const key = new Request(new URL(`/api/image?src=${encodeURIComponent(src)}`, url.origin));
   if (cache) { const hit = await cache.match(key); if (hit) return hit; }
-  const result = await fetch(src, { headers: { Referer: `${SOURCE}/`, Accept: 'image/avif,image/webp,image/*' }, signal: AbortSignal.timeout(18000), redirect: 'error' });
+  const result = await fetch(src, { headers: { Referer: `${SOURCE}/`, Accept: 'image/avif,image/webp,image/*' }, signal: AbortSignal.timeout(18000), redirect: 'manual' });
   if (!result.ok) return json({ error: `图片源暂不可用（${result.status}）` }, 502);
   const type = (result.headers.get('content-type') || '').split(';')[0];
   if (!/^image\/(?:jpeg|png|webp|gif|avif)$/.test(type)) return json({ error: '图片源未返回支持的图片格式' }, 502);

@@ -3,9 +3,18 @@ const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 if (proxy) setGlobalDispatcher(new ProxyAgent(proxy));
 const origin = process.env.NOVEL_ORIGIN || 'https://novel.yukino.bond';
 async function get(path) {
-  const response = await fetch(origin + path, { signal: AbortSignal.timeout(45000) });
-  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
-  return response;
+  let lastError;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      const response = await fetch(origin + path, { signal: AbortSignal.timeout(45000) });
+      if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 5) { console.log(`Waiting for live DNS and API readiness (${attempt + 1}/6)`); await new Promise(resolve => setTimeout(resolve, 10000)); }
+    }
+  }
+  throw lastError;
 }
 const index = await get('/'); if (!(await index.text()).includes('Yukino Novel')) throw new Error('Reader shell is missing');
 const status = await (await get('/api/status')).json();
