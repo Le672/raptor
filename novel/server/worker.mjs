@@ -1,4 +1,6 @@
-import { SOURCE, catalog, book, volume, chapter, searchBooks, validId, imageSource } from './service.mjs';
+import { SOURCE, imageSource } from './service.mjs';
+import { bookIdValid } from '../shared/sources.mjs';
+import { allCatalog, findBooks, getBook, getVolume, getChapter, validPartId, refreshKnownSources } from './multi-source.mjs';
 const rate = new Map();
 const policy = {
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
@@ -20,7 +22,9 @@ async function image(request, url) {
   const cache = globalThis.caches?.default;
   const key = new Request(new URL(`/api/image?src=${encodeURIComponent(src)}`, url.origin));
   if (cache) { const hit = await cache.match(key); if (hit) return hit; }
-  const result = await fetch(src, { headers: { Referer: `${SOURCE}/`, Accept: 'image/avif,image/webp,image/*' }, signal: AbortSignal.timeout(18000), redirect: 'manual' });
+  const host = new URL(src).hostname;
+  const referer = /sfacg\.com$/.test(host) ? 'https://book.sfacg.com/' : /linovel\.net$/.test(host) ? 'https://www.linovel.net/' : /wenku8\.(?:com|net)$/.test(host) ? 'https://www.wenku8.net/' : `${SOURCE}/`;
+  const result = await fetch(src, { headers: { Referer: referer, Accept: 'image/avif,image/webp,image/*' }, signal: AbortSignal.timeout(18000), redirect: 'manual' });
   if (!result.ok) return json({ error: `图片源暂不可用（${result.status}）` }, 502);
   const type = (result.headers.get('content-type') || '').split(';')[0];
   if (!/^image\/(?:jpeg|png|webp|gif|avif)$/.test(type)) return json({ error: '图片源未返回支持的图片格式' }, 502);
@@ -47,23 +51,21 @@ export default {
     try {
       if (url.pathname === '/api/image') return await image(request, url);
       const force = url.searchParams.get('refresh') === '1';
-      if (url.pathname === '/api/books' || url.pathname === '/api/status') {
-        const result = await catalog(env, ctx, { force });
-        if (url.pathname === '/api/status') return json({ data: { indexed: result.data.length, source: SOURCE, scheduledMinutes: 15, cacheMinutes: 5, persisted: Boolean(env.NOVEL_CACHE), newestUpdate: result.data.map(x => x.updatedAt).filter(Boolean).sort().at(-1) }, meta: result.meta });
-        const ids = url.searchParams.get('ids');
-        const data = ids !== null ? { items: result.data.filter(x => ids.split(',').slice(0, 200).includes(x.id)), indexed: result.data.length } : searchBooks(result.data, url.searchParams);
-        return json({ data, meta: result.meta });
+      if (url.pathname === '/api/status') {
+        const result = await allCatalog(env, ctx, url.searchParams);
+        return json({ data: { indexed: result.data.length, source: SOURCE, sources: result.sources, scheduledMinutes: 15, cacheMinutes: 5, persisted: Boolean(env.NOVEL_CACHE), newestUpdate: result.data.map(x => x.updatedAt).filter(Boolean).sort().at(-1) }, meta: result.meta });
       }
+      if (url.pathname === '/api/books') return json(await findBooks(env, ctx, url.searchParams));
       let match = url.pathname.match(/^\/api\/book\/([^/]+)(?:\/(volume|chapter)\/([^/]+))?$/);
-      if (!match || !validId(match[1]) || (match[3] && !validId(match[3]))) return json({ error: '没有这个接口或书籍编号不正确' }, 404);
-      const result = match[2] === 'volume' ? await volume(env, ctx, match[1], match[3], force) : match[2] === 'chapter' ? await chapter(env, ctx, match[1], match[3], force) : await book(env, ctx, match[1], force);
+      if (!match || !bookIdValid(match[1]) || (match[3] && !validPartId(match[3]))) return json({ error: '没有这个接口或书籍编号不正确' }, 404);
+      const result = match[2] === 'volume' ? await getVolume(env, ctx, match[1], match[3], force) : match[2] === 'chapter' ? await getChapter(env, ctx, match[1], match[3], force) : await getBook(env, ctx, match[1], force);
       return json({ data: result.data, meta: result.meta });
-    } catch (error) { return json({ error: error instanceof Error ? error.message : '书源连接失败，请稍后重试' }, 503); }
+    } catch (error) { return json({ error: error instanceof Error ? error.message : '书源连接失败，请稍后重试' }, error.status || 503); }
   },
   async scheduled(_event, env, ctx) {
-    ctx.waitUntil(catalog(env, ctx, { force: true }).then(result => {
-      if (result.meta.stale) console.warn(`Catalog refresh retained previous data: ${result.meta.reason}`);
-      else console.log(`Novel catalog synchronized: ${result.data.length} books, ${result.meta.checkedAt}`);
+    ctx.waitUntil(Promise.all([allCatalog(env, ctx, new URLSearchParams('refresh=1')), refreshKnownSources(env,ctx)]).then(([result]) => {
+      console.log(`Novel catalog synchronized: ${result.data.length} books, ${result.meta.checkedAt}`);
+      for (const item of result.sources) if (['error','restricted','stale'].includes(item.state)) console.warn(`${item.name}: ${item.reason}`);
     }).catch(error => console.error('Novel catalog synchronization failed:', error.message)));
   },
 };

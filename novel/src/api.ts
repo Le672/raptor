@@ -1,11 +1,14 @@
-export type Book = { id: string; title: string; author: string; illustrator: string; description: string; cover: string; tags: string[]; status: 'ongoing' | 'completed' | 'unknown'; updatedAt: string | null; sourceFetchedAt: string | null; sourceUrl: string };
+import type { SourceInfo, SourceId } from '../shared/sources.mjs';
+export type SourceStatus = SourceInfo & { count: number; state: 'ok' | 'stale' | 'error' | 'restricted' | 'limited'; checkedAt: string | null; stale: boolean; reason: string };
+export type SourceStatusData = { indexed: number; source: string; sources: SourceStatus[]; scheduledMinutes: number; cacheMinutes: number; persisted: boolean; newestUpdate: string | null };
+export type Book = { id: string; title: string; author: string; illustrator: string; description: string; cover: string; tags: string[]; status: 'ongoing' | 'completed' | 'unknown'; updatedAt: string | null; sourceFetchedAt: string | null; sourceUrl: string; source?: SourceId; sourceName?: string };
 export type VolumeInfo = { id: string; title: string; cover: string };
 export type BookDetail = Book & { volumes: VolumeInfo[] };
-export type Volume = { id: string; bookId: string; title: string; chapters: { id: string; title: string }[] };
+export type Volume = { id: string; bookId: string; title: string; chapters: { id: string; title: string; restricted?: boolean; sourceUrl?: string }[] };
 export type Chapter = { id: string; bookId: string; volumeId: string; title: string; sourceUrl: string; blocks: ({ type: 'text'; text: string } | { type: 'image'; src: string; alt: string })[] };
-export type Meta = { checkedAt: string; stale: boolean; reason: string; provider: string; refreshMinutes: number; offline?: boolean };
+export type Meta = { checkedAt: string | null; stale: boolean; reason: string; provider: string; refreshMinutes: number; offline?: boolean };
 export type Envelope<T> = { data: T; meta: Meta };
-export type SearchPage = { items: Book[]; total: number; page: number; pages: number; indexed: number; tags: string[] };
+export type SearchPage = { items: Book[]; total: number; page: number; pages: number; indexed: number; tags: string[]; sources?: SourceStatus[]; scope?: string };
 export const READING_CACHE = 'yukino-novel-data-v1';
 
 export async function request<T>(path: string, signal?: AbortSignal): Promise<Envelope<T>> {
@@ -14,7 +17,7 @@ export async function request<T>(path: string, signal?: AbortSignal): Promise<En
   try { cache = await caches.open(READING_CACHE); } catch { /* Private modes may disable cache storage. */ }
   try {
     const response = await fetch(path, { signal, cache: 'no-store' });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.error || `请求失败（${response.status}）`); }
+    if (!response.ok) { const error = await response.json().catch(() => ({})); throw Object.assign(new Error(error.error || `请求失败（${response.status}）`), { status: response.status }); }
     const data = await response.json();
     if (!data || !data.meta || data.data == null) throw new Error('服务器返回了不完整的数据');
     if (cache && !data.meta.stale) {
@@ -27,6 +30,7 @@ export async function request<T>(path: string, signal?: AbortSignal): Promise<En
     return data;
   } catch (error) {
     if (signal?.aborted) throw error;
+    if ([400, 401, 403, 404].includes((error as { status?: number })?.status || 0)) throw error;
     const old = await cache?.match(key.href).catch(() => undefined);
     if (old) { const result = await old.json(); return { ...result, meta: { ...result.meta, stale: true, offline: true, reason: `正在使用此浏览器的阅读缓存：${error instanceof Error ? error.message : '网络不可用'}` } }; }
     throw error;
@@ -46,7 +50,14 @@ export function relativeDate(value?: string | null) {
 }
 export function directId(value: string) {
   const text = value.trim();
+  if (/^(?:sf|linovel|wenku)-[1-9]\d{0,8}$/.test(text)) return text;
   if (/^[1-9]\d{0,7}$/.test(text)) return text;
-  try { const url = new URL(text); if (/^(?:www\.|w\.)?(?:linovelib|bilinovel)\.com$/.test(url.hostname)) return url.pathname.match(/^\/novel\/([1-9]\d{0,7})(?:\.html|\/)/)?.[1] || ''; } catch { /* Normal search text. */ }
+  try {
+    const url = new URL(text); if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return '';
+    if (/^(?:www\.|w\.)?(?:linovelib|bilinovel)\.com$/.test(url.hostname)) return url.pathname.match(/^\/novel\/([1-9]\d{0,7})(?:\.html|\/)/)?.[1] || '';
+    if (url.hostname === 'book.sfacg.com') { const id=url.pathname.match(/^\/Novel\/([1-9]\d{0,8})(?:\/|$)/i)?.[1]; return id ? `sf-${id}` : ''; }
+    if (['www.linovel.net','linovel.net'].includes(url.hostname)) { const id=url.pathname.match(/^\/book\/([1-9]\d{0,8})\.html/)?.[1]; return id ? `linovel-${id}` : ''; }
+    if (/^(?:www\.)?wenku8\.(?:net|com|cc)$/.test(url.hostname)) { const id=url.pathname.match(/^\/book\/([1-9]\d{0,8})\.htm/)?.[1]; return id ? `wenku-${id}` : ''; }
+  } catch { /* Normal search text. */ }
   return '';
 }

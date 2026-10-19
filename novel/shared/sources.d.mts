@@ -1,0 +1,9 @@
+export type SourceId = 'bili' | 'sf' | 'linovel' | 'wenku';
+export type SourceInfo = { id: SourceId; name: string; kind: string; origin: string; search: boolean; note: string };
+export const SOURCES: SourceInfo[];
+export function sourceInfo(id: string): SourceInfo | undefined;
+export function bookSource(id: string): SourceId;
+export function bookIdValid(id: string): boolean;
+export function nativeBookId(id: string): string;
+export function partIdValid(id: string): boolean;
+export function imageSource(input: unknown): string;

@@ -1,3 +1,4 @@
+import { imageSource as allowedImage, sourceInfo } from '../shared/sources.mjs';
 export const SOURCE = 'https://lnovel.animes.garden';
 export const CATALOG_TTL = 5 * 60 * 1000;
 const inflight = new Map();
@@ -15,13 +16,7 @@ export function plainText(html = '') {
   return decodeEntities(String(html).replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '').replace(/<br\s*\/?\s*>|<\/p\s*>/gi, '\n').replace(/<[^>]*>/g, '')).replace(/\r/g, '').trim();
 }
 export function imageSource(input) {
-  try {
-    const url = new URL(String(input), SOURCE);
-    if (url.origin !== SOURCE || url.username || url.password || !/^\/bili\/(?:files\/article\/|img3\/|img\/)/.test(url.pathname)) return '';
-    if (!/\.(?:jpe?g|png|webp|gif|avif)$/i.test(url.pathname)) return '';
-    url.hash = '';
-    return url.href;
-  } catch { return ''; }
+  return allowedImage(input);
 }
 export function imageUrl(input) { const src = imageSource(input); return src ? `/api/image?src=${encodeURIComponent(src)}` : ''; }
 export function validId(input) { return /^[1-9]\d{0,8}$/.test(String(input)); }
@@ -38,6 +33,7 @@ export function normalizeBook(raw) {
     status: tags.some(x => /^(?:已)?完[结結]$/.test(x)) ? 'completed' : tags.includes('连载') || tags.includes('連載') ? 'ongoing' : 'unknown',
     updatedAt: timestamp(raw.updatedAt), sourceFetchedAt: timestamp(raw.fetchedAt),
     sourceUrl: `https://www.linovelib.com/novel/${raw.nid}.html`,
+    source: 'bili', sourceName: sourceInfo('bili').name,
   };
 }
 export function parseContent(html) {
@@ -77,11 +73,11 @@ export async function upstream(path, fetcher = fetch) {
   return result.data;
 }
 
-async function stored(env, key) {
+export async function stored(env, key) {
   if (env.NOVEL_CACHE) return env.NOVEL_CACHE.get(key, { type: 'json' });
   return memory.get(key) || null;
 }
-async function persist(env, key, value, ttl) {
+export async function persist(env, key, value, ttl) {
   if (env.NOVEL_CACHE) await env.NOVEL_CACHE.put(key, JSON.stringify(value), { expirationTtl: ttl });
   else { if (memory.size > 500) memory.delete(memory.keys().next().value); memory.set(key, value); }
 }
@@ -96,10 +92,10 @@ async function refresh(env, key, producer, retention) {
   inflight.set(key, task);
   try { return await task; } finally { inflight.delete(key); }
 }
-export async function cached(env, ctx, key, producer, ttl, { force = false, background = false, retention = 30 * 86400 } = {}) {
+export async function cached(env, ctx, key, producer, ttl, { force = false, background = false, retention = 30 * 86400, provider = 'lnovel · 哔哩轻小说', staleOnRestricted = true } = {}) {
   let old; try { old = await stored(env, key); } catch { old = memory.get(key) || null; }
   const age = old ? Date.now() - Date.parse(old.checkedAt) : Infinity;
-  const meta = (record, stale, reason = '') => ({ ...record, meta: { checkedAt: record.checkedAt, stale, reason, provider: 'lnovel · 哔哩轻小说', refreshMinutes: Math.round(ttl / 60000) } });
+  const meta = (record, stale, reason = '') => ({ ...record, meta: { checkedAt: record.checkedAt, stale, reason, provider, refreshMinutes: Math.round(ttl / 60000) } });
   if (old && age < (force ? 60000 : ttl)) return meta(old, false);
   const task = () => refresh(env, key, producer, retention);
   if (old && background && !force) {
@@ -107,7 +103,7 @@ export async function cached(env, ctx, key, producer, ttl, { force = false, back
     return meta(old, true, '正在后台同步，当前显示上次成功获取的数据');
   }
   try { return meta(await task(), false); }
-  catch (error) { if (old) return meta(old, true, error instanceof Error ? error.message : '书源连接失败'); throw error; }
+  catch (error) { if (!staleOnRestricted && [400,401,403,404].includes(error.status)) throw error; if (old) return meta(old, true, error instanceof Error ? error.message : '书源连接失败'); throw error; }
 }
 
 export async function catalog(env, ctx, options = {}, fetcher = fetch) {
@@ -153,7 +149,8 @@ export function searchBooks(books, params) {
     const haystack = `${x.title} ${x.author} ${x.tags.join(' ')}`.normalize('NFKC').toLocaleLowerCase();
     return (!tag || x.tags.includes(tag)) && (!status || x.status === status) && terms.every(term => haystack.includes(term) || (compact(term).length >= 2 && compact(haystack).includes(compact(term))));
   });
-  all.sort((a, b) => sort === 'title' ? a.title.localeCompare(b.title, 'zh-CN') : sort === 'new' ? Number(b.id) - Number(a.id) : (b.updatedAt || '').localeCompare(a.updatedAt || '') || Number(b.id) - Number(a.id));
+  const byNumber = (a, b) => Number(b.id.replace(/^[a-z]+-/, '')) - Number(a.id.replace(/^[a-z]+-/, '')) || a.id.localeCompare(b.id);
+  all.sort((a, b) => sort === 'title' ? a.title.localeCompare(b.title, 'zh-CN') : sort === 'new' ? byNumber(a,b) : (b.updatedAt || '').localeCompare(a.updatedAt || '') || byNumber(a,b));
   const total = all.length, pages = Math.max(1, Math.ceil(total / 24));
   const page = Math.min(pages, Math.max(1, Math.floor(Number(params.get('page')) || 1)));
   const tags = [...new Map(books.flatMap(x => x.tags).map(t => [t, 0])).keys()].filter(t => !['连载', '連載', '完结', '完結', '已完结'].includes(t));

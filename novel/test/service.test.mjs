@@ -66,6 +66,6 @@ test('API refuses invalid IDs and unsupported methods before fetching a source',
 });
 test('source status distinguishes persisted cache and source publication time', async () => {
   const books = [normalizeBook(raw(4, '测试书'))], env = { NOVEL_CACHE: store({ 'catalog:v1': { data: books, ...meta } }) };
-  const response = await worker.fetch(new Request('https://test/api/status'), env, ctx); const value = await response.json();
+  const response = await worker.fetch(new Request('https://test/api/status?source=bili'), env, ctx); const value = await response.json();
   assert.equal(value.data.persisted, true); assert.equal(value.data.newestUpdate, '2026-10-18T03:00:00.000Z'); assert.equal(value.meta.checkedAt, meta.checkedAt);
 });

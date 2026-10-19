@@ -1,4 +1,5 @@
 import type { Book } from './api';
+import { bookIdValid, partIdValid } from '../shared/sources.mjs';
 export type SavedBook = { book: Book; savedAt: number };
 export type Progress = { book: Book; volumeId: string; chapterId: string; chapterTitle: string; percent: number; updatedAt: number };
 export type Preferences = { theme: 'light' | 'dark'; paper: 'paper' | 'white' | 'night'; fontSize: number; lineHeight: number; width: number; serif: boolean };
@@ -8,8 +9,8 @@ const temporary = new Map<string, unknown>();
 function read<T>(key: string, fallback: T): T { if (temporary.has(key)) return temporary.get(key) as T; try { return JSON.parse(localStorage.getItem(`novel:${key}`) || 'null') ?? fallback; } catch { return fallback; } }
 function write(key: string, value: unknown) { try { localStorage.setItem(`novel:${key}`, JSON.stringify(value)); temporary.delete(key); } catch { storageFailed = true; temporary.set(key, value); } window.dispatchEvent(new Event('novel-library')); }
 export function persistenceFailed() { return storageFailed; }
-export function shelf(): SavedBook[] { const data = read<unknown>('shelf', []); return Array.isArray(data) ? data.filter(x => x?.book && /^[1-9]\d{0,8}$/.test(x.book.id) && typeof x.book.title === 'string').slice(0, 200) : []; }
-export function history(): Progress[] { const data = read<unknown>('history', []); return Array.isArray(data) ? data.filter(x => x?.book && /^[1-9]\d{0,8}$/.test(x.book.id) && typeof x.chapterId === 'string').slice(0, 150) : []; }
+export function shelf(): SavedBook[] { const data = read<unknown>('shelf', []); return Array.isArray(data) ? data.filter(x => x?.book && bookIdValid(x.book.id) && typeof x.book.title === 'string').slice(0, 200) : []; }
+export function history(): Progress[] { const data = read<unknown>('history', []); return Array.isArray(data) ? data.filter(x => x?.book && bookIdValid(x.book.id) && typeof x.chapterId === 'string').slice(0, 150) : []; }
 export function isSaved(id: string) { return shelf().some(x => x.book.id === id); }
 export function toggleSaved(book: Book) { const old = shelf(); write('shelf', old.some(x => x.book.id === book.id) ? old.filter(x => x.book.id !== book.id) : [{ book, savedAt: Date.now() }, ...old].slice(0, 200)); }
 export function saveProgress(value: Progress) { write('history', [value, ...history().filter(x => x.book.id !== value.book.id)].slice(0, 150)); }
@@ -27,9 +28,9 @@ export function exportLibrary() { downloadFile(`Yukino-书架-${new Date().toISO
 export function importLibrary(text: string) {
   const data = JSON.parse(text);
   if (data.version !== 1 || !Array.isArray(data.shelf) || !Array.isArray(data.history)) throw new Error('这不是 Yukino 轻小说书架备份');
-  const validBook = (book: Book) => book && /^[1-9]\d{0,8}$/.test(book.id) && typeof book.title === 'string' && typeof book.author === 'string' && Array.isArray(book.tags) && (!book.cover || /^\/api\/image\?src=/.test(book.cover));
+  const validBook = (book: Book) => book && bookIdValid(book.id) && typeof book.title === 'string' && typeof book.author === 'string' && Array.isArray(book.tags) && (!book.cover || /^\/api\/image\?src=/.test(book.cover));
   const saved = data.shelf.filter((x: SavedBook) => validBook(x.book) && Number.isFinite(x.savedAt));
-  const recent = data.history.filter((x: Progress) => validBook(x.book) && /^[1-9]\d{0,8}$/.test(x.volumeId) && /^[1-9]\d{0,8}$/.test(x.chapterId) && Number.isFinite(x.updatedAt) && Number.isFinite(x.percent) && x.percent >= 0 && x.percent <= 100);
+  const recent = data.history.filter((x: Progress) => validBook(x.book) && partIdValid(x.volumeId) && partIdValid(x.chapterId) && Number.isFinite(x.updatedAt) && Number.isFinite(x.percent) && x.percent >= 0 && x.percent <= 100);
   write('shelf', [...new Map([...shelf(), ...saved].map(x => [x.book.id, x])).values()].slice(0, 200));
   write('history', [...new Map([...history(), ...recent].sort((a, b) => a.updatedAt - b.updatedAt).map(x => [x.book.id, x])).values()].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 150));
 }
