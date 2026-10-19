@@ -7,6 +7,9 @@
   "author": "Yukino",
   "description": "Yukino 的个人博客应用",
   "scripts": {
+    "comic:dev": "node scripts/dev-comic.mjs",
+    "comic:build": "tsc -p comic/tsconfig.json && node scripts/build-comic.mjs",
+    "comic:test": "node --test comic/test/*.test.mjs && vitest run src/test/comic-library.test.ts",
     "novel:dev": "node scripts/dev-novel.mjs",
     "novel:build": "tsc -p novel/tsconfig.json && node scripts/build-novel.mjs",
     "novel:test": "node --test novel/test/*.test.mjs",
@@ -28,6 +31,7 @@
     "@capacitor/core": "^6.2.1",
     "clsx": "^2.1.1",
     "coordtransform": "2.1.2",
+    "hls.js": "1.7.3",
     "leaflet": "1.9.4",
     "lucide-react": "^0.511.0",
     "react": "^18.3.1",
@@ -54,6 +58,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
     "jsdom": "^26.1.0",
+    "parse5": "7.3.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.8.3",
@@ -61,7 +66,6 @@
     "vite": "^6.3.5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4",
-    "wrangler": "^4.115.0",
-    "parse5": "7.3.0"
+    "wrangler": "^4.115.0"
   }
 }

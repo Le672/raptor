@@ -7,6 +7,7 @@ export const siteNavigation: SiteNavigationItem[] = [
   { label: "游戏", to: "/games", description: "小游戏、每日挑战与游戏收藏" },
   { label: "姬漫", to: "/jm", href: "https://jm.yukino.bond/", description: "姬漫图书馆 · JM Comic · 漫画搜索、阅读、收藏与章节导出" },
   { label: "轻小说", to: "/novel", href: "https://novel.yukino.bond/", description: "轻小说书房 · Yukino Novel · 小说搜索、最近更新、分卷阅读与追更书架" },
+  { label: "番剧", to: "/comic", href: "https://comic.yukino.bond/", description: "番剧放映室 · Yukino Comic · 动漫搜索、多番源、在线看番、追番与观看进度" },
   { label: "新闻", to: "/news", description: "科技、开发、科学与国际资讯" },
   { label: "专注", to: "/focus", description: "番茄钟、待办清单与随手记" },
   { label: "余票", to: "/cr", description: "列车余票与行程查询" },

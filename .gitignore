@@ -18,6 +18,7 @@ dist-ssr
 .rail-position-work
 .f1-work
 .novel-work
+.comic-work
 
 # Electron / Capacitor 构建产物
 release

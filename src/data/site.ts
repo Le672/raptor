@@ -64,6 +64,15 @@ export const domainLinks: DomainLink[] = [
     category: "core",
   },
   {
+    title: "番剧放映室",
+    hostname: "comic.yukino.bond",
+    href: "https://comic.yukino.bond",
+    description: "动漫 / 番剧搜索、多源播放、追番收藏与观看进度。",
+    status: "online",
+    category: "content",
+    keywords: ["看番", "动漫", "动画", "anime", "comic", "追番"],
+  },
+  {
     title: "轻小说书房",
     hostname: "novel.yukino.bond",
     href: "https://novel.yukino.bond",
