@@ -1,6 +1,6 @@
 # Yukino Novel · 轻小说书房
 
-独立轻小说网站，正式入口为 https://novel.yukino.bond 。与姬漫共用 Yukino 品牌和导航，使用主站现有 React、Vite 和 lucide-react 依赖；独立 Cloudflare Worker、静态资源和 KV 缓存不依赖主站登录。
+独立轻小说网站，正式入口为 https://novel.yukino.bond 。沿用 Yukino 品牌与视觉，导航围绕轻小说书房并提供返回主站入口；使用主站现有 React、Vite 和 lucide-react 依赖，独立 Cloudflare Worker、静态资源和 KV 缓存不依赖主站登录。
 
 ## 本地运行
 
