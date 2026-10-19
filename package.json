@@ -7,6 +7,9 @@
   "author": "Yukino",
   "description": "Yukino 的个人博客应用",
   "scripts": {
+    "novel:dev": "node scripts/dev-novel.mjs",
+    "novel:build": "tsc -p novel/tsconfig.json && node scripts/build-novel.mjs",
+    "novel:test": "node --test novel/test/*.test.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/check-build-assets.mjs web",
     "build:desktop": "tsc -b && vite build --mode desktop && node scripts/check-build-assets.mjs desktop",

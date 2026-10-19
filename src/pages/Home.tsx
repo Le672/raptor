@@ -53,6 +53,7 @@ const corners = [
   },
   { icon: Newspaper, title: "新闻阅读室", en: "READING ROOM", text: "从不同的视角，看看今天的世界。", to: "/news" },
   { icon: BookOpen, title: "姬漫图书馆", en: "JM COMIC", text: "漫画搜索、阅读、收藏与章节导出，在这里直接进入。", to: "/jm" },
+  { icon: BookOpen, title: "轻小说书房", en: "YUKINO NOVEL", text: "找一本喜欢的轻小说，关注更新，把故事慢慢读下去。", to: "/novel" },
   { icon: Timer, title: "专注角落", en: "FOCUS", text: "选一件事，留一段安静的时间。", to: "/focus" },
   { icon: Monitor, title: "设备与环境", en: "EVERYDAY SETUP", text: "那些陪着我写代码、过日子的工具。", to: "/uses" },
   { icon: FlagTriangleRight, title: "Formula 1 围场", en: "YUKINO MOTORSPORT", text: "每一圈，都值得期待。赛历、计时与观赛入口。", to: "/f1" },
@@ -188,7 +189,7 @@ export default function Home() {
         </div>
         <div className="corner-grid">
           {corners.map((item, index) => (
-            <Link to={item.to} key={item.to} className={`corner-card corner-tone-${index % 4}`} target={item.to === "/jm" ? "_blank" : undefined} rel={item.to === "/jm" ? "noreferrer" : undefined}>
+            <Link to={item.to} key={item.to} className={`corner-card corner-tone-${index % 4}`} target={["/jm", "/novel"].includes(item.to) ? "_blank" : undefined} rel={["/jm", "/novel"].includes(item.to) ? "noreferrer" : undefined}>
               <div className="corner-top">
                 <span className="corner-icon"><item.icon size={23} strokeWidth={1.5} /></span>
                 <ArrowUpRight size={18} />

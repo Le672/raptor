@@ -14,6 +14,7 @@ const destinations = [
   ['工具','https://dev.yukino.bond/dev'], ['导航','https://links.yukino.bond/links'],
   ['游戏','https://games.yukino.bond/games'], ['新闻','https://news.yukino.bond/news'],
   ['姬漫','https://jm.yukino.bond/'],
+  ['轻小说','https://novel.yukino.bond/'],
   ['专注','https://focus.yukino.bond/focus'], ['余票','https://cr.yukino.bond/cr'],
   ['F1','https://f1.yukino.bond/f1'], ['测速','https://speed.yukino.bond/'],
   ['IP','/ip'], ['资源','https://box.yukino.bond/box'], ['博客','https://blog.yukino.bond/blog'],
@@ -42,6 +43,9 @@ describe('canonical site navigation', () => {
     expect(siteHref('/focus','localhost')).toBe('/focus');
     expect(siteHref('/speed','raptor.pages.dev')).toBe('/speed');
     expect(siteHref('/jm','www.yukino.bond')).toBe('https://jm.yukino.bond/');
+    expect(siteHref('/novel','www.yukino.bond')).toBe('https://novel.yukino.bond/');
+    expect(canonicalPageUrl('https://www.yukino.bond/novel/book/8')).toBe('https://novel.yukino.bond/book/8');
+    expect(canonicalPageUrl('https://novel.yukino.bond/book/8')).toBeNull();
   });
   it.each(['www','ip','focus','dev','blog','cr','f1','games','rss'])('corrects legacy paths on %s without redirect loops', host => {
     const input = `https://${host}.yukino.bond/f1?tab=calendar&year=2024#round-3`;

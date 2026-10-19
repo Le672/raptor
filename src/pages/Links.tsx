@@ -146,6 +146,11 @@ const linkGroups = [
         desc: "jm.yukino.bond · 姬漫搜索、阅读、收藏与章节导出",
       },
       {
+        label: "轻小说书房 · Yukino Novel",
+        url: "https://novel.yukino.bond",
+        desc: "novel.yukino.bond · 轻小说搜索、最近更新、分卷阅读与追更书架",
+      },
+      {
         label: "Music For Programming",
         url: "https://musicforprogramming.net",
         desc: "编程背景音乐合集",

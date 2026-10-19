@@ -11,7 +11,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 describe("flat site navigation", () => {
   it("exposes every route and mail in one navigation, without any disclosure menu", () => {
     render(<MemoryRouter><TopNav /></MemoryRouter>); const navigation = screen.getByRole("navigation", { name: "主导航" });
-    expect(within(navigation).getAllByRole("link")).toHaveLength(22);
+    expect(within(navigation).getAllByRole("link")).toHaveLength(23);
     expect(within(navigation).getByRole("link", { name: "测速" })).toHaveAttribute("href", "/speed");
     expect(within(navigation).getByRole("link", { name: "IP" })).toHaveAttribute("href", "/ip");
     for (const label of ["游戏", "姬漫", "新闻", "设备", "实验", "友链", "订阅", "状态", "日志", "专注", "F1"]) expect(within(navigation).getByRole("link", { name: label })).toBeVisible();

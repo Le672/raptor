@@ -1,0 +1,12 @@
+import { build } from 'vite';
+import { fileURLToPath } from 'node:url';
+import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+await build({ configFile: fileURLToPath(new URL('../novel/vite.config.ts', import.meta.url)) });
+const root = new URL('../novel/dist/', import.meta.url), html = await readFile(new URL('index.html', root), 'utf8');
+const assets = [...new Set(Array.from(html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g), match => match[1]))];
+if (!assets.some(path => path.endsWith('.js')) || !assets.some(path => path.endsWith('.css'))) throw new Error('Novel application assets are missing');
+const hash = createHash('sha256').update(html).digest('hex').slice(0, 12);
+const sw = (await readFile(new URL('sw.js', root), 'utf8')).replace('yukino-novel-shell-v1', `yukino-novel-shell-${hash}`);
+await writeFile(new URL('sw.js', root), `self.__NOVEL_PRECACHE = ${JSON.stringify(['/', '/book.svg', '/manifest.webmanifest', ...assets])};\n${sw}`);
+console.log(`Verified offline shell: ${assets.length} versioned JS/CSS assets.`);

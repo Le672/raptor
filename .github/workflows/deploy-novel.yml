@@ -1,0 +1,42 @@
+name: Deploy Novel to Cloudflare
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'novel/**'
+      - 'scripts/*novel*.mjs'
+      - '.github/workflows/deploy-novel.yml'
+  workflow_dispatch:
+concurrency:
+  group: deploy-novel-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check novel data, caching and security behavior
+        run: npm run novel:test
+      - name: Build novel reader
+        run: npm run novel:build
+      - name: Prepare dedicated persistent cache
+        run: node scripts/ensure-novel-infra.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Deploy reader, API, scheduled updates and custom domain
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config novel/.deploy/wrangler.json
+      - name: Verify live catalog
+        run: node scripts/verify-novel-live.mjs

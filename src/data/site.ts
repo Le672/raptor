@@ -64,6 +64,14 @@ export const domainLinks: DomainLink[] = [
     category: "core",
   },
   {
+    title: "轻小说书房",
+    hostname: "novel.yukino.bond",
+    href: "https://novel.yukino.bond",
+    description: "轻小说搜索、最近更新、分卷阅读、书架与进度保存。",
+    status: "online",
+    category: "content",
+  },
+  {
     title: "姬漫图书馆",
     hostname: "jm.yukino.bond",
     href: "https://jm.yukino.bond",
