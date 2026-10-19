@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SOURCES,normalize,mergeCatalog,publicUrl,plain} from '../server/sources.mjs';
-import {cached,catalog} from '../server/service.mjs';
+import {cached,catalog,upstream} from '../server/service.mjs';
 import {mediaPath,verifyMedia,rewriteManifest} from '../server/media.mjs';
 import worker from '../server/worker.mjs';
 const source=SOURCES.find(s=>s.id==='bf'),sample={vod_id:875,type_id:41,type_name:'日韩动漫',vod_name:'测试番 &amp; 旅程',vod_year:'2026',vod_time:'2026-10-19 10:00:00',vod_remarks:'更新至第02集',vod_pic:'https://cdn.anime.example.com/cover.jpg',vod_content:'<p>一个故事 &amp; 旅程</p><script>bad()</script>',vod_play_from:'share$$$bfm3u8',vod_play_url:'第一集$https://cdn.anime.example.com/share/1$$$第01集$https://cdn.anime.example.com/video/index.m3u8#第02集$https://cdn.anime.example.com/video/2.m3u8#非法$javascript:alert(1)'};
@@ -27,6 +27,11 @@ test('retains last successful cache with its original timestamp on an upstream f
 test('keeps partial multi-source results and reports failed providers explicitly',async t=>{
   t.mock.method(globalThis,'fetch',async(input)=>{const u=new URL(input);if(u.hostname!=='bfzyapi.com')throw Error('offline');return Response.json({code:1,pagecount:2,list:[sample,{...sample,vod_id:876,type_id:31,type_name:'国产剧'}]});});
   const result=await catalog({},new URLSearchParams('q=partial-test'));assert.equal(result.data.length,1);assert.equal(result.sources.find(x=>x.id==='bf').state,'ok');assert.equal(result.sources.find(x=>x.id==='ff').state,'error');assert.equal(result.hasMore,true);
+});
+test('uses the Cloudflare-compatible manual redirect mode and refuses source redirects',async t=>{
+  let mode;
+  t.mock.method(globalThis,'fetch',async(_url,options)=>{mode=options.redirect;return new Response('',{status:302,headers:{Location:'https://other.example.com/'}});});
+  await assert.rejects(upstream(source,{ac:'detail',t:41}),/HTTP 302/);assert.equal(mode,'manual');
 });
 test('serves deep links and protects the media proxy while returning only episode metadata',async t=>{
   const env={COMIC_MEDIA_SECRET:'test-secret',ASSETS:{fetch:async request=>new URL(request.url).pathname==='/index.html'?new Response('<div id="root"></div>',{headers:{'Content-Type':'text/html'}}):new Response('not found',{status:404})}};

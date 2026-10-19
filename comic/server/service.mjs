@@ -17,7 +17,7 @@ export async function cached(env,key,loader,force=false) {
 }
 export async function upstream(source,params={}) {
   const url=new URL(source.api); for(const [key,value] of Object.entries(params)) if(value!==undefined)url.searchParams.set(key,String(value));
-  let response; try { response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'YukinoComic/1.0 (+https://comic.yukino.bond)'},signal:AbortSignal.timeout(18000),redirect:'error'}); } catch { throw failure(`${source.name}暂时连接失败，请切换其他番源`); }
+  let response; try { response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'YukinoComic/1.0 (+https://comic.yukino.bond)'},signal:AbortSignal.timeout(18000),redirect:'manual'}); } catch { throw failure(`${source.name}暂时连接失败，请切换其他番源`); }
   if(!response.ok) throw failure(`${source.name}返回 HTTP ${response.status}`);
   const text=await response.text(); if(text.length>8*1024*1024) throw failure(`${source.name}返回内容过大`);
   let result; try { result=JSON.parse(text); }catch{ throw failure(`${source.name}未返回有效目录`); }
