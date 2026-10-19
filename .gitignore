@@ -19,6 +19,7 @@ dist-ssr
 .f1-work
 .novel-work
 .comic-work
+.cinema-work
 
 # Electron / Capacitor 构建产物
 release

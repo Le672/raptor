@@ -7,6 +7,9 @@
   "author": "Yukino",
   "description": "Yukino 的个人博客应用",
   "scripts": {
+    "cinema:dev": "node scripts/dev-cinema.mjs",
+    "cinema:build": "tsc -p cinema/tsconfig.json && node scripts/build-cinema.mjs",
+    "cinema:test": "node --test cinema/test/*.test.mjs && vitest run src/test/cinema-library.test.ts",
     "comic:dev": "node scripts/dev-comic.mjs",
     "comic:build": "tsc -p comic/tsconfig.json && node scripts/build-comic.mjs",
     "comic:test": "node --test comic/test/*.test.mjs && vitest run src/test/comic-library.test.ts",

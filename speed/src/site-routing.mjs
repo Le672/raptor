@@ -5,10 +5,10 @@ export const SITE_SECTIONS = [
   ['/about-me', 'about'], ['/uses', 'uses'], ['/changelog', 'changelog'],
   ['/friends', 'friends'], ['/rss', 'rss'], ['/lab', 'lab'], ['/status', 'status'],
   ['/games', 'games'], ['/focus', 'focus'], ['/news', 'news'], ['/cr', 'cr'],
-  ['/f1', 'f1'], ['/speed', 'speed'], ['/ip', 'ip'], ['/jm', 'jm'], ['/novel', 'novel'], ['/comic', 'comic'], ['/mail', 'mail'],
+  ['/f1', 'f1'], ['/speed', 'speed'], ['/ip', 'ip'], ['/jm', 'jm'], ['/novel', 'novel'], ['/comic', 'comic'], ['/cinema', 'cinema'], ['/mail', 'mail'],
 ];
-export const PORTAL_HOSTS = ['yukino.bond', 'www.yukino.bond', ...SITE_SECTIONS.filter(([, name]) => !['jm', 'novel', 'comic', 'mail'].includes(name)).map(([, name]) => name + '.yukino.bond')];
-export const SUBDOMAIN_ROUTES = Object.fromEntries(SITE_SECTIONS.filter(([, name]) => !['cr', 'speed', 'jm', 'novel', 'comic', 'mail'].includes(name)).map(([path, name]) => [name, path]));
+export const PORTAL_HOSTS = ['yukino.bond', 'www.yukino.bond', ...SITE_SECTIONS.filter(([, name]) => !['jm', 'novel', 'comic', 'cinema', 'mail'].includes(name)).map(([, name]) => name + '.yukino.bond')];
+export const SUBDOMAIN_ROUTES = Object.fromEntries(SITE_SECTIONS.filter(([, name]) => !['cr', 'speed', 'jm', 'novel', 'comic', 'cinema', 'mail'].includes(name)).map(([path, name]) => [name, path]));
 const RAIL_PATHS = ['/ticket', '/transfer', '/live', '/arrivalinfo'];
 const reserved = path => /^\/(?:api|assets|rail-network|\.well-known)(?:\/|$)/.test(path) || /\.[a-z0-9]+$/i.test(path);
 export function isPortalHost(hostname) { return PORTAL_HOSTS.includes(hostname.toLowerCase()); }
@@ -23,7 +23,7 @@ export function canonicalPageUrl(input) {
   const section = SITE_SECTIONS.find(([prefix]) => path === prefix || path.startsWith(prefix + '/'));
   const name = RAIL_PATHS.includes(path) ? 'cr' : section?.[1];
   url.protocol = 'https:'; url.port = ''; url.hostname = name ? name + '.yukino.bond' : 'www.yukino.bond';
-  if (section && ['speed', 'jm', 'novel', 'comic', 'mail'].includes(name)) url.pathname = url.pathname.slice(section[0].length) || '/';
+  if (section && ['speed', 'jm', 'novel', 'comic', 'cinema', 'mail'].includes(name)) url.pathname = url.pathname.slice(section[0].length) || '/';
   return url.href;
 }
 export function siteHref(path, hostname = typeof window === 'undefined' ? 'localhost' : window.location.hostname) {

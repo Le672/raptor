@@ -1,0 +1,42 @@
+name: Deploy Cinema to Cloudflare
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'cinema/**'
+      - 'scripts/*cinema*.mjs'
+      - '.github/workflows/deploy-cinema.yml'
+  workflow_dispatch:
+concurrency:
+  group: deploy-cinema-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check catalog, playback proxy and local library
+        run: npm run cinema:test
+      - name: Build the media theater
+        run: npm run cinema:build
+      - name: Prepare independent cache and playback signing
+        run: node scripts/ensure-cinema-infra.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Deploy player, API, automatic catalog refresh and domain
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config cinema/.deploy/wrangler.json
+      - name: Verify production catalog and document routes
+        run: node scripts/verify-cinema-live.mjs

@@ -146,6 +146,11 @@ const linkGroups = [
         desc: "jm.yukino.bond · 姬漫搜索、阅读、收藏与章节导出",
       },
       {
+        label: "影视馆 · Yukino Cinema",
+        url: "https://cinema.yukino.bond",
+        desc: "cinema.yukino.bond · 电影、电视剧、综艺、纪录片搜索与多源播放、片单收藏和观看进度",
+      },
+      {
         label: "番剧放映室 · Yukino Comic",
         url: "https://comic.yukino.bond",
         desc: "comic.yukino.bond · 动漫 / 番剧搜索、多源在线看番、追番收藏与观看进度",

@@ -1,0 +1,15 @@
+import { build } from 'vite';
+import { fileURLToPath } from 'node:url';
+import { readFile,writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+await build({configFile:fileURLToPath(new URL('../cinema/vite.config.ts',import.meta.url))});
+const root=new URL('../cinema/dist/',import.meta.url),html=await readFile(new URL('index.html',root),'utf8');
+const assets=[...new Set(Array.from(html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g),m=>m[1]))];
+if(!assets.some(x=>x.endsWith('.js'))||!assets.some(x=>x.endsWith('.css')))throw new Error('Cinema assets missing');
+const version=createHash('sha256').update(html).digest('hex').slice(0,12);
+await writeFile(new URL('sw.js',root),`const NAME='yukino-cinema-${version}', ASSETS=${JSON.stringify(['/', '/screen.svg', '/manifest.webmanifest',...assets])};
+self.addEventListener('install',e=>e.waitUntil(caches.open(NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('yukino-cinema-')&&k!==NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.origin!==self.location.origin||e.request.method!=='GET'||u.pathname.startsWith('/api/'))return;if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).catch(()=>caches.match('/')));return;}e.respondWith(caches.match(e.request).then(hit=>hit||fetch(e.request)));});
+`);
+console.log('Cinema app and versioned offline shell verified.');

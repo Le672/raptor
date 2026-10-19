@@ -16,6 +16,7 @@ const destinations = [
   ['姬漫','https://jm.yukino.bond/'],
   ['轻小说','https://novel.yukino.bond/'],
   ['番剧','https://comic.yukino.bond/'],
+  ['影视','https://cinema.yukino.bond/'],
   ['专注','https://focus.yukino.bond/focus'], ['余票','https://cr.yukino.bond/cr'],
   ['F1','https://f1.yukino.bond/f1'], ['测速','https://speed.yukino.bond/'],
   ['IP','/ip'], ['资源','https://box.yukino.bond/box'], ['博客','https://blog.yukino.bond/blog'],
@@ -46,6 +47,9 @@ describe('canonical site navigation', () => {
     expect(siteHref('/jm','www.yukino.bond')).toBe('https://jm.yukino.bond/');
     expect(siteHref('/novel','www.yukino.bond')).toBe('https://novel.yukino.bond/');
     expect(siteHref('/comic','www.yukino.bond')).toBe('https://comic.yukino.bond/');
+    expect(siteHref('/cinema','www.yukino.bond')).toBe('https://cinema.yukino.bond/');
+    expect(canonicalPageUrl('https://www.yukino.bond/cinema/watch/ikun-1/0/0')).toBe('https://cinema.yukino.bond/watch/ikun-1/0/0');
+    expect(canonicalPageUrl('https://cinema.yukino.bond/watch/ikun-1/0/0')).toBeNull();
     expect(canonicalPageUrl('https://www.yukino.bond/comic/watch/bf-1/0/0')).toBe('https://comic.yukino.bond/watch/bf-1/0/0');
     expect(canonicalPageUrl('https://comic.yukino.bond/watch/bf-1/0/0')).toBeNull();
     expect(canonicalPageUrl('https://www.yukino.bond/novel/book/8')).toBe('https://novel.yukino.bond/book/8');

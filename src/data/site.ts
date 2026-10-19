@@ -64,6 +64,15 @@ export const domainLinks: DomainLink[] = [
     category: "core",
   },
   {
+    title: "影视馆",
+    hostname: "cinema.yukino.bond",
+    href: "https://cinema.yukino.bond",
+    description: "电影、电视剧、综艺和纪录片搜索，多源播放、收藏片单与观看进度。",
+    status: "online",
+    category: "content",
+    keywords: ["影视", "电影", "电视剧", "追剧", "综艺", "纪录片", "cinema", "movie", "tv"],
+  },
+  {
     title: "番剧放映室",
     hostname: "comic.yukino.bond",
     href: "https://comic.yukino.bond",
