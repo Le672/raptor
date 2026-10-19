@@ -40,7 +40,7 @@ export default {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) {
       let response = await env.ASSETS.fetch(request);
-      if (response.status === 404 && request.method === 'GET' && !/\.[\w]+$/.test(url.pathname)) response = await env.ASSETS.fetch(new Request(new URL('/index.html', url), request));
+      if (response.status === 404 && request.method === 'GET' && !/\.[\w]+$/.test(url.pathname)) response = await env.ASSETS.fetch(new Request(new URL('/', url), request));
       const headers = new Headers(response.headers);
       for (const [key, value] of Object.entries(policy)) headers.set(key, value);
       if (url.pathname === '/sw.js') headers.set('Cache-Control', 'no-cache');

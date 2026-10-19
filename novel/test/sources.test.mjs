@@ -60,3 +60,10 @@ test('an explicit chapter restriction cannot fall back to a previously cached bo
   t.mock.method(globalThis,'fetch',async()=>new Response('',{status:403}));
   const response=await call('/api/book/sf-8/chapter/11?refresh=1',env);assert.equal(response.status,403);assert.match((await response.json()).error,/登录/);
 });
+test('deep links render the app without redirecting the reader to the homepage',async()=>{
+  const env={ASSETS:{fetch:async request=>new URL(request.url).pathname==='/'?new Response('<html>novel app</html>',{headers:{'Content-Type':'text/html'}}):new Response(null,{status:404})}};
+  for(const path of ['/sources','/book/wenku-1973','/read/sf-8/10/11']){
+    const response=await call(path,env);assert.equal(response.status,200);assert.equal(response.headers.get('location'),null);assert.match(await response.text(),/novel app/);
+  }
+  assert.equal((await call('/missing.png',env)).status,404);
+});
