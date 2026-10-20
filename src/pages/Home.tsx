@@ -16,6 +16,9 @@ import {
   BookOpen,
   Coffee,
   NotebookPen,
+  Clapperboard,
+  Play,
+  FlaskConical,
 } from "lucide-react";
 import { SiteLink as Link } from "@/components/SiteLink";
 import { siteProfile } from "@/data/site";
@@ -54,11 +57,14 @@ const corners = [
   { icon: Newspaper, title: "新闻阅读室", en: "READING ROOM", text: "从不同的视角，看看今天的世界。", to: "/news" },
   { icon: BookOpen, title: "姬漫图书馆", en: "JM COMIC", text: "漫画搜索、阅读、收藏与章节导出，在这里直接进入。", to: "/jm" },
   { icon: BookOpen, title: "轻小说书房", en: "YUKINO NOVEL", text: "找一本喜欢的轻小说，关注更新，把故事慢慢读下去。", to: "/novel" },
+  { icon: Play, title: "番剧放映室", en: "YUKINO COMIC", text: "找一部喜欢的番剧，收藏片单，接着上次的进度看下去。", to: "/comic" },
+  { icon: Clapperboard, title: "影视馆", en: "YUKINO CINEMA", text: "搜索电影、电视剧与纪录片，收藏想看的故事。", to: "/cinema" },
   { icon: Timer, title: "专注角落", en: "FOCUS", text: "选一件事，留一段安静的时间。", to: "/focus" },
   { icon: Monitor, title: "设备与环境", en: "EVERYDAY SETUP", text: "那些陪着我写代码、过日子的工具。", to: "/uses" },
   { icon: FlagTriangleRight, title: "Formula 1 围场", en: "YUKINO MOTORSPORT", text: "每一圈，都值得期待。赛历、计时与观赛入口。", to: "/f1" },
   { icon: Gauge, title: "网络测速", en: "YUKINO SPEED", text: "让速度看得见。自选服务器、线程与流量配额。", to: "/speed" },
   { icon: ShieldCheck, title: "IP 纯净度", en: "YUKINO IP", text: "查看网络归属，对照多个来源了解 IP 的公开记录。", to: "/ip" },
+  { icon: FlaskConical, title: "实验室", en: "YUKINO LAB", text: "视觉实验、前端玩具，和一些正在慢慢成形的想法。", to: "/lab" },
 ];
 export default function Home() {
   const published = usePublicPosts();
@@ -71,17 +77,11 @@ export default function Home() {
       <section className="home-hero" aria-labelledby="hero-title">
         <div className="hero-copy">
           <p className="eyebrow">
-            <span className="hero-edition">Y / PERSONAL SPACE</span> 欢迎来我的小站坐坐
+            <span className="hero-edition">YUKINO / PERSONAL JOURNAL</span> 欢迎来坐坐
           </p>
-          <h1 id="hero-title">
-            你好，我是{" "}
-            <span>
-              Yukino<span className="hero-period">.</span>
-            </span>
-          </h1>
-          <p className="hero-tagline">{siteProfile.tagline}</p>
+          <h1 id="hero-title">{siteProfile.tagline}</h1>
           <p className="hero-description">
-            {siteProfile.intro}
+            你好，我是 Yukino。{siteProfile.intro}
             <br />
             把好奇变成作品，把日常写成故事。
           </p>
@@ -202,9 +202,9 @@ export default function Home() {
           ))}
         </div>
       </section>
-      <section className="home-corners" aria-labelledby="services-title">
+      <section className="home-corners home-services" aria-labelledby="services-title">
         <div className="section-top"><div><p className="eyebrow"><span className="section-index">03</span> WITHIN REACH</p><h2 id="services-title">顺手的在线工具<span> / Services</span></h2></div><Link className="text-link" to="/links">全部入口 <ArrowUpRight size={17} /></Link></div>
-        <div className="grid gap-4 md:grid-cols-3">{serviceDomainLinks.map(service => <DomainCard key={service.hostname} domain={service} />)}</div>
+        <div className="home-service-grid">{serviceDomainLinks.map(service => <DomainCard key={service.hostname} domain={service} />)}</div>
       </section>
       <section className="home-daily" aria-labelledby="daily-title">
         <div className="section-top"><div><p className="eyebrow"><span className="section-index">04</span> A LITTLE EVERYDAY</p><h2 id="daily-title">日常，一角<span> / Everyday</span></h2></div><span className="daily-heading-note">看看天气，再开始今天。</span></div>

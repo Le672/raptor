@@ -1,19 +1,19 @@
 :root {
   color-scheme: light;
-  --ink: #304158;
-  --muted: #6d7a8c;
-  --blue: #e9f2ff;
-  --pink: #fae8f1;
-  --line: #dfe7f1;
+  --ink: #34465c;
+  --muted: #64758a;
+  --blue: #edf4fa;
+  --pink: #f9edf2;
+  --line: #e5ebf1;
   --green: #2c8073;
-  --shadow: 0 12px 36px #536a9410;
+  --shadow: none;
 }
 * {
   box-sizing: border-box;
 }
 body {
   margin: 0;
-  background: linear-gradient(135deg,#f5f9ff,#fcf6fa 80%);
+  background: #f8fafc;
   color: var(--ink);
   font: 14px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
   min-height: 100vh;
@@ -67,10 +67,10 @@ h3 {
   position: sticky;
   top: 0;
   z-index: 5;
-  background: #f5f9fff0;
-  border-top: 3px solid #e7d1e5;
+  background: #ffffff;
+  border-top: 0;
   border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(18px);
+  backdrop-filter: none;
 }
 .topbar-inner {
   max-width: 1330px;
@@ -516,7 +516,7 @@ button,.button {
   box-shadow: var(--shadow);
 }
 .radar-project {
-  background: #e9f2ff;
+  background: #edf4fa;
 }
 .hooks-project {
   background: #f5eaf5;
@@ -874,4 +874,24 @@ button,.button {
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+}
+
+/* Collection shell: the same quiet reading desk as Novel and Cinema. */
+:root { --serif: "Noto Serif SC", "Songti SC", SimSun, Georgia, serif; }
+h1,h2,h3 { font-family: var(--serif); letter-spacing: .02em; }
+.panel,.login-panel,.project,.bottom-note,.stats>div { border-color: var(--line); border-radius: 10px; box-shadow: none; background: #ffffff; }
+.side-link { border-radius: 7px; color: var(--muted); }
+.side-link.active { background: #edf4fa; color: #416a93; }
+button.primary,.button.primary { background: #4f759d; color: #ffffff; border-radius: 6px; }
+.hero { border-radius: 14px; }
+@media(min-width:901px) {
+ body:has(>.workspace) { padding-left: 232px; }
+ .topbar { min-height: 73px; }
+ .topbar-inner { max-width:1450px; min-height:73px; padding:18px clamp(24px,4.3vw,60px); }
+ .topbar-inner>.brand { position:fixed; left:0; top:0; width:232px; height:104px; padding:28px 22px; border-right:1px solid var(--line); background:#fff; flex-wrap:wrap; column-gap:9px; }
+ .brand strong { font-size:25px; }
+ .brand-small { margin:0 0 0 44px; padding:0; border:0; font-size:8px; }
+ .topbar-inner>nav { margin-left:auto; }
+ .workspace { display:block; max-width:1450px; padding:36px clamp(24px,4.3vw,60px) 28px; }
+ .workspace>.sidebar { position:fixed; top:104px; bottom:0; left:0; width:232px; padding:22px 18px; border-right:1px solid var(--line); background:#fff; overflow:auto; }
 }
