@@ -10,7 +10,7 @@
 }
 :root[data-jm-theme='dark'] { color: #dce6f1; background: #181f29; }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
+body { margin: 0; min-width: 0; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .5; }
