@@ -1,8 +1,8 @@
 import { imageSource as allowedImage, sourceInfo } from '../shared/sources.mjs';
 export const SOURCE = 'https://lnovel.animes.garden';
 export const CATALOG_TTL = 5 * 60 * 1000;
-const inflight = new Map();
-const memory = new Map();
+export { cached, stored, persist } from './cache.mjs';
+import { cached } from './cache.mjs';
 const entityNames = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', emsp: '　', ensp: ' ', hellip: '…', mdash: '—', ldquo: '“', rdquo: '”', lsquo: '‘', rsquo: '’' };
 
 export function decodeEntities(input = '') {
@@ -71,39 +71,6 @@ export async function upstream(path, fetcher = fetch) {
   const result = await response.json();
   if (result.ok !== true || result.data == null) throw new Error('书源没有返回有效数据');
   return result.data;
-}
-
-export async function stored(env, key) {
-  if (env.NOVEL_CACHE) return env.NOVEL_CACHE.get(key, { type: 'json' });
-  return memory.get(key) || null;
-}
-export async function persist(env, key, value, ttl) {
-  if (env.NOVEL_CACHE) await env.NOVEL_CACHE.put(key, JSON.stringify(value), { expirationTtl: ttl });
-  else { if (memory.size > 500) memory.delete(memory.keys().next().value); memory.set(key, value); }
-}
-async function refresh(env, key, producer, retention) {
-  if (inflight.has(key)) return inflight.get(key);
-  const task = (async () => {
-    const data = await producer();
-    const result = { data, checkedAt: new Date().toISOString() };
-    await persist(env, key, result, retention);
-    return result;
-  })();
-  inflight.set(key, task);
-  try { return await task; } finally { inflight.delete(key); }
-}
-export async function cached(env, ctx, key, producer, ttl, { force = false, background = false, retention = 30 * 86400, provider = 'lnovel · 哔哩轻小说', staleOnRestricted = true } = {}) {
-  let old; try { old = await stored(env, key); } catch { old = memory.get(key) || null; }
-  const age = old ? Date.now() - Date.parse(old.checkedAt) : Infinity;
-  const meta = (record, stale, reason = '') => ({ ...record, meta: { checkedAt: record.checkedAt, stale, reason, provider, refreshMinutes: Math.round(ttl / 60000) } });
-  if (old && age < (force ? 60000 : ttl)) return meta(old, false);
-  const task = () => refresh(env, key, producer, retention);
-  if (old && background && !force) {
-    ctx.waitUntil(task().catch(() => {}));
-    return meta(old, true, '正在后台同步，当前显示上次成功获取的数据');
-  }
-  try { return meta(await task(), false); }
-  catch (error) { if (!staleOnRestricted && [400,401,403,404].includes(error.status)) throw error; if (old) return meta(old, true, error instanceof Error ? error.message : '书源连接失败'); throw error; }
 }
 
 export async function catalog(env, ctx, options = {}, fetcher = fetch) {

@@ -35,7 +35,7 @@ export default {
       let match=url.pathname.match(/^\/api\/cover\/([^/]+)$/);if(match){if(!splitId(match[1]))return json({error:'番剧编号无效'},400);return await cover(env,match[1]);}
       if(limited(request))return new Response(JSON.stringify({error:'操作频繁，请稍后再试'}),{status:429,headers:{'Content-Type':'application/json','Retry-After':'60'}});
       if(url.pathname==='/api/catalog')return json(await catalog(env,url.searchParams));
-      if(url.pathname==='/api/sources')return json({data:SOURCES.map(({id,name,home,categories})=>({id,name,home,categories:Object.keys(categories)})),scheduledMinutes:15,cacheMinutes:5});
+      if(url.pathname==='/api/sources')return json({data:SOURCES.map(({id,name,home,categories})=>({id,name,home,categories:Object.keys(categories)})),scheduledMinutes:60,cacheMinutes:5});
       match=url.pathname.match(/^\/api\/anime\/([^/]+)(?:\/(play))?$/);
       if(!match||!splitId(match[1]))return json({error:'没有这个接口或番剧编号无效'},404);
       const result=await detail(env,match[1],url.searchParams.get('refresh')==='1');
@@ -47,5 +47,5 @@ export default {
       return json({data:{url:await mediaPath(env,target,expires),kind:episode.kind,expiresAt:new Date(expires).toISOString(),title:episode.title},meta:{checkedAt:result.checkedAt,stale:result.stale}});
     }catch(error){console.error('Comic request failed:',url.pathname,error.message);return json({error:error.message||'番源暂时不可用，请稍后重试'},error.status||503);}
   },
-  async scheduled(_event,env,ctx){ctx.waitUntil(refreshCatalogs(env).then(results=>{for(const result of results)if(result.status==='rejected')console.warn('Comic catalog sync failed:',result.reason?.message);console.log('Comic catalog refresh complete');}));},
+  async scheduled(_event,env,ctx){ctx.waitUntil(refreshCatalogs(env).then(result=>{for(const source of result.sources)if(source.reason)console.warn('Comic source sync:',source.name,source.reason);console.log('Comic catalog refresh complete:',result.data.length,result.meta.checkedAt);}).catch(error=>console.error('Comic catalog sync failed:',error.message)));},
 };

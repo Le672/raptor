@@ -1,6 +1,7 @@
 import { SOURCE, imageSource } from './service.mjs';
 import { bookIdValid, sourceBookUrl } from '../shared/sources.mjs';
-import { allCatalog, findBooks, getBook, getVolume, getChapter, validPartId, refreshKnownSources } from './multi-source.mjs';
+import { allCatalog, findBooks, getBook, getVolume, getChapter, validPartId, synchronizeSnapshot } from './multi-source.mjs';
+import { snapshotStatus } from './cache.mjs';
 const rate = new Map();
 const policy = {
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
@@ -53,7 +54,7 @@ export default {
       const force = url.searchParams.get('refresh') === '1';
       if (url.pathname === '/api/status') {
         const result = await allCatalog(env, ctx, url.searchParams);
-        return json({ data: { indexed: result.data.length, source: SOURCE, sources: result.sources, scheduledMinutes: 15, cacheMinutes: 5, persisted: Boolean(env.NOVEL_CACHE), newestUpdate: result.data.map(x => x.updatedAt).filter(Boolean).sort().at(-1) }, meta: result.meta });
+        return json({ data: { indexed: result.data.length, source: SOURCE, sources: result.sources, scheduledMinutes: 60, cacheMinutes: 5, persisted: Boolean(env.NOVEL_CACHE), persistence: await snapshotStatus(env), newestUpdate: result.data.map(x => x.updatedAt).filter(Boolean).sort().at(-1) }, meta: result.meta });
       }
       if (url.pathname === '/api/books') return json(await findBooks(env, ctx, url.searchParams));
       let match = url.pathname.match(/^\/api\/book\/([^/]+)(?:\/(volume|chapter)\/([^/]+))?$/);
@@ -62,9 +63,10 @@ export default {
       return json({ data: result.data, meta: result.meta });
     } catch (error) { const sourceUrl=sourceBookUrl(url.pathname.match(/^\/api\/book\/([^/]+)/)?.[1]||'');return json({ error: error instanceof Error ? error.message : '书源连接失败，请稍后重试', ...(sourceUrl?{sourceUrl}:{}) }, error.status || 503); }
   },
-  async scheduled(_event, env, ctx) {
-    ctx.waitUntil(Promise.all([allCatalog(env, ctx, new URLSearchParams('refresh=1')), refreshKnownSources(env,ctx)]).then(([result]) => {
-      console.log(`Novel catalog synchronized: ${result.data.length} books, ${result.meta.checkedAt}`);
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(synchronizeSnapshot(env, ctx, event.scheduledTime).then(result => {
+      console.log(`Novel catalog checked: ${result.data.length} books; snapshot persisted: ${result.persistence.persisted}; KV puts: ${result.persistence.writes}`);
+      if(!result.persistence.persisted)console.warn(`Novel snapshot: ${result.persistence.reason}`);
       for (const item of result.sources) if (['error','restricted','stale'].includes(item.state)) console.warn(`${item.name}: ${item.reason}`);
     }).catch(error => console.error('Novel catalog synchronization failed:', error.message)));
   },

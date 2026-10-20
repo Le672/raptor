@@ -35,7 +35,7 @@ export default {
       let match=url.pathname.match(/^\/api\/cover\/([^/]+)$/);if(match){if(!splitId(match[1]))return json({error:'影视编号无效'},400);return await cover(env,match[1]);}
       if(limited(request))return new Response(JSON.stringify({error:'操作频繁，请稍后再试'}),{status:429,headers:{'Content-Type':'application/json','Retry-After':'60'}});
       if(url.pathname==='/api/catalog')return json(await catalog(env,url.searchParams));
-      if(url.pathname==='/api/sources')return json({data:SOURCES.map(({id,name,home,categories})=>({id,name,home,categories:Object.keys(categories)})),scheduledMinutes:15,cacheMinutes:5});
+      if(url.pathname==='/api/sources')return json({data:SOURCES.map(({id,name,home,categories})=>({id,name,home,categories:Object.keys(categories)})),scheduledMinutes:60,cacheMinutes:5});
       match=url.pathname.match(/^\/api\/title\/([^/]+)(?:\/(play))?$/);
       if(!match||!splitId(match[1]))return json({error:'没有这个接口或影视编号无效'},404);
       const result=await detail(env,match[1],url.searchParams.get('refresh')==='1');

@@ -5,6 +5,7 @@ on:
     paths:
       - 'novel/**'
       - 'scripts/*novel*.mjs'
+      - 'scripts/check-kv-budget.mjs'
       - '.github/workflows/deploy-novel.yml'
   workflow_dispatch:
 concurrency:
@@ -23,6 +24,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Check shared account KV write budget
+        run: npm run kv:budget
       - name: Check novel data, caching and security behavior
         run: npm run novel:test
       - name: Build novel reader

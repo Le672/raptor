@@ -5,6 +5,7 @@ on:
     paths:
       - 'cinema/**'
       - 'scripts/*cinema*.mjs'
+      - 'scripts/check-kv-budget.mjs'
       - '.github/workflows/deploy-cinema.yml'
   workflow_dispatch:
 concurrency:
@@ -23,6 +24,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Check shared account KV write budget
+        run: npm run kv:budget
       - name: Check catalog, playback proxy and local library
         run: npm run cinema:test
       - name: Build the media theater

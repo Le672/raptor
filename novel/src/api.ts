@@ -1,6 +1,6 @@
 import type { SourceInfo, SourceId } from '../shared/sources.mjs';
 export type SourceStatus = SourceInfo & { count: number; state: 'ok' | 'stale' | 'error' | 'restricted' | 'limited'; checkedAt: string | null; stale: boolean; reason: string };
-export type SourceStatusData = { indexed: number; source: string; sources: SourceStatus[]; scheduledMinutes: number; cacheMinutes: number; persisted: boolean; newestUpdate: string | null };
+export type SourceStatusData = { indexed: number; source: string; sources: SourceStatus[]; scheduledMinutes: number; cacheMinutes: number; persisted: boolean; persistence?: { mode: string; scheduledWritesPerDay: number; lastPersistedAt: string | null; state: string; reason: string }; newestUpdate: string | null };
 export type Book = { id: string; title: string; author: string; illustrator: string; description: string; cover: string; tags: string[]; status: 'ongoing' | 'completed' | 'unknown'; updatedAt: string | null; sourceFetchedAt: string | null; sourceUrl: string; source?: SourceId; sourceName?: string };
 export type VolumeInfo = { id: string; title: string; cover: string };
 export type BookDetail = Book & { volumes: VolumeInfo[] };

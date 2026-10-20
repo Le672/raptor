@@ -20,8 +20,9 @@ async function get(path, ready = async () => true, allowedStatuses = []) {
 const getJson = async (path, valid = () => true, allowedStatuses = []) => (await get(path,async response=>valid(await response.json()),allowedStatuses)).json();
 const index = await get('/'); if (!(await index.text()).includes('Yukino Novel')) throw new Error('Reader shell is missing');
 const deepLink = await get('/sources',async response=>response.url.endsWith('/sources')); if (!(await deepLink.text()).includes('Yukino Novel')) throw new Error('Deep link app shell is missing');
-const status = await getJson('/api/status?refresh=1',result=>result.data?.sources?.length===4&&result.data?.indexed&&result.data?.persisted&&!result.meta?.stale);
-if (!status.data?.indexed || !status.data?.persisted || status.meta?.stale) throw new Error('Live persistent catalog has not synchronized');
+const status = await getJson('/api/status?refresh=1',result=>result.data?.sources?.length===4&&result.data?.indexed&&result.data?.persisted&&!result.meta?.stale&&result.data?.scheduledMinutes===60&&result.data?.persistence?.mode==='hourly-snapshot');
+if (!status.data?.indexed || !status.data?.persisted || status.meta?.stale) throw new Error('Live source data or configured snapshot storage is unavailable');
+if (status.data.persistence.scheduledWritesPerDay !== 24) throw new Error('The hourly novel snapshot write budget is missing');
 if (status.data.sources?.length !== 4) throw new Error('Four source definitions are missing');
 const search = await (await get('/api/books?source=bili&q=' + encodeURIComponent('实力'))).json();
 if (!search.data?.items?.some(x => x.title.includes('实力'))) throw new Error('Live Chinese search did not return matching novels');
@@ -43,4 +44,4 @@ for (const id of ['sf-775221','linovel-122429']) {
 const wenku=await getJson('/api/book/wenku-1973',result=>result.data?.volumes?.length||result.sourceUrl==='https://www.wenku8.net/book/1973.htm',[403]);
 if(wenku.error)console.log('wenku: source restricts server access; explicit restriction and external reading entry verified');
 else console.log(`wenku: ${wenku.data.volumes.length} public volumes; full anonymous search remains limited`);
-console.log(`Live novel site verified: ${status.data.indexed} discovered records, four sources, persistent cache, ${status.meta.checkedAt}`);
+console.log(JSON.stringify({origin,indexed:status.data.indexed,sources:4,checkedAt:status.meta.checkedAt,scheduledMinutes:status.data.scheduledMinutes,persistence:status.data.persistence}));

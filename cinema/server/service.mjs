@@ -2,14 +2,15 @@ import {SOURCES,sourceById,splitId,normalize,mergeCatalog} from './sources.mjs';
 import {CATEGORIES,GENRES,queryPlan} from './catalog.mjs';
 const memory=new Map(),pending=new Map();
 const FRESH_MS=5*60000,STALE_MS=7*86400000;
+export const KV_WRITES_PER_REFRESH=SOURCES.length;
 const failure=(message,status=503)=>Object.assign(new Error(message),{status});
-export async function cached(env,key,loader,force=false,persist=true){
+export async function cached(env,key,loader,force=false,readPersistent=true){
   let entry=memory.get(key);
-  if(!entry&&persist&&env.CINEMA_CACHE){try{entry=await env.CINEMA_CACHE.get(key,'json');}catch{/* A cache outage does not block the live source. */}}
+  if(!entry&&readPersistent&&env.CINEMA_CACHE){try{entry=await env.CINEMA_CACHE.get(key,'json');}catch{/* A cache outage does not block the live source. */}}
   if(entry&&Date.now()-entry.time<FRESH_MS&&!force)return {value:entry.value,checkedAt:new Date(entry.time).toISOString(),stale:false};
   if(!pending.has(key))pending.set(key,(async()=>{
     const value=await loader(),saved={time:Date.now(),value};memory.set(key,saved);if(memory.size>400)memory.delete(memory.keys().next().value);
-    if(persist&&env.CINEMA_CACHE){try{await env.CINEMA_CACHE.put(key,JSON.stringify(saved),{expirationTtl:604800});}catch{/* Keep the successful live response. */}}
+    // Request caches are memory-only. Only refreshCatalogs may persist source bundles below.
     return saved;
   })().finally(()=>pending.delete(key)));
   try{entry=await pending.get(key);return {value:entry.value,checkedAt:new Date(entry.time).toISOString(),stale:false};}
@@ -47,7 +48,7 @@ export async function catalog(env,params=new URLSearchParams(),persistHome=false
     },force,false)));
     const parts=reads.filter(x=>x.status==='fulfilled').map(x=>x.value),errors=reads.filter(x=>x.status==='rejected').map(x=>x.reason.message);
     if(!parts.length)return {source,state:'error',reason:errors.join('；'),items:[],hasMore:plan.hasNextGroup};
-    // Only the scheduled homepage refresh persists, once per source (768 writes/day for eight sources).
+    // Only the hourly scheduled homepage refresh persists, once per source (192 writes/day for eight sources).
     // Searches, detail requests and manual refreshes cannot consume KV write quota.
     if(home&&persistHome&&env.CINEMA_CACHE&&parts.some(part=>!part.stale)){try{await env.CINEMA_CACHE.put(homeKey,JSON.stringify({parts:reads.flatMap((read,index)=>read.status==='fulfilled'?[{key:cacheKeys[index],entry:{time:Date.parse(read.value.checkedAt),value:read.value.value}}]:[])}),{expirationTtl:604800});}catch{/* Preserve successful live responses if storage is unavailable. */}}
     for(const part of parts)for(const item of part.value.items)memory.set('detail:v1:'+item.id,{time:Date.parse(part.checkedAt),value:item});while(memory.size>500)memory.delete(memory.keys().next().value);
@@ -56,6 +57,6 @@ export async function catalog(env,params=new URLSearchParams(),persistHome=false
   }));
   if(!results.some(x=>['ok','partial','stale'].includes(x.state)))throw failure(results.map(x=>x.reason).join('；')||'暂时没有可用片源');
   return {data:mergeCatalog(results.flatMap(x=>x.items)),page,hasMore:results.some(x=>x.hasMore),sources:results.map(({source,items,hasMore,stale,...status})=>({id:source.id,name:source.name,count:new Set(items.map(x=>x.id)).size,...status})),
-    meta:{checkedAt:results.map(x=>x.checkedAt).filter(Boolean).sort()[0]||null,stale:results.some(x=>x.stale),scheduledMinutes:15,cacheMinutes:5}};
+    meta:{checkedAt:results.map(x=>x.checkedAt).filter(Boolean).sort()[0]||null,stale:results.some(x=>x.stale),scheduledMinutes:60,cacheMinutes:5}};
 }
 export async function refreshCatalogs(env){return catalog(env,new URLSearchParams('refresh=1'),true);}

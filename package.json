@@ -7,6 +7,7 @@
   "author": "Yukino",
   "description": "Yukino 的个人博客应用",
   "scripts": {
+    "kv:budget": "node scripts/check-kv-budget.mjs",
     "cinema:dev": "node scripts/dev-cinema.mjs",
     "cinema:build": "tsc -p cinema/tsconfig.json && node scripts/build-cinema.mjs",
     "cinema:test": "node --test cinema/test/*.test.mjs && vitest run src/test/cinema-library.test.ts",

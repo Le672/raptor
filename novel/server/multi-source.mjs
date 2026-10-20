@@ -1,6 +1,7 @@
 import { SOURCES, sourceInfo, bookSource, bookIdValid, nativeBookId } from '../shared/sources.mjs';
 import { adapters, SourceError } from './adapters.mjs';
 import { catalog, book, volume, chapter, cached, stored, persist, searchBooks } from './service.mjs';
+import { SNAPSHOT_KEYS, updateStored, persistSnapshot, hourlyTask } from './cache.mjs';
 
 const freshMeta = (provider, checkedAt = null) => ({ checkedAt, stale: false, reason: '', provider, refreshMinutes: 5 });
 const metadata = book => { const { volumes, ...rest } = book; return rest; };
@@ -11,12 +12,13 @@ async function wenkuHealth(env,state,reason=''){
   if(old?.state===state&&old?.reason===reason&&Date.now()-Date.parse(old.checkedAt)<300000)return;
   await persist(env,key,{state,reason,checkedAt:new Date().toISOString()},3600);
 }
-export async function remember(env, value) {
+export async function remember(env, value, checkedAt = new Date().toISOString()) {
   const source = bookSource(value.id);
   if (source === 'bili') return;
-  const old = await stored(env, rememberedKey(source));
-  const items = merge(old?.data || [], [metadata(value)]).sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
-  await persist(env, rememberedKey(source), { data: items.slice(0,1000), checkedAt: new Date().toISOString() }, 30 * 86400);
+  await updateStored(env, rememberedKey(source), old => {
+    const items = merge(old?.data || [], [metadata(value)]).sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
+    return { data: items.slice(0,1000), checkedAt: old?.checkedAt > checkedAt ? old.checkedAt : checkedAt };
+  }, 30 * 86400);
 }
 async function feed(source, env, ctx, force) {
   if (source === 'bili') {
@@ -92,9 +94,9 @@ export async function getBook(env,ctx,id,force=false,rememberEntry=true) {
   let result;
   try{
     result=await cached(env,ctx,`detail:v2:${id}`,()=>adapters[source].book(nativeBookId(id)),5*60000,{force,background:true,provider:sourceInfo(source).name});
-    if(source==='wenku'&&!result.meta.stale)ctx.waitUntil(wenkuHealth(env,'limited').catch(()=>{}));
-  }catch(error){if(source==='wenku')ctx.waitUntil(wenkuHealth(env,error.state||'error',error.message).catch(()=>{}));throw error;}
-  if(rememberEntry)ctx.waitUntil(remember(env,result.data).catch(()=>{}));return result;
+    if(source==='wenku'&&!result.meta.stale)await wenkuHealth(env,'limited').catch(()=>{});
+  }catch(error){if(source==='wenku')await wenkuHealth(env,error.state||'error',error.message).catch(()=>{});throw error;}
+  if(rememberEntry&&!result.meta.stale)ctx.waitUntil(remember(env,result.data,result.meta.checkedAt).catch(()=>{}));return result;
 }
 export async function getVolume(env,ctx,id,vid,force=false) {
   if(bookSource(id)==='bili')return volume(env,ctx,id,vid,force);
@@ -117,9 +119,18 @@ export function validPartId(value){return /^(?:[1-9]\d{0,15}|v[0-9a-f]{8})$/.tes
 export async function refreshKnownSources(env,ctx) {
   await Promise.all(['sf','linovel','wenku'].map(async source=>{
     const old=await stored(env,rememberedKey(source));if(!old?.data?.length)return;
-    const batch=[...old.data].sort((a,b)=>(a.sourceFetchedAt||'').localeCompare(b.sourceFetchedAt||'')).slice(0,3);
+    // Fetches and Cache API operations share the free Worker's 50-subrequest limit.
+    const batch=[...old.data].sort((a,b)=>(a.sourceFetchedAt||'').localeCompare(b.sourceFetchedAt||'')).slice(0,1);
     const results=await Promise.allSettled(batch.map(item=>getBook(env,ctx,item.id,true,false)));
     const changed=results.filter(item=>item.status==='fulfilled'&&!item.value.meta.stale).map(item=>metadata(item.value.data));
     if(changed.length)await persist(env,rememberedKey(source),{data:merge(old.data,changed),checkedAt:new Date().toISOString()},30*86400);
   }));
+}
+export async function synchronizeSnapshot(env,ctx,scheduledTime=Date.now()) {
+  return hourlyTask(env,async()=>{
+    const [catalogResult]=await Promise.all([allCatalog(env,ctx,new URLSearchParams('refresh=1')),refreshKnownSources(env,ctx)]);
+    const entries=await Promise.all(SNAPSHOT_KEYS.map(async key=>[key,await stored(env,key)]));
+    const persistence=await persistSnapshot(env,Object.fromEntries(entries),scheduledTime);
+    return { ...catalogResult, persistence };
+  });
 }

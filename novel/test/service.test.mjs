@@ -41,7 +41,7 @@ test('uses Workers-compatible manual redirects and refuses redirects from the so
   await assert.rejects(() => upstream('novels', async (_url, options) => { assert.equal(options.redirect, 'manual'); return new Response(null, { status: 302, headers: { Location: 'https://evil.test' } }); }), /302/);
 });
 test('source failure preserves last successful data and timestamp with a stale reason', async () => {
-  const checkedAt = '2026-01-01T00:00:00Z', env = { NOVEL_CACHE: store({ 'test:stale': { data: ['old'], checkedAt } }) };
+  const checkedAt = new Date(Date.now()-86400000).toISOString(), env = { NOVEL_CACHE: store({ 'test:stale': { data: ['old'], checkedAt } }) };
   const result = await cached(env, ctx, 'test:stale', async () => { throw new Error('HTTP 403'); }, 1000);
   assert.deepEqual(result.data, ['old']); assert.equal(result.meta.stale, true); assert.equal(result.meta.checkedAt, checkedAt); assert.match(result.meta.reason, /403/);
 });
@@ -55,8 +55,9 @@ test('refresh requests reuse results for one minute and concurrent fetches coale
 test('catalog deduplicates IDs and rejects an empty refresh without erasing a snapshot', async () => {
   const env = { NOVEL_CACHE: store() }; const fetcher = async () => Response.json({ ok: true, data: [raw(1, '同名'), raw(1, '同名'), raw(2, '第二本')] });
   const result = await catalog(env, ctx, { force: true }, fetcher); assert.equal(result.data.length, 2);
-  const prior = env.NOVEL_CACHE.data.get('catalog:v1'); prior.checkedAt = '2026-01-01T00:00:00Z';
-  const stale = await catalog(env, ctx, { force: true }, async () => Response.json({ ok: true, data: [] }));
+  assert.equal(env.NOVEL_CACHE.data.size, 0, 'visitor ingestion must not create KV entries');
+  const previous = { NOVEL_CACHE: store({ 'catalog:v1': { data: result.data, checkedAt: new Date(Date.now()-86400000).toISOString() } }) };
+  const stale = await catalog(previous, ctx, { force: true }, async () => Response.json({ ok: true, data: [] }));
   assert.equal(stale.data.length, 2); assert.equal(stale.meta.stale, true); assert.match(stale.meta.reason, /空索引/);
 });
 test('API refuses invalid IDs and unsupported methods before fetching a source', async () => {
