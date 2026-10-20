@@ -46,18 +46,21 @@ function successfulUpstream(calls){
   };
 }
 
-test('one scheduled refresh persists all twelve homepage parts with only four KV writes',async t=>{
+test('one scheduled refresh persists all homepage parts with one KV write per source',async t=>{
   const {refreshCatalogs}=await freshService(),cache=cacheEnv(),calls=[];
   const now=Date.parse('2026-10-19T12:00:00Z');
   t.mock.method(Date,'now',()=>now);
   t.mock.method(globalThis,'fetch',successfulUpstream(calls));
 
   const result=await refreshCatalogs(cache.env);
-  assert.equal(calls.length,12,'each of four sources refreshes three homepage parts');
-  assert.equal(cache.writes.length,4,'the refresh may spend only one KV write per source');
-  assert.equal(result.sources.length,4);
+  assert.equal(calls.length,SOURCES.length*3,'each source refreshes three homepage parts');
+  assert.equal(cache.writes.length,SOURCES.length,'the refresh may spend only one KV write per source');
+  assert.equal(cache.reads.length,SOURCES.length,'read only persisted homepage bundles, not unpersisted part keys');
+  assert(calls.length+cache.reads.length+cache.writes.length<=50,'a cold scheduled refresh must fit the edge subrequest limit');
+  assert(SOURCES.length*4*24<1000,'scheduled writes must stay below 1000 per day');
+  assert.equal(result.sources.length,SOURCES.length);
   assert(result.sources.every(source=>source.state==='ok'));
-  assert.equal(result.data.length,12);
+  assert.equal(result.data.length,SOURCES.length*3);
   assert.deepEqual(cache.writes.map(write=>write.key).sort(),SOURCES.map(source=>'home:v1:'+source.id).sort());
 
   let persistedParts=0;
@@ -75,7 +78,7 @@ test('one scheduled refresh persists all twelve homepage parts with only four KV
       assert.equal(part.entry.value.pagecount,1);
     }
   }
-  assert.equal(persistedParts,12,'bundling must not drop a successful category');
+  assert.equal(persistedParts,SOURCES.length*3,'bundling must not drop a successful category');
   assert(!cache.writes.some(write=>write.key.startsWith('catalog:')||write.key.startsWith('detail:')));
 });
 
@@ -120,7 +123,7 @@ test('a cold homepage restores bundled data during an outage and retains the ori
   t.mock.method(globalThis,'fetch',async input=>{calls.push(new URL(input));throw Error('upstream offline');});
 
   const result=await catalog(cache.env);
-  assert.equal(calls.length,12,'stale homepage parts should attempt live refresh before falling back');
+  assert.equal(calls.length,SOURCES.length*3,'stale homepage parts should attempt live refresh before falling back');
   assert.deepEqual(result.data.map(item=>item.id).sort(),expectedIds.sort());
   assert.equal(result.meta.stale,true);
   assert.equal(result.meta.checkedAt,new Date(oldTime).toISOString());
@@ -157,7 +160,7 @@ test('a failed scheduled refresh keeps stale bundles without renewing their KV l
   const result=await refreshCatalogs(cache.env);
   assert.equal(result.meta.stale,true);
   assert.equal(result.meta.checkedAt,new Date(oldTime).toISOString());
-  assert.equal(result.data.length,12);
+  assert.equal(result.data.length,SOURCES.length*3);
   assert.equal(cache.writes.length,0,'the scheduled path must persist only successfully refreshed data');
   assert.deepEqual(cache.storage,initial);
 });

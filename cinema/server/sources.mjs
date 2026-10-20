@@ -1,9 +1,10 @@
 import { parseFragment } from 'parse5';
 
 import {SOURCES,mediaKind} from './catalog.mjs';
+import {isMediaId} from '../shared/source-names.mjs';
 export {SOURCES,CATEGORIES} from './catalog.mjs';
 export const sourceById = id => SOURCES.find(x => x.id === id);
-export function splitId(id) { const m = /^(bf|ff|lz|ikun)-([1-9]\d{0,8})$/.exec(id || ''); return m ? { source: sourceById(m[1]), native: m[2] } : null; }
+export function splitId(id) { if(!isMediaId(id))return null;const [source,native]=id.split('-');return {source:sourceById(source),native}; }
 export function plain(input, limit = 4000) {
   const tree = parseFragment(String(input || '').slice(0, 50000));
   const walk = node => ['script','style'].includes(node.tagName) ? '' : node.nodeName === '#text' ? node.value : (node.childNodes || []).map(walk).join(['p','br','div'].includes(node.tagName) ? '\n' : '');
@@ -16,8 +17,9 @@ export function publicUrl(input) {
     const host = u.hostname.toLowerCase();
     // Only DNS names can enter the media path. IP literals and internal names are never fetched.
     if (!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}$/.test(host) || /(?:^|\.)(?:localhost|local|internal|test|invalid|example|onion)$/.test(host)) return null;
-    // This public CDN serves iKun's real HLS segments on HTTPS port 65.
-    if (u.port && !(u.protocol==='https:'&&host==='kkzycdn.com'&&u.port==='65')) return null;
+    // Only these audited public CDNs may use their published nonstandard HTTPS ports.
+    const cdnPorts={'kkzycdn.com':'65','hnts.ymuuy.com':'65','c.baisiweiting.com':'18443'};
+    if (u.port && !(u.protocol==='https:'&&Object.hasOwn(cdnPorts,host)&&cdnPorts[host]===u.port)) return null;
     return u;
   } catch { return null; }
 }

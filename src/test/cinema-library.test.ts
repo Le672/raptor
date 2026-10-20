@@ -1,5 +1,5 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
-import {categories,clock,kindNames,watchPath} from '../../cinema/src/api';
+import {categories,clock,kindNames,sourceNames,watchPath} from '../../cinema/src/api';
 import type {Media} from '../../cinema/src/api';
 import {cleanMedia,exportLibrary,getLibrary,importLibrary,saveProgress,toggleFavorite,updateSettings} from '../../cinema/src/library';
 
@@ -17,6 +17,19 @@ beforeEach(()=>{
 afterEach(()=>{vi.useRealTimers();vi.restoreAllMocks();});
 
 describe('cinema library and progress',()=>{
+  it('retains favorites and independent resume positions from all eight sources across backup imports',()=>{
+    const favorites=Object.entries(sourceNames).map(([source,sourceName],index)=>({media:{...media,id:source+'-800',source,sourceName},savedAt:100+index}));
+    const history=favorites.map((favorite,index)=>progress(20+index,100+index,favorite.media));
+    importLibrary(backup(history,favorites));
+    expect(getLibrary().favorites).toHaveLength(8);
+    expect(getLibrary().history).toHaveLength(8);
+    for(const [index,source]of Object.keys(sourceNames).entries())expect(getLibrary().history.find(item=>item.media.id===source+'-800')).toMatchObject({seconds:20+index,media:{source,cover:'/api/cover/'+source+'-800'}});
+    const exported=exportLibrary();
+    localStorage.clear();
+    importLibrary(exported);
+    expect(getLibrary().favorites).toHaveLength(8);
+    expect(getLibrary().history).toHaveLength(8);
+  });
   it('merges backups without replacing a newer local resume position',()=>{
     saveProgress(progress(120,200));
     toggleFavorite(media);

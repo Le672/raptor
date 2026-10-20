@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SOURCES, mediaKind, queryPlan } from '../server/catalog.mjs';
-import { normalize, mergeCatalog, publicUrl, plain } from '../server/sources.mjs';
+import { normalize, mergeCatalog, publicUrl, plain, splitId } from '../server/sources.mjs';
+import {sourceNames,isMediaId} from '../shared/source-names.mjs';
 import { cached, catalog, detail, upstream } from '../server/service.mjs';
 import { mediaPath, verifyMedia, rewriteManifest, safeFetch, serveMedia } from '../server/media.mjs';
 import worker from '../server/worker.mjs';
@@ -33,6 +34,25 @@ test('recognizes movies, series, variety and documentaries for every configured 
       assert.equal(normalize(record, provider).mediaKind, kind);
     }
   }
+});
+
+test('keeps all eight source IDs valid across the server and browser registry',()=>{
+  assert.equal(SOURCES.length,8);
+  assert.deepEqual(Object.keys(sourceNames),SOURCES.map(source=>source.id));
+  for(const provider of SOURCES){
+    assert.equal(provider.name,sourceNames[provider.id]);
+    assert.equal(splitId(provider.id+'-123').source,provider);
+    assert.equal(splitId(provider.id+'-123').native,'123');
+    assert(isMediaId(provider.id+'-123'));
+  }
+  for(const id of ['other-123','hn-0','md-1234567890','../dz-123','jy-1?url=x'])assert.equal(splitId(id),null);
+});
+
+test('uses the new providers actual category IDs and reports absent genres without querying another category',()=>{
+  const records={jy:[[14,'剧情片','movie'],[20,'内地剧','series'],[36,'大陆综艺','variety'],[16,'记录片','doc']],md:[[15,'剧情片','movie'],[26,'国产剧','series'],[34,'大陆综艺','variety'],[24,'记录片','doc']],hn:[[10,'剧情片','movie'],[12,'国产剧','series'],[39,'大陆综艺','variety'],[19,'纪录片','doc']],dz:[[6,'剧情片','movie'],[13,'国产剧','series'],[3,'综艺','variety'],[24,'纪录片','doc']]};
+  for(const [id,cases]of Object.entries(records))for(const [type_id,type_name,expected]of cases)assert.equal(mediaKind({type_id,type_name},SOURCES.find(source=>source.id===id)),expected,id+': '+type_name);
+  assert.deepEqual(queryPlan(SOURCES.find(source=>source.id==='dz'),{category:'variety',genre:'cn'}).types,[]);
+  assert.deepEqual(queryPlan(SOURCES.find(source=>source.id==='jy'),{category:'movie',genre:'family'}).types,[]);
 });
 
 test('rejects anime, restricted material, unsupported categories and conflicting category labels', () => {
@@ -157,9 +177,9 @@ test('retains the original timestamp of a successful cache after an upstream fai
 
 test('retains old timestamps when stale catalog rows seed the detail cache', async t => {
   const old = { time: Date.now() - 600000, value: { items: [normalize({ ...sample, vod_id: 8884 }, source)], pagecount: 1 } };
-  const env = { CINEMA_CACHE: { get: async key => key.startsWith('catalog:') ? old : null, put: async () => assert.fail('failed refresh must not write') } };
+  const env = { CINEMA_CACHE: { get: async key => key==='home:v1:bf' ? {parts:['all',26,31].map(type=>({key:`catalog:v1:bf:${type}:1:`,entry:old}))} : null, put: async () => assert.fail('failed refresh must not write') } };
   t.mock.method(globalThis, 'fetch', async () => { throw Error('offline'); });
-  const result = await catalog(env, new URLSearchParams('source=bf&category=movie&genre=drama&q=stale-detail-test'));
+  const result = await catalog(env, new URLSearchParams('source=bf'));
   assert.equal(result.sources[0].state, 'stale');
   assert.equal(result.sources[0].checkedAt, new Date(old.time).toISOString());
   assert.equal(result.meta.checkedAt, new Date(old.time).toISOString());
@@ -210,6 +230,12 @@ test('refuses private addresses, unsupported schemes, credentials and unapproved
   }
   assert(publicUrl('https://cdn.example.com/a.m3u8'));
   assert(publicUrl('https://kkzycdn.com:65/video/part.ts'));
+  assert(publicUrl('https://hnts.ymuuy.com:65/hls/video/part.ts'));
+  assert.equal(publicUrl('http://hnts.ymuuy.com:65/part.ts'),null);
+  assert.equal(publicUrl('https://other.ymuuy.com:65/part.ts'),null);
+  assert(publicUrl('https://c.baisiweiting.com:18443/hls/video/part.ts'));
+  assert.equal(publicUrl('https://other.baisiweiting.com:18443/part.ts'),null);
+  assert.equal(publicUrl('https://c.baisiweiting.com:18444/part.ts'),null);
   assert.equal(publicUrl('https://other.example.com:65/part.ts'), null);
 });
 

@@ -6,6 +6,10 @@ export const SOURCES=[
   {id:'bf',name:'暴风',api:'https://bfzyapi.com/api.php/provide/vod/',home:'https://bfzy.tv/',categories:{movie:{drama:26,action:21,comedy:22,romance:25,scifi:24,horror:23,war:27},series:{cn:31,west:32,hk:33,kr:34,tw:35,jp:36,overseas:37,th:38},variety:{cn:46,hk:47,kr:48,west:49},doc:{all:28}}},
   {id:'ff',name:'非凡',api:'https://api.ffzyapi.com/api.php/provide/vod/',home:'https://ffzy.tv/',categories:{movie:{...film},series:{...television},variety:{...entertainment},doc:{all:20}}},
   {id:'lz',name:'量子',api:'https://cj.lziapi.com/api.php/provide/vod/',home:'https://lzizy.com/',categories:{movie:{...film},series:{...television},variety:{...entertainment},doc:{all:20}}},
+  {id:'jy',name:'金鹰',api:'https://jyzyapi.com/provide/vod/from/jinyingm3u8/at/json',home:'https://jinyingzy.com/',categories:{movie:{drama:14,action:9,comedy:11,romance:10,scifi:12,horror:13,war:15},series:{cn:20,west:3,hk:4,kr:5,jp:6,th:7,tw:28},variety:{cn:36,hk:38,kr:37,west:39},doc:{all:16}}},
+  {id:'md',name:'魔都',api:'https://www.mdzyapi.com/api.php/provide/vod/',home:'https://moduzy.com/',categories:{movie:{drama:15,action:10,comedy:11,romance:12,scifi:13,horror:14,war:16,thriller:17,family:18,period:19,history:20,mystery:21,crime:22,disaster:23,short:25},series:{cn:26,hk:27,kr:28,west:29,tw:30,jp:31,overseas:32,th:33},variety:{cn:34,hk:35,kr:36,west:37},doc:{all:24}}},
+  {id:'hn',name:'红牛',api:'https://www.hongniuzy2.com/api.php/provide/vod/from/hnm3u8/',home:'https://www.hongniuzy.com/',categories:{movie:{drama:10,action:5,comedy:6,romance:7,scifi:8,horror:9,war:11},series:{cn:12,hk:13,jp:14,west:15,tw:16,th:17,kr:18},variety:{cn:39,kr:40,hk:41,west:42},doc:{all:19}}},
+  {id:'dz',name:'大众',api:'https://cdn.dzzyapi.com/api.php/provide/vod/',home:'https://dzzy8.com/',categories:{movie:{drama:6,romance:7,comedy:8,horror:9,scifi:10,war:11,thriller:12,action:40,crime:41},series:{cn:13,hk:14,west:15,jp:16,kr:25,th:26,overseas:44},variety:{all:3},doc:{all:24}}},
 ];
 export const CATEGORIES={all:'全部影视',movie:'电影',series:'电视剧',variety:'综艺',doc:'纪录片'};
 export const GENRES={

@@ -1,12 +1,13 @@
 import {useEffect,useState} from 'react';
 import type {Media} from './api';
+import {isMediaId} from '../shared/source-names.mjs';
 export type Favorite={media:Media;savedAt:number};
 export type Progress={media:Media;lineId:string;episodeId:string;episodeTitle:string;seconds:number;duration:number;savedAt:number};
 export type Settings={theme:'light'|'dark';rate:number;autonext:boolean;skipIntro:number;volume:number};
 export type Library={version:1;favorites:Favorite[];history:Progress[];settings:Settings};
 const defaults:Settings={theme:'light',rate:1,autonext:true,skipIntro:0,volume:.8};
 let memory:Library={version:1,favorites:[],history:[],settings:defaults},failed=false;
-const validId=(v:unknown):v is string=>typeof v==='string'&&/^(bf|ff|lz|ikun)-[1-9]\d{0,8}$/.test(v);
+const validId=isMediaId;
 const clamp=(v:unknown,min:number,max:number,fallback:number)=>typeof v==='number'&&Number.isFinite(v)?Math.max(min,Math.min(max,v)):fallback;
 export function cleanMedia(v:unknown):Media|null{
   if(!v||typeof v!=='object')return null;const x=v as Record<string,unknown>;
