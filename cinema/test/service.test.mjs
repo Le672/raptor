@@ -103,6 +103,7 @@ test('keeps explicit genre pagination native and bounds the all-category discove
       types: [provider.categories.movie.action], nativePage: 4, hasNextGroup: false,
     });
     assert.deepEqual(queryPlan(provider, { category: 'all', q: 'search', page: 3 }), { types: [undefined], nativePage: 3, hasNextGroup: false });
+    assert.deepEqual(queryPlan(provider, { category: 'movie', q: 'search', page: 3 }), { types: [undefined], nativePage: 3, hasNextGroup: false });
     assert.deepEqual(queryPlan(provider, { category: 'all', page: 2 }).types, [undefined, provider.categories.movie.drama, provider.categories.series.cn]);
     assert.deepEqual(queryPlan(provider, { category: 'missing' }).types, []);
     assert.deepEqual(queryPlan(provider, { category: 'movie', genre: 'missing' }).types, []);
@@ -136,7 +137,7 @@ test('retains successful genres from one source when another genre fails and rep
     const comedy = url.searchParams.get('t') === '22';
     return Response.json({ code: 1, pagecount: 1, list: [{ ...sample, vod_id: comedy ? 8881 : 8880, vod_name: comedy ? '成功的喜剧' : '成功的剧情', type_id: comedy ? 22 : 26, type_name: comedy ? '喜剧片' : '剧情片' }] });
   });
-  const result = await catalog({}, new URLSearchParams('source=bf&category=movie&q=partial-genre-test'));
+  const result = await catalog({}, new URLSearchParams('source=bf&category=movie'));
   assert.deepEqual(calls.map(item => item.type).sort(), ['21', '22', '26']);
   assert(calls.every(item => item.page === '1'));
   assert.equal(result.data.length, 2);
@@ -161,6 +162,22 @@ test('keeps usable providers when other providers fail and removes irrelevant re
   assert.equal(result.sources.find(item => item.id === 'ff').state, 'error');
   assert.match(result.sources.find(item => item.id === 'ff').reason, /连接失败/);
   assert.equal(result.hasMore, true);
+});
+
+test('searches every genre and filters cached mixed-kind results separately for each selected category',async t=>{
+  const calls=[];
+  t.mock.method(globalThis,'fetch',async input=>{
+    const url=new URL(input);calls.push(url);assert.equal(url.searchParams.get('t'),null,'a movie search must include science fiction outside the first genre group');
+    return Response.json({code:1,pagecount:1,list:[{...sample,vod_id:8991,type_id:24,type_name:'科幻片'},{...sample,vod_id:8992,type_id:31,type_name:'国产剧'}]});
+  });
+  const base='source=bf&q=mixed-kind-cache-search';
+  const movies=await catalog({},new URLSearchParams(base+'&category=movie'));
+  const series=await catalog({},new URLSearchParams(base+'&category=series'));
+  const all=await catalog({},new URLSearchParams(base));
+  assert.deepEqual(movies.data.map(item=>item.id),['bf-8991']);
+  assert.deepEqual(series.data.map(item=>item.id),['bf-8992']);
+  assert.equal(all.data.length,2,'the first filtered request must not remove other kinds from shared cache');
+  assert.equal(calls.length,1,'all three views can share one unfiltered provider response');
 });
 
 test('retains the original timestamp of a successful cache after an upstream failure', async () => {

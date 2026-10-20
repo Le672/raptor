@@ -33,6 +33,7 @@ export function queryPlan(source,{category='all',genre='all',q='',page=1}={}){
   if(category==='all')return {types:q?[undefined]:[undefined,source.categories.movie.drama,source.categories.series.cn],nativePage:page,hasNextGroup:false};
   const genres=source.categories[category];if(!genres)return {types:[],nativePage:page,hasNextGroup:false};
   if(genre!=='all')return {types:genres[genre]===undefined?[]:[genres[genre]],nativePage:page,hasNextGroup:false};
+  if(q)return {types:[undefined],nativePage:page,hasNextGroup:false};
   const ids=[...new Set(Object.values(genres))],groups=Math.max(1,Math.ceil(ids.length/3)),index=(page-1)%groups;
   return {types:ids.slice(index*3,index*3+3),nativePage:Math.floor((page-1)/groups)+1,hasNextGroup:index<groups-1};
 }

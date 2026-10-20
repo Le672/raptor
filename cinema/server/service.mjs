@@ -43,7 +43,7 @@ export async function catalog(env,params=new URLSearchParams(),persistHome=false
     const cacheKeys=plan.types.map(t=>`catalog:v1:${source.id}:${t||'all'}:${plan.nativePage}:${q}`);
     const reads=await Promise.allSettled(plan.types.map((t,index)=>cached(env,cacheKeys[index],async()=>{
       const data=await upstream(source,{ac:'detail',t,pg:plan.nativePage,...(q?{wd:q}:{})});
-      return {items:data.list.map(x=>normalize(x,source)).filter(x=>x&&(category==='all'||x.mediaKind===category)),pagecount:Math.max(1,Number(data.pagecount)||1)};
+      return {items:data.list.map(x=>normalize(x,source)).filter(Boolean),pagecount:Math.max(1,Number(data.pagecount)||1)};
     },force,false)));
     const parts=reads.filter(x=>x.status==='fulfilled').map(x=>x.value),errors=reads.filter(x=>x.status==='rejected').map(x=>x.reason.message);
     if(!parts.length)return {source,state:'error',reason:errors.join('；'),items:[],hasMore:plan.hasNextGroup};
@@ -52,7 +52,7 @@ export async function catalog(env,params=new URLSearchParams(),persistHome=false
     if(home&&persistHome&&env.CINEMA_CACHE&&parts.some(part=>!part.stale)){try{await env.CINEMA_CACHE.put(homeKey,JSON.stringify({parts:reads.flatMap((read,index)=>read.status==='fulfilled'?[{key:cacheKeys[index],entry:{time:Date.parse(read.value.checkedAt),value:read.value.value}}]:[])}),{expirationTtl:604800});}catch{/* Preserve successful live responses if storage is unavailable. */}}
     for(const part of parts)for(const item of part.value.items)memory.set('detail:v1:'+item.id,{time:Date.parse(part.checkedAt),value:item});while(memory.size>500)memory.delete(memory.keys().next().value);
     return {source,state:errors.length?'partial':parts.some(x=>x.stale)?'stale':'ok',reason:[...errors,...parts.filter(x=>x.reason).map(x=>x.reason)].join('；')||undefined,
-      checkedAt:parts.map(x=>x.checkedAt).sort()[0],items:parts.flatMap(x=>x.value.items),stale:parts.some(x=>x.stale),hasMore:plan.hasNextGroup||parts.some(x=>x.value.pagecount>plan.nativePage)};
+      checkedAt:parts.map(x=>x.checkedAt).sort()[0],items:parts.flatMap(x=>x.value.items).filter(item=>category==='all'||item.mediaKind===category),stale:parts.some(x=>x.stale),hasMore:plan.hasNextGroup||parts.some(x=>x.value.pagecount>plan.nativePage)};
   }));
   if(!results.some(x=>['ok','partial','stale'].includes(x.state)))throw failure(results.map(x=>x.reason).join('；')||'暂时没有可用片源');
   return {data:mergeCatalog(results.flatMap(x=>x.items)),page,hasMore:results.some(x=>x.hasMore),sources:results.map(({source,items,hasMore,stale,...status})=>({id:source.id,name:source.name,count:new Set(items.map(x=>x.id)).size,...status})),
