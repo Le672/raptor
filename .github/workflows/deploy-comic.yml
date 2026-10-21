@@ -6,6 +6,7 @@ on:
       - 'comic/**'
       - 'shared/**'
       - 'scripts/*comic*.mjs'
+      - 'scripts/verify-content-session.mjs'
       - 'scripts/check-kv-budget.mjs'
       - '.github/workflows/deploy-comic.yml'
   workflow_dispatch:

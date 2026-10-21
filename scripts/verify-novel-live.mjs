@@ -1,7 +1,9 @@
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
+import { verifyContentSession } from './verify-content-session.mjs';
 const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 if (proxy) setGlobalDispatcher(new ProxyAgent(proxy));
 const origin = process.env.NOVEL_ORIGIN || 'https://novel.yukino.bond';
+await verifyContentSession(origin);
 async function get(path, ready = async () => true, allowedStatuses = []) {
   let lastError;
   for (let attempt = 0; attempt < 6; attempt++) {

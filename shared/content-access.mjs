@@ -46,7 +46,11 @@ export function createAccessGuard(site, { fetcher = (...args) => fetch(...args),
       try {
         const response = await fetcher(`${PORTAL}/api/auth/access`, {
           headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-          redirect: 'error', signal: AbortSignal.timeout(8000), cache: 'no-store',
+          // Workers does not implement redirect:'error'; it throws before fetch.
+          // Manual mode keeps Authorization on the trusted origin and lets the
+          // non-OK check below reject redirects without forwarding credentials.
+          // https://developers.cloudflare.com/workers/runtime-apis/request/#options
+          redirect: 'manual', signal: AbortSignal.timeout(8000), cache: 'no-store',
         });
         if (response.status === 401 || response.status === 403) {
           const result = { user: null, until: now() + 20000 };

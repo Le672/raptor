@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import {ProxyAgent,setGlobalDispatcher} from 'undici';
+import {verifyContentSession} from './verify-content-session.mjs';
 if(process.env.HTTPS_PROXY||process.env.HTTP_PROXY)setGlobalDispatcher(new ProxyAgent(process.env.HTTPS_PROXY||process.env.HTTP_PROXY));
 const origin=process.env.COMIC_ORIGIN||'https://comic.yukino.bond';
+await verifyContentSession(origin);
 async function get(path){let error;for(let attempt=0;attempt<5;attempt++){try{const response=await fetch(origin+path,{signal:AbortSignal.timeout(55000),redirect:'manual'});assert.equal(response.status,200,path+' must respond without a redirect');return response;}catch(e){error=e;if(attempt<4)await new Promise(r=>setTimeout(r,5000));}}throw error;}
 const index=await(await get('/')).text();assert.match(index,/番剧放映室/);assert.match(index,/\/assets\/[^" ]+\.js/);
 const sourceList=await(await get('/api/sources')).json();assert.equal(sourceList.scheduledMinutes,60);assert.equal(sourceList.data.length,4);

@@ -26,12 +26,28 @@ test('well-shaped forged token still requires the real portal to validate it', a
   const guard = createAccessGuard('comic', { now: () => now, fetcher: async (url, init) => {
     calls++; assert.equal(url, 'https://www.yukino.bond/api/auth/access');
     assert.equal(init.headers.Authorization, `Bearer ${token()}`);
-    assert.equal(init.redirect, 'error');
+    assert.equal(init.redirect, 'manual');
     return Response.json({ error: 'invalid signature' }, { status: 401 });
   } });
   assert.equal((await guard.require(req())).status, 401);
   assert.equal((await guard.require(req())).status, 401);
   assert.equal(calls, 1);
+});
+
+test('identity redirects fail closed without following or forwarding the session to another origin', async () => {
+  const calls = [];
+  const guard = createAccessGuard('novel', { now: () => now, fetcher: async (url, init) => {
+    calls.push({ url, init });
+    assert.equal(url, 'https://www.yukino.bond/api/auth/access');
+    assert.equal(init.redirect, 'manual');
+    assert.equal(init.headers.Authorization, `Bearer ${token()}`);
+    return new Response(null, { status: 302, headers: { Location: 'https://foreign.example/collect' } });
+  } });
+  const response = await guard.require(req());
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).code, 'AUTH_UNAVAILABLE');
+  assert.equal(response.headers.has('Location'), false);
+  assert.equal(calls.length, 1);
 });
 
 test('positive checks deduplicate, cache for five minutes, and honor JWT expiry', async () => {
