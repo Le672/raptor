@@ -33,6 +33,8 @@ export function TopNav() {
   const currentSection = siteNavigation.find(item => !item.href && isActive(item.to));
   const currentPage = currentSection?.label || (activePath.startsWith("/admin") ? "管理台" : activePath === "/login" ? "登录" : activePath === "/register" ? "注册" : "小站");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const [navigationHidden, setNavigationHidden] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -90,10 +92,12 @@ export function TopNav() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  const handleLogout = () => {
-    api.logout().catch(() => {});
-    logout();
-    navigate("/");
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true); setLogoutError("");
+    try { await api.logout(); logout(); navigate("/"); }
+    catch { setLogoutError("退出失败，请重试"); }
+    finally { setLoggingOut(false); }
   };
   return (
     <>
@@ -116,7 +120,8 @@ export function TopNav() {
             {user ? <>
               {user.role === "admin" && <Link to="/admin">管理台</Link>}
               <span className="account-name" title={user.name}>{user.name}</span>
-              <button onClick={handleLogout}>退出</button>
+              <button onClick={handleLogout} disabled={loggingOut}>{loggingOut ? "退出中…" : "退出"}</button>
+              {logoutError && <span role="alert">{logoutError}</span>}
             </> : <Link to="/login">登录 <ArrowUpRight size={14} /></Link>}
           </div>
         </div>

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import worker from '../server/worker.mjs';
 import { adapters } from '../server/adapters.mjs';
 import * as fixture from './fixtures/sources.mjs';
+import { authenticatedHeaders, portalIdentity } from './fixtures/access.mjs';
 import { remember } from '../server/multi-source.mjs';
 import { CACHE_LIMITS, KV_WRITES_PER_REFRESH, SNAPSHOT_KEY, SNAPSHOT_KEYS, cached, persist, stored, snapshotStatus, cacheUsage } from '../server/cache.mjs';
 
@@ -21,11 +22,12 @@ function environment(initial = {}, fail = false) {
 }
 function context() { const pending = []; return { waitUntil: task => pending.push(task), async finish() { for (let i = 0; i < pending.length; i++) await pending[i]; } }; }
 async function call(env, path, ctx = context()) {
-  const response = await worker.fetch(new Request(`https://novel.yukino.bond${path}`), env, ctx);
+  const response = await worker.fetch(new Request(`https://novel.yukino.bond${path}`,{headers:authenticatedHeaders()}), env, ctx);
   const value = await response.json(); await ctx.finish(); return { response, value };
 }
 function sources(t, failed = () => false) {
   t.mock.method(globalThis, 'fetch', async url => {
+    const portal=portalIdentity(url);if(portal)return portal;
     if(failed())return new Response('',{status:503});
     if (String(url).endsWith('/novels')) return Response.json({ ok: true, data: [raw(1)] });
     if (String(url).includes('/chapter/')) return Response.json({ ok: true, data: { nid: 1, vid: 1, cid: 1, title: '章节', content: '<p>成功正文</p>' } });
@@ -47,7 +49,7 @@ test('all visitor routes, manual refresh and concurrent distinct searches spend 
     const { response, value } = await call(env, path);
     assert.equal(response.status, 200, `${path}: ${JSON.stringify(value)}`);
   }
-  const searches = await Promise.all(Array.from({ length: 35 }, (_, index) => call(env, `/api/books?source=sf&q=query-${index}&refresh=1`)));
+  const searches = await Promise.all(Array.from({ length: 35 }, (_, index) => call(env, `/api/books?source=sf&q=query-${index}`)));
   assert.ok(searches.every(item => item.response.status === 200));
   assert.equal(env.NOVEL_CACHE.puts.length, 0);
 });

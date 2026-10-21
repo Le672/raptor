@@ -4,8 +4,8 @@ import { KV_WRITES_PER_REFRESH as comicWrites } from '../comic/server/service.mj
 import { KV_WRITES_PER_REFRESH as novelWrites } from '../novel/server/cache.mjs';
 
 // The free allowance belongs to the account, not to each namespace/Worker.
-// Keep at least half available for mail sign-ins, settings and attachments.
-const MAX_CONTENT_WRITES_PER_DAY = 500;
+// Reserve almost all writes for mail sign-ins, settings and attachments.
+const MAX_CONTENT_WRITES_PER_DAY = 100;
 const sites = [
   ['cinema', cinemaWrites],
   ['comic', comicWrites],

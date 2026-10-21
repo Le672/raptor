@@ -48,7 +48,7 @@ function successfulUpstream(calls){
   };
 }
 
-test('one scheduled refresh persists all homepage parts with one KV write per source',async t=>{
+test('one scheduled refresh persists all sources and homepage parts in one bounded KV write',async t=>{
   const {refreshCatalogs,KV_WRITES_PER_REFRESH}=await freshService(),cache=cacheEnv(),calls=[];
   const now=Date.parse('2026-10-19T12:00:00Z');
   t.mock.method(Date,'now',()=>now);
@@ -56,27 +56,29 @@ test('one scheduled refresh persists all homepage parts with one KV write per so
 
   const result=await refreshCatalogs(cache.env);
   assert.equal(calls.length,SOURCES.length*3,'each source refreshes three homepage parts');
-  assert.equal(cache.writes.length,SOURCES.length,'the refresh may spend only one KV write per source');
-  assert.equal(cache.reads.length,SOURCES.length,'read only persisted homepage bundles, not unpersisted part keys');
+  assert.equal(cache.writes.length,1,'all eight sources must share one KV write');
+  assert.equal(cache.reads.length,1+SOURCES.length,'read the combined snapshot once, then absent legacy source bundles');
   assert(calls.length+cache.reads.length+cache.writes.length<=50,'a cold scheduled refresh must fit the edge subrequest limit');
   const config=JSON.parse(await readFile(new URL('../wrangler.jsonc',import.meta.url),'utf8'));
   assert.deepEqual(config.triggers.crons,['0 * * * *'],'the deployed schedule must run only once an hour');
   assert.equal(KV_WRITES_PER_REFRESH,cache.writes.length);
-  assert.equal(cache.writes.length*24,192,'cinema must reserve shared account quota for other sites');
+  assert.equal(cache.writes.length*24,24,'cinema must reserve shared account quota for other sites');
   assert.equal(result.sources.length,SOURCES.length);
   assert(result.sources.every(source=>source.state==='ok'));
   assert.equal(result.data.length,SOURCES.length*3);
   assert.equal(result.meta.scheduledMinutes,60);
-  assert.deepEqual(cache.writes.map(write=>write.key).sort(),SOURCES.map(source=>'home:v1:'+source.id).sort());
+  assert.deepEqual(cache.writes.map(write=>write.key),['home-snapshot:v2']);
+  assert.equal(cache.writes[0].value.version,2);
+  assert(new TextEncoder().encode(JSON.stringify(cache.writes[0].value)).byteLength<=8*1024*1024);
 
   let persistedParts=0;
   for(const source of SOURCES){
-    const saved=cache.writes.find(write=>write.key==='home:v1:'+source.id);
-    assert.deepEqual(saved.options,{expirationTtl:604800});
+    const saved=cache.writes[0].value.sources[source.id];
+    assert.deepEqual(cache.writes[0].options,{expirationTtl:604800});
     const expectedKeys=queryPlan(source).types.map(type=>`catalog:v1:${source.id}:${type||'all'}:1:`);
-    assert.deepEqual(saved.value.parts.map(part=>part.key),expectedKeys);
-    assert.equal(saved.value.parts.length,3);
-    for(const part of saved.value.parts){
+    assert.deepEqual(saved.parts.map(part=>part.key),expectedKeys);
+    assert.equal(saved.parts.length,3);
+    for(const part of saved.parts){
       persistedParts++;
       assert.equal(part.entry.time,now);
       assert.equal(part.entry.value.items.length,1);
@@ -179,16 +181,20 @@ test('KV quota exhaustion cannot turn a successful scheduled refresh into an out
   const result=await refreshCatalogs(cache.env);
   assert.equal(result.data.length,SOURCES.length*3);
   assert(result.sources.every(source=>source.state==='ok'));
-  assert.equal(attemptedWrites,SOURCES.length,'do not retry a quota-blocked write');
+  assert.equal(attemptedWrites,1,'do not retry a quota-blocked write');
   const memoryOnly=await cached(cache.env,'default-request-no-put',async()=>({items:['live']}));
   assert.deepEqual(memoryOnly.value.items,['live']);
-  assert.equal(attemptedWrites,SOURCES.length,'the generic request cache must never persist');
+  assert.equal(attemptedWrites,1,'the generic request cache must never persist');
 });
 
-test('public API refresh flags cannot opt visitors into the scheduler persistence path',async t=>{
-  const cache=cacheEnv(),calls=[];t.mock.method(globalThis,'fetch',successfulUpstream(calls));
+test('manual API refresh requires login and cannot enable KV persistence after authorization',async t=>{
+  const cache=cacheEnv(),calls=[],live=successfulUpstream(calls);
+  t.mock.method(globalThis,'fetch',async input=>new URL(input).hostname==='www.yukino.bond'?Response.json({user:{id:200,name:'Budget Viewer',role:'user'}}):live(input));
+  const session=`e30.${Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.budget`,headers={Cookie:`__Secure-yukino_session=${session}`};
   for(const path of ['/api/catalog?refresh=1&persistHome=1','/api/catalog?q=public-route-budget&refresh=1','/api/title/bf-901001?refresh=1']){
-    const response=await worker.fetch(new Request('https://cinema.yukino.bond'+path),cache.env,{});
+    const guest=await worker.fetch(new Request('https://cinema.yukino.bond'+path),cache.env,{});
+    assert.equal(guest.status,401,path);assert.equal((await guest.json()).code,'LOGIN_REQUIRED');
+    const response=await worker.fetch(new Request('https://cinema.yukino.bond'+path,{headers}),cache.env,{});
     assert.equal(response.status,200,path);assert.equal(cache.writes.length,0);
   }
   const sources=await(await worker.fetch(new Request('https://cinema.yukino.bond/api/sources'),cache.env,{})).json();

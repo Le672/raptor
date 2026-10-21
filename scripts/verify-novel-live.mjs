@@ -20,7 +20,11 @@ async function get(path, ready = async () => true, allowedStatuses = []) {
 const getJson = async (path, valid = () => true, allowedStatuses = []) => (await get(path,async response=>valid(await response.json()),allowedStatuses)).json();
 const index = await get('/'); if (!(await index.text()).includes('Yukino Novel')) throw new Error('Reader shell is missing');
 const deepLink = await get('/sources',async response=>response.url.endsWith('/sources')); if (!(await deepLink.text()).includes('Yukino Novel')) throw new Error('Deep link app shell is missing');
-const status = await getJson('/api/status?refresh=1',result=>result.data?.sources?.length===4&&result.data?.indexed&&result.data?.persisted&&!result.meta?.stale&&result.data?.scheduledMinutes===60&&result.data?.persistence?.mode==='hourly-snapshot');
+const access = await getJson('/api/access',result=>result.user===null&&new URL(result.loginUrl).origin==='https://www.yukino.bond');
+if(access.user!==null)throw new Error('Guest access probe unexpectedly has an authenticated session');
+const refreshGate=await(await get('/api/status?refresh=1',async response=>response.status===401&&(await response.json()).code==='LOGIN_REQUIRED',[401])).json();
+if(refreshGate.code!=='LOGIN_REQUIRED')throw new Error('Anonymous manual refresh must require login');
+const status = await getJson('/api/status',result=>result.data?.sources?.length===4&&result.data?.indexed&&result.data?.persisted&&!result.meta?.stale&&result.data?.scheduledMinutes===60&&result.data?.persistence?.mode==='hourly-snapshot');
 if (!status.data?.indexed || !status.data?.persisted || status.meta?.stale) throw new Error('Live source data or configured snapshot storage is unavailable');
 if (status.data.persistence.scheduledWritesPerDay !== 24) throw new Error('The hourly novel snapshot write budget is missing');
 if (status.data.sources?.length !== 4) throw new Error('Four source definitions are missing');
@@ -37,9 +41,9 @@ for (const id of ['sf-775221','linovel-122429']) {
   const volume = await (await get(`/api/book/${id}/volume/${detail.data.volumes[0].id}`)).json();
   const chapter = volume.data?.chapters?.find(item=>!item.restricted && !/KEYWORDS/i.test(item.title));
   if (!chapter) throw new Error(`${id}: no public chapter`);
-  const body = await getJson(`/api/book/${id}/chapter/${chapter.id}`,result=>result.data?.blocks?.length&&!result.meta?.stale);
-  if (!body.data?.blocks?.length || body.data.bookId!==id) throw new Error(`${id}: no readable public text`);
-  console.log(`${id}: ${detail.data.volumes.length} volumes, ${body.data.blocks.length} public content blocks`);
+  const body = await(await get(`/api/book/${id}/chapter/${chapter.id}`,async response=>response.status===401&&(await response.json()).code==='LOGIN_REQUIRED',[401])).json();
+  if(body.code!=='LOGIN_REQUIRED')throw new Error(`${id}: anonymous chapter must require login`);
+  console.log(`${id}: ${detail.data.volumes.length} public volumes; chapter login gate verified`);
 }
 const wenku=await getJson('/api/book/wenku-1973',result=>result.data?.volumes?.length||result.sourceUrl==='https://www.wenku8.net/book/1973.htm',[403]);
 if(wenku.error)console.log('wenku: source restricts server access; explicit restriction and external reading entry verified');

@@ -20,13 +20,21 @@ export function AppShell() {
   const visualPage = isRailPage || isRailHost() ? "rail" : visualPath.split("/").filter(Boolean)[0] || "home";
   const closeMobileMenu = useSiteStore((state) => state.closeMobileMenu);
   const token = useAuthStore(state => state.token);
+  const authLoading = useAuthStore(state => state.isLoading);
   useEffect(() => {
-    if (!token) return;
     let active = true;
     useAuthStore.getState().setLoading(true);
     api.getMe().then(result => { if (active && useAuthStore.getState().token === token) useAuthStore.getState().setUser(result.user); })
-      .catch(error => { if (active && useAuthStore.getState().token === token && error instanceof ApiError && error.status === 401) useAuthStore.getState().logout(); })
-      .finally(() => { if (active) useAuthStore.getState().setLoading(false); });
+      .catch(error => {
+        if (!active || useAuthStore.getState().token !== token || !(error instanceof ApiError) || error.status !== 401) return;
+        if (token) {
+          // An older origin-local Bearer token must not hide a newer shared
+          // cookie session. Keep protected routes waiting for the cookie retry.
+          useAuthStore.getState().setToken(null);
+          useAuthStore.getState().setUser(null);
+        } else useAuthStore.getState().logout();
+      })
+      .finally(() => { if (active && useAuthStore.getState().token === token) useAuthStore.getState().setLoading(false); });
     return () => { active = false; };
   }, [token]);
 
@@ -49,7 +57,7 @@ export function AppShell() {
         className="relative"
         tabIndex={-1}
       >
-        <PageErrorBoundary resetKey={location.pathname + location.search}><Suspense fallback={<p className="game-notice mx-auto my-10 max-w-md" role="status">正在打开页面…</p>}><Outlet /></Suspense></PageErrorBoundary>
+        <PageErrorBoundary resetKey={location.pathname + location.search}><Suspense fallback={<p className="game-notice mx-auto my-10 max-w-md" role="status">正在打开页面…</p>}>{authLoading && location.pathname.startsWith("/admin") ? <p className="game-notice mx-auto my-10 max-w-md" role="status">正在确认登录状态…</p> : <Outlet />}</Suspense></PageErrorBoundary>
       </main>
       {!isRailPage && !isF1Page && <Footer />}
       <PageUtilities />

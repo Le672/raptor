@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SiteLink as Link } from "@/components/SiteLink";
 import { useSiteNavigate as useNavigate } from "@/hooks/useSiteNavigate";
@@ -8,18 +8,34 @@ import { useAuthStore } from "@/hooks/useAuthStore";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { safeAuthReturn } from "@/lib/auth-return";
 
 export default function Login() {
   useDocumentMeta("登录", "使用 Yukino Mail 账号或原主站账号登录。");
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { setUser, setToken } = useAuthStore();
+  const { setUser, setToken, token } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [source, setSource] = useState<"mail" | "local">("mail");
   const [showPassword, setShowPassword] = useState(false);
+  const returnTo = safeAuthReturn(params.get("returnTo"));
+  const [checkingSession, setCheckingSession] = useState(Boolean(returnTo));
+  useEffect(() => {
+    if (!returnTo) { setCheckingSession(false); return; }
+    let active = true;
+    setCheckingSession(true);
+    // The server validates stored Bearer sessions and migrates their remaining
+    // lifetime to the HttpOnly cookie before returning to a content site.
+    api.getMe().then(result => {
+      if (!active) return;
+      setUser(result.user);
+      window.location.assign(returnTo);
+    }).catch(() => {}).finally(() => { if (active) setCheckingSession(false); });
+    return () => { active = false; };
+  }, [returnTo, setUser, token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +47,7 @@ export default function Login() {
       const res = await api.login(email.trim().toLowerCase(), password, source);
       setToken(res.token);
       setUser(res.user);
+      if (returnTo) { window.location.assign(returnTo); return; }
       const next = params.get("next");
       navigate(next?.startsWith("/") && !next.startsWith("//") && !next.includes("\\") && !/[\x00-\x1f\x7f]/.test(next)
         ? next : res.user.role === "admin" ? "/admin" : "/");
@@ -58,6 +75,7 @@ export default function Login() {
           <p className="text-sm leading-6 text-stone-500">
             {source === "mail" ? "使用 Yukino Mail 的邮箱账号和密码登录，无需重复注册。" : "使用原主站账号登录，保留已有管理员权限。"}
           </p>
+          {returnTo && <p className="text-sm leading-6 text-stone-500">{checkingSession ? "正在检查已有登录状态…" : "登录后会自动返回阅读或播放页面，登录状态在 Yukino 内容站共享。"}</p>}
         </div>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
@@ -108,7 +126,7 @@ export default function Login() {
               "inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900/80 px-5 py-3 text-sm text-white backdrop-blur-xl transition hover:-translate-y-0.5",
               loading && "opacity-60",
             )}
-            disabled={loading}
+            disabled={loading || checkingSession}
             type="submit"
           >
             <LogIn className="size-4" />

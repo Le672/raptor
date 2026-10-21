@@ -5,14 +5,14 @@ import Uses from "../pages/Uses";
 import { api, ApiError } from "../lib/api";
 import { DEFAULT_USES } from "../lib/uses";
 
-const auth = vi.hoisted(() => ({ token: null as string | null }));
+const auth = vi.hoisted(() => ({ token: null as string | null, user: null as { id: number; role: string } | null }));
 vi.mock("@/hooks/useAuthStore", () => ({ useAuthStore: (selector: any) => selector(auth) }));
 vi.mock("@/lib/api", async (original) => {
   const module = await original<typeof import("../lib/api")>();
   return { ...module, api: { ...module.api, getUses: vi.fn(), updateUses: vi.fn() } };
 });
 const response = (canEdit = false) => ({ content: structuredClone(DEFAULT_USES), revision: 0, updatedAt: null, canEdit });
-beforeEach(() => { auth.token = null; vi.mocked(api.getUses).mockResolvedValue(response()); });
+beforeEach(() => { auth.token = null; auth.user = null; vi.mocked(api.getUses).mockResolvedValue(response()); });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 const mount = () => render(<MemoryRouter><Uses /></MemoryRouter>);
 
@@ -40,6 +40,17 @@ it("lets a verified admin edit and publish content, then shows the saved public 
   expect(api.updateUses).toHaveBeenCalledWith(expect.objectContaining({ description: "我的真实设备清单" }), 0);
   expect(screen.getByText("更新后的台式机")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "保存清单" })).not.toBeInTheDocument();
+});
+
+it("restores editing after a cookie-only administrator session is confirmed", async () => {
+  const view = mount();
+  await screen.findByText("自组装 PC");
+  auth.user = { id: 5, role: "admin" };
+  vi.mocked(api.getUses).mockResolvedValue(response(true));
+  view.rerender(<MemoryRouter><Uses /></MemoryRouter>);
+  fireEvent.click(await screen.findByRole("button", { name: "编辑清单" }));
+  expect(screen.getByRole("button", { name: "保存清单" })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "管理员登录" })).not.toBeInTheDocument();
 });
 
 it("supports removing categories and discarding a draft without publishing it", async () => {

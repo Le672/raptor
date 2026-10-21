@@ -5,11 +5,12 @@ import { imageSource } from '../shared/sources.mjs';
 import { normalizeBook } from '../server/service.mjs';
 import worker from '../server/worker.mjs';
 import * as fixture from './fixtures/sources.mjs';
+import { authenticatedHeaders, portalIdentity } from './fixtures/access.mjs';
 
 function environment(records={}) { const data=new Map(Object.entries(records));return{NOVEL_CACHE:{get:async key=>data.get(key)||null,put:async(key,value)=>data.set(key,JSON.parse(value))}}; }
 const record=data=>({data,checkedAt:new Date().toISOString()});
 const ctx={waitUntil:promise=>promise.catch(()=>{})};
-const call=(path,env)=>worker.fetch(new Request('https://test'+path),env,ctx);
+const call=(path,env,authenticated=false)=>worker.fetch(new Request('https://test'+path,{headers:authenticated?authenticatedHeaders():{}}),env,ctx);
 
 test('source parsers preserve namespace, source dates, and public versus subscription links',()=>{
   const sf=parseSfBook(fixture.sfDetail,fixture.sfToc,'8');
@@ -49,16 +50,16 @@ test('source search keeps remote alias matches while isolating a failed search',
 });
 test('chapter endpoints validate book membership and never fetch known VIP chapters',async t=>{
   const book=parseSfBook(fixture.sfDetail,fixture.sfToc,'8'),env=environment({'detail:v2:sf-8':record(book)});let fetches=0;
-  t.mock.method(globalThis,'fetch',async()=>{fetches++;return new Response(fixture.sfChapter);});
+  t.mock.method(globalThis,'fetch',async url=>{const portal=portalIdentity(url);if(portal)return portal;fetches++;return new Response(fixture.sfChapter);});
   assert.equal((await call('/api/book/sf-8/volume/999',env)).status,404);
-  assert.equal((await call('/api/book/sf-8/chapter/999',env)).status,404);
-  assert.equal((await call('/api/book/sf-8/chapter/12',env)).status,403);assert.equal(fetches,0);
-  const chapter=await(await call('/api/book/sf-8/chapter/11',env)).json();assert.equal(chapter.data.volumeId,'10');assert.equal(fetches,1);
+  assert.equal((await call('/api/book/sf-8/chapter/999',env,true)).status,404);
+  assert.equal((await call('/api/book/sf-8/chapter/12',env,true)).status,403);assert.equal(fetches,0);
+  const chapter=await(await call('/api/book/sf-8/chapter/11',env,true)).json();assert.equal(chapter.data.volumeId,'10');assert.equal(fetches,1);
 });
 test('an explicit chapter restriction cannot fall back to a previously cached body',async t=>{
   const book=parseSfBook(fixture.sfDetail,fixture.sfToc,'8'),env=environment({'detail:v2:sf-8':record(book),'text:v2:sf-8:11':{data:{blocks:[{type:'text',text:'old'}]},checkedAt:'2020-01-01T00:00:00Z'}});
-  t.mock.method(globalThis,'fetch',async()=>new Response('',{status:403}));
-  const response=await call('/api/book/sf-8/chapter/11?refresh=1',env);assert.equal(response.status,403);assert.match((await response.json()).error,/登录/);
+  t.mock.method(globalThis,'fetch',async url=>portalIdentity(url)||new Response('',{status:403}));
+  const response=await call('/api/book/sf-8/chapter/11?refresh=1',env,true);assert.equal(response.status,403);assert.match((await response.json()).error,/登录/);
 });
 test('deep links render the app without redirecting the reader to the homepage',async()=>{
   const env={ASSETS:{fetch:async request=>new URL(request.url).pathname==='/'?new Response('<html>novel app</html>',{headers:{'Content-Type':'text/html'}}):new Response(null,{status:404})}};

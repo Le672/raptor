@@ -136,19 +136,57 @@ export function getAuthToken(request: Request): string | null {
   if (authHeader?.startsWith("Bearer ")) {
     return authHeader.slice(7);
   }
-  // Also check cookie
+  // Reject duplicate session cookies rather than relying on their path/order.
   const cookie = request.headers.get("Cookie");
   if (cookie) {
+    const sessions = cookie.split(";").map(value => value.trim()).filter(value => value.startsWith(`${SHARED_SESSION_COOKIE}=`));
+    if (sessions.length) return sessions.length === 1 ? sessions[0].slice(SHARED_SESSION_COOKIE.length + 1) : null;
     const match = cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
     if (match) return match[1];
   }
   return null;
 }
 
+export const SHARED_SESSION_COOKIE = "__Secure-yukino_session";
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+export function sameOriginMutation(request: Request, requireOrigin = false): boolean {
+  const origin = request.headers.get("Origin"), site = request.headers.get("Sec-Fetch-Site");
+  // Packaged clients deliberately omit browser cookies. Their explicit,
+  // non-simple header keeps this exception unavailable to cross-site forms.
+  if (!requireOrigin && request.headers.get("X-Yukino-Native") === "1" && !request.headers.has("Cookie") &&
+      ["null", "capacitor://localhost", "http://localhost", "https://localhost"].includes(origin || "")) return true;
+  if (origin && origin !== new URL(request.url).origin) return false;
+  if (site && site !== "same-origin" && site !== "none") return false;
+  return !requireOrigin || origin === new URL(request.url).origin;
+}
+export function safeCookieMutation(request: Request): boolean {
+  return !UNSAFE_METHODS.has(request.method) || request.headers.get("Authorization")?.startsWith("Bearer ") === true || sameOriginMutation(request, true);
+}
+function cookieDomain(request: Request): string | null {
+  const url = new URL(request.url);
+  return url.protocol === "https:" && (url.hostname === "yukino.bond" || url.hostname.endsWith(".yukino.bond")) ? "yukino.bond" : null;
+}
+export async function attachSharedSession(response: Response, request: Request, token: string, env: any): Promise<Response> {
+  const domain = cookieDomain(request);
+  if (!domain || !await verifyJWT(token, env)) return response;
+  const payload = JSON.parse(base64UrlDecode(token.split(".")[1]));
+  const seconds = Math.min(7 * 86400, payload.exp - Math.floor(Date.now() / 1000));
+  if (seconds > 0) response.headers.append("Set-Cookie", `${SHARED_SESSION_COOKIE}=${token}; Domain=${domain}; Path=/; Max-Age=${seconds}; HttpOnly; Secure; SameSite=Lax`);
+  return response;
+}
+export function clearSharedSession(response: Response, request: Request): Response {
+  const domain = cookieDomain(request);
+  if (domain) response.headers.append("Set-Cookie", `${SHARED_SESSION_COOKIE}=; Domain=${domain}; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
+  // Old host-only sessions must not authenticate after logout either.
+  response.headers.append("Set-Cookie", "auth_token=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax");
+  return response;
+}
+
 export async function getCurrentUser(
   request: Request,
   env: any,
 ): Promise<{ userId: number; email: string; role: string; name: string } | null> {
+  if (!safeCookieMutation(request)) return null;
   const token = getAuthToken(request);
   if (!token) return null;
   const claims = await verifyJWT(token, env);
@@ -168,7 +206,7 @@ export function jsonResponse(data: unknown, status = 200): Response {
       "Cache-Control": "no-store",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Yukino-Native",
     },
   });
 }

@@ -9,5 +9,6 @@ for(const path of ['/library','/history','/settings','/anime/bf-1','/watch/bf-1/
 const catalog=await(await get('/api/catalog?category=jp')).json();assert(catalog.data.length>0);assert(catalog.sources.some(s=>s.state==='ok'||s.state==='stale'));
 const first=catalog.data.find(a=>a.episodeCount>0);assert(first);const detail=await(await get('/api/anime/'+first.id)).json();assert(detail.data.lines.length>0);assert(detail.data.lines[0].episodes.length>0);
 assert(!JSON.stringify(detail).includes('vod_play_url'));assert(!JSON.stringify(detail).includes('imageUrl'));
-const invalid=await fetch(origin+'/api/media?token=invalid');assert.equal(invalid.status,403);
-console.log(JSON.stringify({origin,works:catalog.data.length,sources:catalog.sources.map(s=>({name:s.name,state:s.state})),detail:first.id,episodes:detail.data.episodeCount,deepLinks:true,signedMedia:true}));
+const access=await(await get('/api/access')).json();assert.equal(access.user,null);assert.equal(access.limits.dailyLimit,null);assert.equal(access.limits.mediaSegmentsCounted,false);
+for(const path of ['/api/media?token=invalid',`/api/anime/${first.id}/play?line=0&episode=0`,'/api/catalog?refresh=1']){const denied=await fetch(origin+path,{signal:AbortSignal.timeout(30000),redirect:'manual'});assert.equal(denied.status,401,path);assert.equal((await denied.json()).code,'LOGIN_REQUIRED');}
+console.log(JSON.stringify({origin,works:catalog.data.length,sources:catalog.sources.map(s=>({name:s.name,state:s.state})),detail:first.id,episodes:detail.data.episodeCount,deepLinks:true,guestLoginGate:true}));

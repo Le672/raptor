@@ -1,6 +1,8 @@
 import { SOURCES, splitId } from './sources.mjs';
 import { catalog, detail, refreshCatalogs } from './service.mjs';
 import { mediaPath, serveMedia, safeFetch, probeMedia } from './media.mjs';
+import { createAccessGuard, privateMedia } from '../../shared/content-access.mjs';
+const access = createAccessGuard('comic');
 const policy={
   'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY',
   'Permissions-Policy':'camera=(), microphone=(), geolocation=()',
@@ -30,10 +32,14 @@ export default {
     }
     if(request.method!=='GET')return json({error:'仅支持 GET 请求'},405);
     try{
+      if(url.pathname==='/api/access')return await access.status(request);
+      const mediaRequest=url.pathname==='/api/media', refresh=url.searchParams.get('refresh')==='1';
+      const protectedRequest=mediaRequest||refresh||/^\/api\/anime\/[^/]+\/play$/.test(url.pathname);
+      if(protectedRequest){const denied=await access.require(request,{media:mediaRequest,refresh});if(denied)return denied;}
       // Signed media and cached covers have separate traffic patterns from catalog searches.
-      if(url.pathname==='/api/media')return await serveMedia(request,env,url);
+      if(mediaRequest)return privateMedia(await serveMedia(request,env,url));
       let match=url.pathname.match(/^\/api\/cover\/([^/]+)$/);if(match){if(!splitId(match[1]))return json({error:'番剧编号无效'},400);return await cover(env,match[1]);}
-      if(limited(request))return new Response(JSON.stringify({error:'操作频繁，请稍后再试'}),{status:429,headers:{'Content-Type':'application/json','Retry-After':'60'}});
+      if(!protectedRequest&&limited(request))return new Response(JSON.stringify({error:'操作频繁，请稍后再试'}),{status:429,headers:{'Content-Type':'application/json','Retry-After':'60','Cache-Control':'no-store'}});
       if(url.pathname==='/api/catalog')return json(await catalog(env,url.searchParams));
       if(url.pathname==='/api/sources')return json({data:SOURCES.map(({id,name,home,categories})=>({id,name,home,categories:Object.keys(categories)})),scheduledMinutes:60,cacheMinutes:5});
       match=url.pathname.match(/^\/api\/anime\/([^/]+)(?:\/(play))?$/);

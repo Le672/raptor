@@ -10,14 +10,33 @@ export type Meta = { checkedAt: string | null; stale: boolean; reason: string; p
 export type Envelope<T> = { data: T; meta: Meta };
 export type SearchPage = { items: Book[]; total: number; page: number; pages: number; indexed: number; tags: string[]; sources?: SourceStatus[]; scope?: string };
 export const READING_CACHE = 'yukino-novel-data-v1';
+export type Access = { user: { id: number; name: string; role: string } | null; loginUrl: string; limits?: Record<string, unknown> };
+export function loginUrlForPage() {
+  const current = new URL(location.href || '/', 'https://novel.yukino.bond');
+  const target = new URL('https://novel.yukino.bond'); target.pathname=current.pathname;target.search=current.search;target.hash=current.hash;
+  const login = new URL('https://www.yukino.bond/login'); login.searchParams.set('returnTo', target.href); return login.href;
+}
+export const isLoginRequired = (error: unknown) => (error as { status?: number })?.status === 401;
+export async function access(signal?: AbortSignal): Promise<Access> {
+  const response = await fetch('/api/access', { signal, cache: 'no-store', credentials: 'same-origin' });
+  if (!response.ok) throw new Error('暂时无法检查登录状态');
+  return response.json();
+}
 
 export async function request<T>(path: string, signal?: AbortSignal): Promise<Envelope<T>> {
   const key = new URL(path, location.origin); key.searchParams.delete('refresh');
+  const protectedChapter = /^\/api\/book\/[^/]+\/chapter\/[^/]+\/?$/.test(key.pathname);
+  const explicitRefresh = new URL(path, location.origin).searchParams.get('refresh') === '1';
   let cache: Cache | undefined;
-  try { cache = await caches.open(READING_CACHE); } catch { /* Private modes may disable cache storage. */ }
+  // Reading requires a current server session; old offline bodies cannot bypass it.
+  if (!protectedChapter) try { cache = await caches.open(READING_CACHE); } catch { /* Private modes may disable cache storage. */ }
   try {
-    const response = await fetch(path, { signal, cache: 'no-store' });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw Object.assign(new Error(error.error || `请求失败（${response.status}）`), { status: response.status }); }
+    const response = await fetch(path, { signal, cache: 'no-store', credentials: 'same-origin' });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({})), loginUrl = response.status === 401 ? loginUrlForPage() : '';
+      if (response.status === 401) window.dispatchEvent(new CustomEvent('novel-login-required', { detail: { loginUrl } }));
+      throw Object.assign(new Error(error.error || `请求失败（${response.status}）`), { status: response.status, code: error.code, loginUrl });
+    }
     const data = await response.json();
     if (!data || !data.meta || data.data == null) throw new Error('服务器返回了不完整的数据');
     if (cache && !data.meta.stale) {
@@ -30,6 +49,7 @@ export async function request<T>(path: string, signal?: AbortSignal): Promise<En
     return data;
   } catch (error) {
     if (signal?.aborted) throw error;
+    if (protectedChapter || explicitRefresh) throw error;
     if ([400, 401, 403, 404].includes((error as { status?: number })?.status || 0)) throw error;
     const old = await cache?.match(key.href).catch(() => undefined);
     if (old) { const result = await old.json(); return { ...result, meta: { ...result.meta, stale: true, offline: true, reason: `正在使用此浏览器的阅读缓存：${error instanceof Error ? error.message : '网络不可用'}` } }; }

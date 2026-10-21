@@ -2,6 +2,8 @@ import { SOURCE, imageSource } from './service.mjs';
 import { bookIdValid, sourceBookUrl } from '../shared/sources.mjs';
 import { allCatalog, findBooks, getBook, getVolume, getChapter, validPartId, synchronizeSnapshot } from './multi-source.mjs';
 import { snapshotStatus } from './cache.mjs';
+import { createAccessGuard } from '../../shared/content-access.mjs';
+const access = createAccessGuard('novel');
 const rate = new Map();
 const policy = {
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
@@ -48,10 +50,13 @@ export default {
       return new Response(response.body, { status: response.status, headers });
     }
     if (request.method !== 'GET') return json({ error: '仅支持 GET 请求' }, 405);
-    if (throttle(request)) return new Response(JSON.stringify({ error: '操作频繁，请稍后再试' }), { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60', 'Cache-Control': 'no-store' } });
     try {
-      if (url.pathname === '/api/image') return await image(request, url);
+      if (url.pathname === '/api/access') return await access.status(request);
       const force = url.searchParams.get('refresh') === '1';
+      const protectedRequest = force || /^\/api\/book\/[^/]+\/chapter\/[^/]+$/.test(url.pathname);
+      if (protectedRequest) { const denied = await access.require(request, { refresh: force }); if (denied) return denied; }
+      if (!protectedRequest && throttle(request)) return new Response(JSON.stringify({ error: '操作频繁，请稍后再试' }), { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60', 'Cache-Control': 'no-store' } });
+      if (url.pathname === '/api/image') return await image(request, url);
       if (url.pathname === '/api/status') {
         const result = await allCatalog(env, ctx, url.searchParams);
         return json({ data: { indexed: result.data.length, source: SOURCE, sources: result.sources, scheduledMinutes: 60, cacheMinutes: 5, persisted: Boolean(env.NOVEL_CACHE), persistence: await snapshotStatus(env), newestUpdate: result.data.map(x => x.updatedAt).filter(Boolean).sort().at(-1) }, meta: result.meta });

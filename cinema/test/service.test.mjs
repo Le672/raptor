@@ -433,13 +433,18 @@ test('serves deep routes with HTTP 200, preserves missing asset errors and prote
   assert.equal((await worker.fetch(new Request(site + '/missing.js'), env, {})).status, 404);
   assert.equal(requests.length, before + 1, 'a missing asset cannot receive the SPA HTML');
   assert.equal((await worker.fetch(new Request(site + '/api/catalog', { method: 'POST' }), env, {})).status, 405);
-  assert.equal((await worker.fetch(new Request(site + '/api/media?url=https://localhost/x'), env, {})).status, 403);
+  const blocked = await worker.fetch(new Request(site + '/api/media?url=https://localhost/x'), env, {});
+  assert.equal(blocked.status, 401);
+  assert.equal((await blocked.json()).code, 'LOGIN_REQUIRED');
 });
 
 test('returns episode metadata without upstream addresses and serves signed playback manifests', async t => {
   const env = { CINEMA_MEDIA_SECRET: 'worker-test-key' };
+  const session = `e30.${Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.cinema`;
+  const headers = {Cookie:`__Secure-yukino_session=${session}`};
   t.mock.method(globalThis, 'fetch', async input => {
     const url = new URL(input);
+    if (url.hostname === 'www.yukino.bond') { assert.equal(url.pathname, '/api/auth/access'); return Response.json({user:{id:101,name:'Cinema Viewer',role:'user'}}); }
     if (url.hostname === 'bfzyapi.com') return Response.json({ code: 1, list: [{ ...sample, vod_id: 8885 }] });
     assert.equal(url.hostname, 'cdn.cinema.example.com');
     assert(url.pathname.endsWith('.m3u8'));
@@ -454,17 +459,46 @@ test('returns episode metadata without upstream addresses and serves signed play
   assert.equal(record.data.lines[0].episodes[0].title, '正片');
   assert(!('url' in record.data.lines[0].episodes[0]));
   assert(!('imageUrl' in record.data));
-  const invalid = await worker.fetch(new Request(site + '/api/title/bf-8885/play?line=missing&episode=0'), env, {});
+  const guest = await worker.fetch(new Request(site + '/api/title/bf-8885/play?line=1&episode=0'), env, {});
+  assert.equal(guest.status, 401);
+  assert.equal((await guest.json()).code, 'LOGIN_REQUIRED');
+  assert.equal((await worker.fetch(new Request(site + '/api/media?url=https://localhost/x',{headers}), env, {})).status,403);
+  const invalid = await worker.fetch(new Request(site + '/api/title/bf-8885/play?line=missing&episode=0',{headers}), env, {});
   assert.equal(invalid.status, 404);
-  const playback = await worker.fetch(new Request(site + '/api/title/bf-8885/play?line=1&episode=0'), env, {});
+  const playback = await worker.fetch(new Request(site + '/api/title/bf-8885/play?line=1&episode=0',{headers}), env, {});
   assert.equal(playback.status, 200);
   const play = await playback.json();
   assert(play.data.url.startsWith('/api/media?token='));
   assert.equal((await verifyMedia(env, tokenOf(play.data.url))).u, sample.vod_play_url.split('$$$')[1].split('#')[0].split('$')[1]);
-  const manifest = await worker.fetch(new Request(new URL(play.data.url, site)), env, {});
+  const manifest = await worker.fetch(new Request(new URL(play.data.url, site),{headers}), env, {});
   assert.equal(manifest.status, 200);
+  assert.equal(manifest.headers.get('Cache-Control'), 'private, no-store');
   assert.match(manifest.headers.get('Content-Type'), /mpegurl/);
   const rewritten = await manifest.text();
   const chunk = rewritten.split('\n').find(line => line.startsWith('/api/media?token='));
   assert.equal((await verifyMedia(env, tokenOf(chunk))).u, 'https://cdn.cinema.example.com/video/chunk.ts');
+});
+
+test('requires a portal session for signed media while retaining authenticated byte-range streaming',async t=>{
+  const env={CINEMA_MEDIA_SECRET:'authenticated-range-test-key'};
+  const path=await mediaPath(env,'https://cdn.cinema.example.com/authenticated.mp4');
+  const session=`e30.${Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.cinemaRange`;
+  let upstreamCalls=0,identityCalls=0;
+  t.mock.method(globalThis,'fetch',async(input,options)=>{
+    if(new URL(input).hostname==='www.yukino.bond'){
+      identityCalls++;assert.equal(options.headers.Authorization,`Bearer ${session}`);
+      return Response.json({user:{id:103,name:'Range viewer',role:'user'}});
+    }
+    upstreamCalls++;assert.equal(options.headers.Range,'bytes=1024-2047');
+    assert.equal(options.headers.Authorization,undefined);
+    return new Response(new Uint8Array([42]),{status:206,headers:{'Content-Type':'video/mp4','Content-Range':'bytes 1024-2047/4096','Content-Length':'1024','Accept-Ranges':'bytes'}});
+  });
+  const url=new URL(path,site);
+  assert.equal((await worker.fetch(new Request(url),env,{})).status,401);
+  assert.equal(upstreamCalls,0,'a valid media signature alone must not authorize a guest');
+  const response=await worker.fetch(new Request(url,{headers:{Cookie:`__Secure-yukino_session=${session}`,Range:'bytes=1024-2047'}}),env,{});
+  assert.equal(response.status,206);assert.equal(response.headers.get('Content-Range'),'bytes 1024-2047/4096');
+  assert.equal(response.headers.get('Cache-Control'),'private, no-store');assert.equal(response.headers.get('Vary'),'Cookie, Authorization');
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()),new Uint8Array([42]));
+  assert.equal(identityCalls,1);assert.equal(upstreamCalls,1);
 });

@@ -4,6 +4,7 @@ on:
     branches: [master]
     paths:
       - 'cinema/**'
+      - 'shared/**'
       - 'scripts/*cinema*.mjs'
       - 'scripts/check-kv-budget.mjs'
       - '.github/workflows/deploy-cinema.yml'
@@ -26,8 +27,12 @@ jobs:
       - run: npm ci
       - name: Check shared account KV write budget
         run: npm run kv:budget
+      - name: Check content login gates and generous burst limits
+        run: node --test shared/test/*.test.mjs
       - name: Check catalog, playback proxy and local library
         run: npm run cinema:test
+      - name: Check login prompts and protected resource caching
+        run: npx vitest run src/test/content-media-access.test.tsx
       - name: Build the media theater
         run: npm run cinema:build
       - name: Prepare independent cache and playback signing

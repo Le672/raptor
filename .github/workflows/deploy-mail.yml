@@ -1,0 +1,59 @@
+name: Deploy mailbox KV safeguards
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/deploy-mail.yml'
+      - 'scripts/prepare-mail-deploy.mjs'
+      - 'shared/test/mail-deploy-config.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-mail-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Le672/webmail
+          ref: 078936c185e765521a981dce86426262f34b781a
+          path: mailbox
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9'
+          run_install: false
+      - run: npm ci
+      - name: Install locked mailbox dependencies
+        run: |
+          pnpm --dir mailbox/mail-worker install --frozen-lockfile
+          pnpm --dir mailbox/mail-vue install --frozen-lockfile
+      - name: Verify zero-write statistics and session renewal safeguards
+        run: |
+          node --test mailbox/mail-worker/test/*.test.mjs
+          node --test shared/test/mail-deploy-config.test.mjs
+      - name: Build mailbox assets
+        run: pnpm --dir mailbox/mail-vue run build
+      - name: Preserve live storage, email, variables and maintenance bindings
+        run: node scripts/prepare-mail-deploy.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Check the complete Worker bundle before deployment
+        run: node node_modules/wrangler/bin/wrangler.js deploy --dry-run --config .wrangler/mail-deploy/wrangler.json --outdir .wrangler/mail-deploy/bundle
+      - name: Deploy mailbox without replacing live variables or initializing data
+        run: node node_modules/wrangler/bin/wrangler.js deploy --config .wrangler/mail-deploy/wrangler.json --keep-vars
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Verify public login and Workers fallback
+        run: |
+          node --input-type=module -e "for(const origin of ['https://mail.yukino.bond','https://webmail.3584643854.workers.dev']){const r=await fetch(origin+'/login');if(!r.ok||!(await r.text()).includes('id=\"app\"'))throw new Error('Mailbox login unavailable');console.log(origin+' login HTTP '+r.status)}"

@@ -4,6 +4,7 @@ on:
     branches: [master]
     paths:
       - 'novel/**'
+      - 'shared/**'
       - 'scripts/*novel*.mjs'
       - 'scripts/check-kv-budget.mjs'
       - '.github/workflows/deploy-novel.yml'
@@ -26,6 +27,8 @@ jobs:
       - run: npm ci
       - name: Check shared account KV write budget
         run: npm run kv:budget
+      - name: Check content login gates and generous burst limits
+        run: node --test shared/test/*.test.mjs
       - name: Check novel data, caching and security behavior
         run: npm run novel:test
       - name: Build novel reader

@@ -1,6 +1,9 @@
 const VERSION = 'yukino-novel-shell-v1';
 self.addEventListener('install', event => { event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(self.__NOVEL_PRECACHE || ['/', '/book.svg']))); self.skipWaiting(); });
-self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('yukino-novel-shell-') && key !== VERSION).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
+self.addEventListener('activate', event => { event.waitUntil(Promise.all([
+  caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('yukino-novel-shell-') && key !== VERSION).map(key => caches.delete(key)))),
+  caches.open('yukino-novel-data-v1').then(async cache => { const keys = await cache.keys(); await Promise.all(keys.filter(key => /^\/api\/book\/[^/]+\/chapter\//.test(new URL(key.url).pathname)).map(key => cache.delete(key))); }),
+]).then(() => self.clients.claim())); });
 self.addEventListener('fetch', event => {
   const request = event.request, url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;

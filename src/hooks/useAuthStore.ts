@@ -46,7 +46,7 @@ const storedToken = loadStoredToken();
 export const useAuthStore = create<AuthStore>((set, get) => ({
   user: storedToken ? loadStoredUser() : null,
   token: storedToken,
-  isLoading: false,
+  isLoading: true,
   setUser: (user) => {
     store(USER_KEY, user ? JSON.stringify(user) : null);
     set({ user });

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { SiteLink as Link } from "@/components/SiteLink";
 import { useSiteNavigate as useNavigate } from "@/hooks/useSiteNavigate";
@@ -9,15 +10,19 @@ import { api } from "@/lib/api";
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
 
   if (user?.role !== "admin") {
     return <Navigate to="/login?next=%2Fadmin" replace />;
   }
 
-  const handleLogout = () => {
-    api.logout().catch(() => {});
-    logout();
-    navigate("/");
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true); setLogoutError("");
+    try { await api.logout(); logout(); navigate("/"); }
+    catch { setLogoutError("退出失败，请重试"); }
+    finally { setLoggingOut(false); }
   };
 
   const menuItems = [
@@ -65,11 +70,13 @@ export default function AdminDashboard() {
           <button
             className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/30 px-4 py-2.5 text-sm text-stone-700 backdrop-blur-xl transition hover:border-red-300 hover:text-red-600"
             onClick={handleLogout}
+            disabled={loggingOut}
           >
             <LogOut className="size-4" />
-            退出登录
+            {loggingOut ? "退出中…" : "退出登录"}
           </button>
         </div>
+        {logoutError && <p role="alert" className="mt-3 text-sm text-red-700">{logoutError}</p>}
       </div>
 
       <div className="glass-panel rounded-[32px] p-6">

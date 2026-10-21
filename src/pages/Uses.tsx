@@ -19,6 +19,7 @@ const clone = (content: UsesDocument): UsesDocument => JSON.parse(JSON.stringify
 export default function Uses() {
   useDocumentMeta("设备与环境", "记录常用设备、编辑器、开发环境和个人工作流。");
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
   const [content, setContent] = useState<UsesDocument>(DEFAULT_USES);
   const [draft, setDraft] = useState<UsesDocument>(() => clone(DEFAULT_USES));
   const [revision, setRevision] = useState(0);
@@ -31,7 +32,7 @@ export default function Uses() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [reload, setReload] = useState(0);
-  const canEdit = Boolean(token && serverCanEdit);
+  const canEdit = Boolean((token || user) && serverCanEdit);
   const [query, setQuery] = useState("");
   const dirty = editing && JSON.stringify(draft) !== JSON.stringify(content);
   useEffect(() => {
@@ -63,7 +64,7 @@ export default function Uses() {
       if (active) setError(error instanceof Error ? error.message : "清单读取失败，请稍后重试");
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [token, reload]);
+  }, [token, user?.id, user?.role, reload]);
 
   const changeCategory = (id: string, changes: Partial<UsesCategory>) => setDraft((current) => ({
     ...current, categories: current.categories.map((category) => category.id === id ? { ...category, ...changes } : category),
@@ -111,7 +112,7 @@ export default function Uses() {
           )}
         </div>
         {!editing && <p className="mt-3 max-w-xl whitespace-pre-wrap text-sm leading-7 text-stone-600">{content.description}</p>}
-        {!token && <Link to="/login?next=/uses" className="mt-3 inline-block text-xs text-stone-500 underline underline-offset-4">管理员登录</Link>}
+        {!token && !user && <Link to="/login?next=/uses" className="mt-3 inline-block text-xs text-stone-500 underline underline-offset-4">管理员登录</Link>}
         {updatedAt && !editing && <p className="mt-3 text-xs text-stone-400">最近更新：<time dateTime={updatedAt}>{contentDate(updatedAt)}</time></p>}
       </div>
 

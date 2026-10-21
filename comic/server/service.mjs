@@ -1,7 +1,8 @@
 import { SOURCES, sourceById, splitId, normalize, mergeCatalog } from './sources.mjs';
+import { readHomeSnapshot, retainParts, writeHomeSnapshot } from '../../shared/catalog-snapshot.mjs';
 const memory = new Map(), pending = new Map();
 const FRESH_MS = 5 * 60000, STALE_MS = 7 * 86400000;
-export const KV_WRITES_PER_REFRESH = SOURCES.length;
+export const KV_WRITES_PER_REFRESH = 1;
 function failure(message,status=503) { return Object.assign(new Error(message),{status}); }
 export async function cached(env,key,loader,force=false,readPersistent=true) {
   let entry = memory.get(key);
@@ -10,7 +11,7 @@ export async function cached(env,key,loader,force=false,readPersistent=true) {
   if (!pending.has(key)) pending.set(key,(async()=>{
     const value = await loader(), saved = { time: Date.now(), value };
     memory.set(key,saved); if(memory.size>250) memory.delete(memory.keys().next().value);
-    // Visitor loads never persist. The hourly scheduler writes one source bundle below.
+    // Visitor loads never persist. The hourly scheduler writes one combined snapshot.
     return saved;
   })().finally(()=>pending.delete(key)));
   try { entry = await pending.get(key); return { value: entry.value, checkedAt: new Date(entry.time).toISOString(), stale:false }; }
@@ -39,12 +40,14 @@ export async function catalog(env,params=new URLSearchParams(),persistHome=false
   const category=params.get('category')||'all', selected=params.get('source')||'all', force=params.get('refresh')==='1';
   if(!['all','jp','cn','west','movie'].includes(category) || (selected!=='all'&&!sourceById(selected)))throw failure('筛选条件无效',400);
   const sources=selected==='all'?SOURCES:[sourceById(selected)];
+  const home=!q&&page===1;
+  const bundles=home?await readHomeSnapshot(env.COMIC_CACHE,sources):new Map();
+  let freshSnapshotData=false;
   const results=await Promise.all(sources.map(async source=>{
     try {
       const categories=persistHome?[...new Set(Object.values(source.categories))]:q&&category==='all'?[undefined]:category==='all'?[source.categories.jp,source.categories.cn]:[source.categories[category]];
       if(categories.every(x=>x===undefined)&&!(q&&category==='all')) return {source,state:'unsupported',reason:'此番源未单列该分类',items:[],pagecount:1};
-      const home=!q&&page===1,homeKey='home:v1:'+source.id;
-      if(home&&env.COMIC_CACHE){try{const saved=await env.COMIC_CACHE.get(homeKey,'json');for(const part of saved?.parts||[])if(part.key.startsWith('catalog:v1:'+source.id+':')&&part.entry?.value&&Number.isFinite(part.entry.time)&&Date.now()-part.entry.time<STALE_MS&&!memory.has(part.key))memory.set(part.key,part.entry);}catch{/* Source reads stay usable when KV is unavailable. */}}
+      for(const part of bundles.get(source.id)?.parts||[])if(!memory.has(part.key)||memory.get(part.key).time<part.entry.time)memory.set(part.key,part.entry);
       const cacheKeys=categories.map(t=>`catalog:v1:${source.id}:${t||'search'}:${page}:${q}`);
       const reads=await Promise.allSettled(categories.map((t,index)=>cached(env,cacheKeys[index],async()=>{
         const data=await upstream(source,{ac:'detail',t,pg:page,...(q?{wd:q}:{})});
@@ -53,9 +56,10 @@ export async function catalog(env,params=new URLSearchParams(),persistHome=false
       },force,home)));
       const parts=reads.filter(read=>read.status==='fulfilled').map(read=>read.value),errors=reads.filter(read=>read.status==='rejected').map(read=>read.reason.message);
       if(!parts.length)return {source,state:'error',reason:errors.join('；'),items:[],pagecount:1};
-      // Four sources, one bundled write each hour: at most 96 scheduled writes/day.
-      // Old per-category records remain readable during migration and are never rewritten.
-      if(home&&persistHome&&env.COMIC_CACHE&&parts.some(part=>!part.stale)){try{await env.COMIC_CACHE.put(homeKey,JSON.stringify({parts:reads.flatMap((read,index)=>read.status==='fulfilled'?[{key:cacheKeys[index],entry:{time:Date.parse(read.value.checkedAt),value:read.value.value}}]:[])}),{expirationTtl:604800});}catch{/* Exhausted KV quota must not discard a successful source response. */}}
+      if(home&&persistHome){
+        freshSnapshotData ||= parts.some(part=>!part.stale);
+        retainParts(bundles,source.id,reads.flatMap((read,index)=>read.status==='fulfilled'?[{key:cacheKeys[index],entry:{time:Date.parse(read.value.checkedAt),value:read.value.value}}]:[]));
+      }
       // Feed responses already contain the complete episode list. Reuse them for covers and details in this isolate.
       for(const part of parts)for(const item of part.value.items)memory.set('detail:v1:'+item.id,{time:Date.parse(part.checkedAt),value:item});
       while(memory.size>400)memory.delete(memory.keys().next().value);
@@ -63,6 +67,8 @@ export async function catalog(env,params=new URLSearchParams(),persistHome=false
       return {source,state:errors.length?'partial':stale?'stale':'ok',checkedAt:parts.map(x=>x.checkedAt).sort()[0],reason:[...errors,...parts.filter(x=>x.reason).map(x=>x.reason)].join('；')||undefined,stale,items:parts.flatMap(x=>x.value.items),pagecount:Math.max(...parts.map(x=>x.value.pagecount))};
     }catch(error){return {source,state:'error',reason:error.message,items:[],pagecount:1};}
   }));
+  // All four sources share one hourly write (24/day); old category keys remain read-only.
+  if(home&&persistHome)await writeHomeSnapshot(env.COMIC_CACHE,bundles,freshSnapshotData);
   if(!results.some(x=>['ok','partial','stale'].includes(x.state)))throw failure(results.map(x=>x.reason).join('；')||'暂时没有可用番源');
   return { data:mergeCatalog(results.flatMap(x=>x.items)), page, hasMore:results.some(x=>x.pagecount>page),
     sources:results.map(({source,items,pagecount,stale,...status})=>({id:source.id,name:source.name,count:items.length,...status})),

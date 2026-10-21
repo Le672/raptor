@@ -1,30 +1,34 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type FormEvent } from 'react';
 import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowLeft, ArrowRight, Bookmark, BookMarked, BookOpen, Check, ChevronLeft, ChevronRight, Clock3, CloudDownload, Download, ExternalLink, Heart, History, Home, Library, LoaderCircle, Moon, RefreshCw, Search, Settings2, Sun, Upload, WifiOff, X } from 'lucide-react';
-import { dateLabel, directId, relativeDate, request, READING_CACHE, type Book, type BookDetail, type Chapter, type Envelope, type Meta, type SearchPage, type Volume } from './api';
+import { dateLabel, directId, isLoginRequired, relativeDate, request, READING_CACHE, type Book, type BookDetail, type Chapter, type Envelope, type Meta, type SearchPage, type Volume } from './api';
+import { AccountControl, LoginNotice, LoginRequiredPanel } from './AuthControls';
 import { SourceBadge, SourceSelect, SourceStateStrip, SourceSwitcher, SourceSettings } from './SourceUI';
 import { bookSource, sourceInfo, sourceBookUrl } from '../shared/sources.mjs';
 import './sources.css';
 import { downloadFile, exportLibrary, history, importLibrary, isSaved, persistenceFailed, preferences, progressFor, saveProgress, setPreferences, shelf, toggleSaved, type Preferences } from './library';
 
 const message = (error: unknown) => error instanceof Error ? error.message : '加载失败，请重试';
-function useResource<T>(path: string, poll = false) {
+export function useResource<T>(path: string, poll = false) {
   const [result, setResult] = useState<Envelope<T> | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true), [revision, setRevision] = useState(0);
+  const [authRequired,setAuthRequired] = useState(false);
+  const pendingRefreshPath=useRef<string|null>(null);
   useEffect(() => {
     const controller = new AbortController(); let active = true;
-    setResult(null); setError(''); setLoading(true);
+    setResult(null); setError(''); setLoading(true); setAuthRequired(false);
     const load = async (refresh = false) => {
       try { const value = await request<T>(path + (refresh ? `${path.includes('?') ? '&' : '?'}refresh=1` : ''), controller.signal); if (active) { setResult(value); setError(''); } }
-      catch (cause) { if (active && !controller.signal.aborted) setError(message(cause)); }
+      catch (cause) { if (active && !controller.signal.aborted) { setError(message(cause));setAuthRequired(isLoginRequired(cause)); } }
       finally { if (active) setLoading(false); }
     };
-    void load(revision > 0);
+    const force=pendingRefreshPath.current===path;pendingRefreshPath.current=null;
+    void load(force);
     const refresh = () => { if (!document.hidden) void load(); };
     const timer = poll ? window.setInterval(refresh, 5 * 60000) : 0;
     if (poll) document.addEventListener('visibilitychange', refresh);
     return () => { active = false; controller.abort(); clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
   }, [path, revision, poll]);
-  return { result, error, loading, reload: () => setRevision(x => x + 1) };
+  return { result, error, loading, authRequired, reload: () => { pendingRefreshPath.current=path;setRevision(x => x + 1); } };
 }
 function useLibrary() { const [, setTick] = useState(0); useEffect(() => { const change = () => setTick(x => x + 1); window.addEventListener('novel-library', change); window.addEventListener('storage', change); return () => { window.removeEventListener('novel-library', change); window.removeEventListener('storage', change); }; }, []); }
 function Busy({ text = '正在翻开书页…' }: { text?: string }) { return <div className="state-panel" role="status"><LoaderCircle className="spin" size={25} /><p>{text}</p></div>; }
@@ -93,7 +97,7 @@ function Shelf({ recent = false }: { recent?: boolean }) {
 
 function Reader({ settings, updateSettings }: { settings: Preferences; updateSettings: (value: Preferences) => void }) {
   const { id = '', vid = '', cid = '' } = useParams(); const navigate = useNavigate();
-  const { result, loading, error, reload } = useResource<Chapter>(`/api/book/${id}/chapter/${cid}`);
+  const { result, loading, error, authRequired, reload } = useResource<Chapter>(`/api/book/${id}/chapter/${cid}`);
   const bookData = useResource<BookDetail>(`/api/book/${id}`), volumeData = useResource<Volume>(`/api/book/${id}/volume/${vid}`);
   const [showSettings, setShowSettings] = useState(false), [showToc, setShowToc] = useState(false), [switching, setSwitching] = useState(false), [switchError, setSwitchError] = useState(''), [percent, setPercent] = useState(0);
   const article = useRef<HTMLElement>(null), restored = useRef(''), lastPercent = useRef(0), persistTimer = useRef(0);
@@ -126,6 +130,7 @@ function Reader({ settings, updateSettings }: { settings: Preferences; updateSet
     return () => { active = false; clearTimeout(timer); clearTimeout(persistTimer.current); window.removeEventListener('scroll', onScroll); window.removeEventListener('pagehide', persist); if (restored.current === savedKey) persist(); };
   }, [chapter, book, cid, id, vid]);
   useEffect(() => { const keyboard = (event: KeyboardEvent) => { const target = event.target as HTMLElement; if (event.altKey || event.ctrlKey || event.metaKey || /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(target.tagName) || showSettings || showToc) return; if (event.key === 'ArrowLeft' && canPrevious) { event.preventDefault(); void adjacent(-1); } if (event.key === 'ArrowRight' && canNext) { event.preventDefault(); void adjacent(1); } }; window.addEventListener('keydown', keyboard); return () => window.removeEventListener('keydown', keyboard); }, [adjacent, canPrevious, canNext, showSettings, showToc]);
+  if (authRequired) return <><Link className="back-link" to={`/book/${id}`}><ArrowLeft size={15} />返回书籍目录</Link><LoginRequiredPanel /></>;
   if (loading || bookData.loading) return <Busy text="正在打开这一章…" />;
   if (!chapter || !book) return <><Link className="back-link" to={`/book/${id}`}><ArrowLeft size={15} />返回书籍目录</Link><Failure error={error || bookData.error} retry={() => { reload(); bookData.reload(); }} />{book && <a className="button secondary" href={book.sourceUrl} target="_blank" rel="noreferrer">前往源站<ExternalLink size={14} /></a>}</>;
   if (chapter.volumeId !== vid) return <Failure error="此章节不属于链接中的分卷，请从书籍目录重新打开。" />;
@@ -149,6 +154,6 @@ export default function App() {
   useEffect(() => { if (!reader) window.scrollTo({ top: 0, behavior: 'instant' }); }, [location.pathname, location.search, reader]);
   useEffect(() => { document.title = `${reader ? '阅读中' : location.pathname === '/shelf' ? '我的书架' : location.pathname === '/history' ? '阅读足迹' : '轻小说书房'} · Yukino Novel`; }, [location.pathname, reader]);
   const allShelf = shelf().length;
-  return <div className={`app ${reader ? 'reading' : ''}`}><aside className="sidebar"><Link to="/" className="brand"><img src="/book.svg" alt="" /><span><strong>Yukino <em>Novel</em></strong><small>把故事，读成日常。</small></span></Link><span className="nav-label">你的书房 / LIBRARY</span><nav aria-label="书房导航"><NavLink to="/" end><Home size={18} /><span>发现故事</span></NavLink><NavLink to="/shelf"><BookMarked size={18} /><span>我的书架</span><small>{allShelf}</small></NavLink><NavLink to="/history"><History size={18} /><span>阅读足迹</span></NavLink><NavLink to="/sources"><Settings2 size={18} /><span>书源与设置</span></NavLink></nav><div className="sidebar-note"><BookOpen size={26} strokeWidth={1.1} /><p>世界很大，<br />书里还有另一个。</p><span>HAPPY READING, ALWAYS.</span></div><div className="sidebar-bottom"><a href="https://www.yukino.bond"><ArrowLeft size={15} />回到 Yukino 主站</a><small>novel.yukino.bond</small></div></aside><div className="main"><header className="topbar"><Link to="/" className="mobile-brand"><img src="/book.svg" alt="" />轻小说书房</Link><span className="breadcrumb"><BookOpen size={14} />Yukino 的阅读角落<span>/</span><strong>{location.pathname === '/shelf' ? '我的书架' : location.pathname === '/sources' ? '书源与设置' : location.pathname === '/history' ? '阅读足迹' : '轻小说书房'}</strong></span><button className="icon-button" aria-label={settings.theme === 'dark' ? '切换浅色主题' : '切换深色主题'} onClick={() => updateSettings({ ...settings, theme: settings.theme === 'dark' ? 'light' : 'dark' })}>{settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button></header><main className="content"><Routes><Route path="/" element={<Discover />} /><Route path="/book/:id" element={<Detail />} /><Route path="/shelf" element={<Shelf />} /><Route path="/history" element={<Shelf recent />} /><Route path="/sources" element={<Sources />} /><Route path="/read/:id/:vid/:cid" element={<Reader settings={settings} updateSettings={updateSettings} />} /><Route path="*" element={<Empty title="这一页还没有写下故事" text="回到书房，重新挑一本吧。"><Link to="/" className="button">回到书房</Link></Empty>} /></Routes>{persistenceFailed() && <p className="storage-warning" role="alert">当前浏览器无法保存本地数据，离开前请导出书架与进度。</p>}</main>{!reader && <footer><span>YUKINO NOVEL<span className="footer-dot">✦</span>给日常留一点想象。</span><Link to="/sources">书源与数据说明<ArrowUpRight /></Link></footer>}</div><nav className="mobile-nav" aria-label="手机书房导航"><NavLink to="/" end><Home size={19} />发现</NavLink><NavLink to="/shelf"><BookMarked size={19} />书架</NavLink><NavLink to="/history"><History size={19} />足迹</NavLink><NavLink to="/sources"><Settings2 size={19} />设置</NavLink></nav></div>;
+  return <div className={`app ${reader ? 'reading' : ''}`}><aside className="sidebar"><Link to="/" className="brand"><img src="/book.svg" alt="" /><span><strong>Yukino <em>Novel</em></strong><small>把故事，读成日常。</small></span></Link><span className="nav-label">你的书房 / LIBRARY</span><nav aria-label="书房导航"><NavLink to="/" end><Home size={18} /><span>发现故事</span></NavLink><NavLink to="/shelf"><BookMarked size={18} /><span>我的书架</span><small>{allShelf}</small></NavLink><NavLink to="/history"><History size={18} /><span>阅读足迹</span></NavLink><NavLink to="/sources"><Settings2 size={18} /><span>书源与设置</span></NavLink></nav><div className="sidebar-note"><BookOpen size={26} strokeWidth={1.1} /><p>世界很大，<br />书里还有另一个。</p><span>HAPPY READING, ALWAYS.</span></div><div className="sidebar-bottom"><a href="https://www.yukino.bond"><ArrowLeft size={15} />回到 Yukino 主站</a><small>novel.yukino.bond</small></div></aside><div className="main"><header className="topbar"><Link to="/" className="mobile-brand"><img src="/book.svg" alt="" />轻小说书房</Link><span className="breadcrumb"><BookOpen size={14} />Yukino 的阅读角落<span>/</span><strong>{location.pathname === '/shelf' ? '我的书架' : location.pathname === '/sources' ? '书源与设置' : location.pathname === '/history' ? '阅读足迹' : '轻小说书房'}</strong></span><AccountControl /><button className="icon-button" aria-label={settings.theme === 'dark' ? '切换浅色主题' : '切换深色主题'} onClick={() => updateSettings({ ...settings, theme: settings.theme === 'dark' ? 'light' : 'dark' })}>{settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button></header><main className="content"><LoginNotice /><Routes><Route path="/" element={<Discover />} /><Route path="/book/:id" element={<Detail />} /><Route path="/shelf" element={<Shelf />} /><Route path="/history" element={<Shelf recent />} /><Route path="/sources" element={<Sources />} /><Route path="/read/:id/:vid/:cid" element={<Reader settings={settings} updateSettings={updateSettings} />} /><Route path="*" element={<Empty title="这一页还没有写下故事" text="回到书房，重新挑一本吧。"><Link to="/" className="button">回到书房</Link></Empty>} /></Routes>{persistenceFailed() && <p className="storage-warning" role="alert">当前浏览器无法保存本地数据，离开前请导出书架与进度。</p>}</main>{!reader && <footer><span>YUKINO NOVEL<span className="footer-dot">✦</span>给日常留一点想象。</span><Link to="/sources">书源与数据说明<ArrowUpRight /></Link></footer>}</div><nav className="mobile-nav" aria-label="手机书房导航"><NavLink to="/" end><Home size={19} />发现</NavLink><NavLink to="/shelf"><BookMarked size={19} />书架</NavLink><NavLink to="/history"><History size={19} />足迹</NavLink><NavLink to="/sources"><Settings2 size={19} />设置</NavLink></nav></div>;
 }
 function ArrowUpRight() { return <ExternalLink size={11} />; }

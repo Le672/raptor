@@ -35,7 +35,7 @@ function savedBundles(time){
   return entries;
 }
 
-test('hourly refresh bundles every category into one write per source and stays within its daily budget',async t=>{
+test('hourly refresh combines every source and category into one bounded snapshot write',async t=>{
   const {refreshCatalogs,KV_WRITES_PER_REFRESH}=await freshService(),cache=cacheEnv(),calls=[];
   const now=Date.parse('2026-10-20T12:00:00Z');t.mock.method(Date,'now',()=>now);
   t.mock.method(globalThis,'fetch',successfulUpstream(calls));
@@ -43,19 +43,21 @@ test('hourly refresh bundles every category into one write per source and stays 
   assert.equal(calls.length,partCount);
   assert.equal(result.data.length,partCount);
   assert(result.sources.every(source=>source.state==='ok'));
-  assert.equal(cache.writes.length,SOURCES.length);
+  assert.equal(cache.writes.length,1);
   assert.equal(cache.writes.length,KV_WRITES_PER_REFRESH);
   assert(calls.length+cache.reads.length+cache.writes.length<=50,'cold refresh including legacy reads must fit the free edge subrequest budget');
   const config=JSON.parse(await readFile(new URL('../wrangler.jsonc',import.meta.url),'utf8'));
   assert.deepEqual(config.triggers.crons,['20 * * * *']);
-  assert.equal(cache.writes.length*24,96);
+  assert.equal(cache.writes.length*24,24);
   assert.equal(result.meta.scheduledMinutes,60);
   for(const source of SOURCES){
-    const write=cache.writes.find(item=>item.key==='home:v1:'+source.id);
+    const write=cache.writes[0],saved=write.value.sources[source.id];
+    assert.equal(write.key,'home-snapshot:v2');assert.equal(write.value.version,2);
     assert.deepEqual(write.options,{expirationTtl:604800});
-    assert.deepEqual(write.value.parts.map(part=>part.key),types(source).map(type=>`catalog:v1:${source.id}:${type}:1:`));
-    assert(write.value.parts.every(part=>part.entry.time===now&&part.entry.value.items.length===1));
+    assert.deepEqual(saved.parts.map(part=>part.key),types(source).map(type=>`catalog:v1:${source.id}:${type}:1:`));
+    assert(saved.parts.every(part=>part.entry.time===now&&part.entry.value.items.length===1));
   }
+  assert(new TextEncoder().encode(JSON.stringify(cache.writes[0].value)).byteLength<=8*1024*1024);
   assert(!cache.writes.some(write=>/^(catalog|detail):/.test(write.key)));
 });
 
@@ -110,9 +112,9 @@ test('KV read/write quota failures preserve live results and never cause write r
   const env={COMIC_CACHE:{get:async()=>{throw Error('KV get limit exceeded');},put:async()=>{attempts++;throw Error('KV put limit exceeded');}}};
   t.mock.method(globalThis,'fetch',successfulUpstream(calls));
   const scheduled=await refreshCatalogs(env);assert(scheduled.data.length>0);assert(scheduled.sources.every(source=>source.state==='ok'));
-  assert.equal(attempts,SOURCES.length);
+  assert.equal(attempts,1);
   const visitor=await catalog(env,new URLSearchParams('refresh=1'));assert(visitor.data.length>0);
-  assert.equal(attempts,SOURCES.length,'visitor refresh cannot retry writes blocked by the account quota');
+  assert.equal(attempts,1,'visitor refresh cannot retry writes blocked by the account quota');
 });
 
 test('one failed category keeps other categories from that source and reports partial state',async t=>{
@@ -123,10 +125,14 @@ test('one failed category keeps other categories from that source and reports pa
   assert.match(result.sources[0].reason,/HTTP 503/);assert.equal(cache.writes.length,0);
 });
 
-test('public API refresh flags cannot opt visitors into the scheduler persistence path',async t=>{
-  const cache=cacheEnv(),calls=[];t.mock.method(globalThis,'fetch',successfulUpstream(calls));
+test('manual API refresh requires login and cannot enable KV persistence after authorization',async t=>{
+  const cache=cacheEnv(),calls=[],live=successfulUpstream(calls);
+  t.mock.method(globalThis,'fetch',async input=>new URL(input).hostname==='www.yukino.bond'?Response.json({user:{id:200,name:'Budget Viewer',role:'user'}}):live(input));
+  const session=`e30.${Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.budget`,headers={Cookie:`__Secure-yukino_session=${session}`};
   for(const path of ['/api/catalog?refresh=1&persistHome=1','/api/catalog?q=public-route-budget&refresh=1','/api/anime/bf-901001?refresh=1']){
-    const response=await worker.fetch(new Request('https://comic.yukino.bond'+path),cache.env,{});
+    const guest=await worker.fetch(new Request('https://comic.yukino.bond'+path),cache.env,{});
+    assert.equal(guest.status,401,path);assert.equal((await guest.json()).code,'LOGIN_REQUIRED');
+    const response=await worker.fetch(new Request('https://comic.yukino.bond'+path,{headers}),cache.env,{});
     assert.equal(response.status,200,path);assert.equal(cache.writes.length,0);
   }
   const sources=await(await worker.fetch(new Request('https://comic.yukino.bond/api/sources'),cache.env,{})).json();

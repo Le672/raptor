@@ -1,4 +1,4 @@
-import { getApiBase } from "@/lib/runtime";
+import { getApiBase, isNativeApp } from "@/lib/runtime";
 import type { User } from "@/hooks/useAuthStore";
 import type { UsesDocument, UsesResponse } from "@/lib/uses";
 import type { Post, PostSummary, PostInput, BoxItem, BoxInput } from "@/lib/content";
@@ -12,12 +12,13 @@ export class ApiError extends Error {
 
 const BASE = getApiBase();
 
-function getHeaders(): Record<string, string> {
+function getHeaders(nativeAuth: boolean): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
   const token = useAuthStore.getState().token;
   if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (nativeAuth && isNativeApp()) headers["X-Yukino-Native"] = "1";
   return headers;
 }
 
@@ -37,7 +38,10 @@ async function request<T>(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { method, headers: getHeaders(), body: body === undefined ? undefined : JSON.stringify(body), signal: controller.signal });
+    // Browser portal aliases use their own API origin. Native shells retain
+    // explicit Bearer authentication without credentialed wildcard CORS.
+    const credentials = new URL(url, window.location.href).origin === window.location.origin ? "same-origin" : "omit";
+    const res = await fetch(url, { method, headers: getHeaders(path.startsWith("/auth/")), body: body === undefined ? undefined : JSON.stringify(body), signal: controller.signal, credentials });
     let data;
     try { data = await res.json(); } catch { throw new ApiError("服务暂时不可用，请稍后重试", res.status); }
     if (!res.ok) {

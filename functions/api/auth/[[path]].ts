@@ -9,6 +9,9 @@ import {
   signJWT,
   jsonResponse,
   errorResponse,
+  attachSharedSession,
+  clearSharedSession,
+  sameOriginMutation,
 } from "../../_utils/auth";
 import { authenticateMail, linkMailAccount, MailAuthError } from "../../_utils/mail-auth";
 
@@ -17,9 +20,17 @@ interface Env {
   JWT_SECRET?: string;
 }
 
+export function onRequestOptions() {
+  const response = jsonResponse(null);
+  return new Response(null, { status: 204, headers: response.headers });
+}
+
 export async function onRequestGet(context: { request: Request; env: Env }) {
+  const access = new URL(context.request.url).pathname.replace(/\/+$/, "").endsWith("/access");
+  if (access && !context.request.headers.get("Authorization")?.startsWith("Bearer ")) return errorResponse("未登录", 401);
   const user = await getCurrentUser(context.request, context.env);
   if (!user) return errorResponse("未登录", 401);
+  if (access) return jsonResponse({ user: { id: user.userId, name: user.name, role: user.role } });
 
   const { results } = await context.env.DB.prepare(
     "SELECT id, email, name, role, avatar_url, created_at FROM users WHERE id = ?",
@@ -29,12 +40,15 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
 
   if (!results || results.length === 0) return errorResponse("用户不存在", 404);
 
-  return jsonResponse({ user: results[0] });
+  const response = jsonResponse({ user: results[0] });
+  const bearer = context.request.headers.get("Authorization");
+  return bearer?.startsWith("Bearer ") ? attachSharedSession(response, context.request, bearer.slice(7), context.env) : response;
 }
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
   const url = new URL(context.request.url);
   const action = url.searchParams.get("action");
+  if (!sameOriginMutation(context.request)) return errorResponse("请从本站提交登录或退出请求", 403);
 
   if (action === "login") return handleLogin(context);
   if (action === "register") return handleRegister(context);
@@ -82,7 +96,7 @@ async function handleLogin(context: { request: Request; env: Env }) {
       context.env,
     );
 
-    return jsonResponse({
+    const response = jsonResponse({
       token,
       user: {
         id: user.id,
@@ -91,6 +105,7 @@ async function handleLogin(context: { request: Request; env: Env }) {
         role: user.role,
       },
     });
+    return attachSharedSession(response, context.request, token, context.env);
   } catch (error) {
     if (error instanceof MailAuthError) return errorResponse(error.message, error.status);
     return errorResponse("主站登录服务暂时不可用，请稍后再试", 503);
@@ -101,8 +116,8 @@ async function handleRegister(context: { request: Request; env: Env }) {
   return errorResponse("请在 mail.yukino.bond 注册邮箱账号，再回到主站登录", 403);
 }
 
-async function handleLogout(_context: { request: Request; env: Env }) {
+async function handleLogout(context: { request: Request; env: Env }) {
   // JWT is stateless, so logout is client-side (delete token)
   // We can optionally add the token to a blacklist table
-  return jsonResponse({ message: "已退出登录" });
+  return clearSharedSession(jsonResponse({ message: "已退出登录" }), context.request);
 }
