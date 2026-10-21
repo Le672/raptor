@@ -17,7 +17,7 @@ test('search forwards keyword, safe mode, type, match scope and pagination', asy
     assert.equal(url.searchParams.get('p'), '2');
     assert.equal(url.searchParams.get('s_mode'), 's_tag_full');
     assert.equal(url.searchParams.get('order'), 'date');
-    assert.equal(options.redirect, 'error');
+    assert.equal(options.redirect, 'manual');
     assert.equal(options.headers.Referer, 'https://www.pixiv.net/');
     assert.equal(options.headers.Cookie, undefined);
     return reply({ illust: { data: [card, { ...card, id: '789', xRestrict: 1 }, { ...card, id: '999', isMasked: true }], total: 200 }, relatedTags: ['背景'] });
@@ -72,7 +72,7 @@ test('image proxy refuses private, arbitrary, deceptive, redirector and non-imag
 
 test('image proxy preserves image content and downloadable filename with redirect disabled', async () => {
   const response = await api('/api/image?' + new URLSearchParams({ url: image, download: '1' }), async (address, options) => {
-    assert.equal(address, image); assert.equal(options.redirect, 'error'); assert.equal(options.headers.Cookie, undefined);
+    assert.equal(address, image); assert.equal(options.redirect, 'manual'); assert.equal(options.headers.Cookie, undefined);
     return new Response(new Uint8Array([255, 216, 255, 217]), { headers: { 'Content-Type': 'image/jpeg', 'Content-Length': '4' } });
   });
   assert.equal(response.status, 200); assert.equal(response.headers.get('Content-Type'), 'image/jpeg');
@@ -86,6 +86,17 @@ test('HTML masquerading as a picture and invalid upstream JSON cannot look like 
   assert.equal(picture.status, 502);
   const search = await api('/api/search?q=猫', async () => new Response('<html>blocked</html>'));
   assert.equal(search.status, 502); assert.equal((await search.json()).code, 'INVALID_RESPONSE');
+});
+
+test('Workers-compatible manual fetch refuses upstream redirects without following their destinations', async () => {
+  let calls = 0;
+  const redirect = async (_address, options) => {
+    calls++; assert.equal(options.redirect, 'manual');
+    return new Response(null, { status: 302, headers: { Location: 'https://example.com/private' } });
+  };
+  const search = await api('/api/search?q=猫', redirect);
+  const picture = await api('/api/image?' + new URLSearchParams({ url: image }), redirect);
+  assert.equal(search.status, 502); assert.equal(picture.status, 502); assert.equal(calls, 2);
 });
 
 test('image connection interruption retries once without turning permanent failures into loops', async () => {

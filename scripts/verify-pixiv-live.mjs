@@ -1,10 +1,13 @@
+import { setDefaultResultOrder } from 'node:dns';
+setDefaultResultOrder('ipv4first');
 const base = (process.env.PIXIV_BASE_URL || 'https://pixiv.yukino.bond').replace(/\/$/, '');
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 async function response(path) {
   let last;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try { const result = await fetch(base + path, { signal: AbortSignal.timeout(45000) }); if (result.status >= 500 && attempt < 2) throw new Error(`HTTP ${result.status}`); return result; }
-    catch (error) { last = error; if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1))); }
+  const attempts = path === '/' ? 6 : 3;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try { const result = await fetch(base + path, { signal: AbortSignal.timeout(45000) }); if (result.status >= 500 && attempt < attempts - 1) { await result.body?.cancel(); throw new Error(`HTTP ${result.status}`); } return result; }
+    catch (error) { last = error; if (attempt < attempts - 1) await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1))); }
   }
   throw last;
 }

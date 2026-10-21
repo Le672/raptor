@@ -59,7 +59,8 @@ async function upstream(path, params = {}, fetcher = fetch) {
   for (const [key, value] of Object.entries({ lang: 'zh', ...params })) if (value !== undefined && value !== '') url.searchParams.set(key, String(value));
   let response;
   try {
-    response = await fetcher(url.href, { headers: HEADERS, redirect: 'error', signal: AbortSignal.timeout(18000) });
+    // Workers supports manual redirects; non-2xx responses below are rejected.
+    response = await fetcher(url.href, { headers: HEADERS, redirect: 'manual', signal: AbortSignal.timeout(18000) });
   } catch { throw new ApiError(502, '暂时无法连接 Pixiv，请稍后重试。', 'UPSTREAM_UNAVAILABLE'); }
   if (!response.ok) throw new ApiError(response.status === 404 ? 404 : 502, response.status === 429 ? 'Pixiv 请求较多，请稍后重试。' : response.status === 403 ? 'Pixiv 暂时限制了访问，请稍后重试或打开原站。' : `Pixiv 返回了 ${response.status}，请稍后重试。`, 'UPSTREAM_HTTP');
   let result;
@@ -137,7 +138,7 @@ async function imageResponse(url, fetcher = fetch) {
   let response;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      response = await fetcher(source, { headers: { Referer: ORIGIN + '/', 'User-Agent': HEADERS['User-Agent'] }, redirect: 'error', signal: AbortSignal.timeout(60000) });
+      response = await fetcher(source, { headers: { Referer: ORIGIN + '/', 'User-Agent': HEADERS['User-Agent'] }, redirect: 'manual', signal: AbortSignal.timeout(60000) });
       if (response.status >= 500 && attempt === 0) { await response.body?.cancel(); continue; }
       break;
     } catch { if (attempt === 1) throw new ApiError(502, '图片连接失败，请重试。', 'IMAGE_UNAVAILABLE'); }
