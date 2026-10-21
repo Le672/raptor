@@ -14,6 +14,7 @@ const destinations = [
   ['工具','https://dev.yukino.bond/dev'], ['导航','https://links.yukino.bond/links'],
   ['游戏','https://games.yukino.bond/games'], ['新闻','https://news.yukino.bond/news'],
   ['姬漫','https://jm.yukino.bond/'],
+  ['Pixiv','https://pixiv.yukino.bond/'],
   ['轻小说','https://novel.yukino.bond/'],
   ['番剧','https://comic.yukino.bond/'],
   ['影视','https://cinema.yukino.bond/'],

@@ -32,6 +32,15 @@ export const siteProfile = {
 export const domainLinks: DomainLink[] = [
   ...serviceDomainLinks,
   {
+    title: "Pixiv 画廊",
+    hostname: "pixiv.yukino.bond",
+    href: "https://pixiv.yukino.bond",
+    description: "搜索公开插画、标签和 PID，浏览榜单、画师作品与多图原图，收藏喜欢的作品。",
+    status: "online",
+    category: "content",
+    keywords: ["pixiv", "P站", "插画", "画师", "PID", "画廊"],
+  },
+  {
     title: "IP 纯净度",
     hostname: "ip.yukino.bond",
     href: "https://ip.yukino.bond",

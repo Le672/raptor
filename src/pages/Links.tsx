@@ -146,6 +146,11 @@ const linkGroups = [
         desc: "jm.yukino.bond · 姬漫搜索、阅读、收藏与章节导出",
       },
       {
+        label: "Pixiv 画廊 · Yukino Pixiv",
+        url: "https://pixiv.yukino.bond",
+        desc: "pixiv.yukino.bond · 插画与 PID 搜索、排行榜、画师作品、多图浏览与本机收藏",
+      },
+      {
         label: "影视馆 · Yukino Cinema",
         url: "https://cinema.yukino.bond",
         desc: "cinema.yukino.bond · 电影、电视剧、综艺、纪录片搜索与多源播放、片单收藏和观看进度",

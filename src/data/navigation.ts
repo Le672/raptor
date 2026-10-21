@@ -6,6 +6,7 @@ export const siteNavigation: SiteNavigationItem[] = [
   { label: "导航", to: "/links", description: "常用网站与服务入口" },
   { label: "游戏", to: "/games", description: "小游戏、每日挑战与游戏收藏" },
   { label: "姬漫", to: "/jm", href: "https://jm.yukino.bond/", description: "姬漫图书馆 · JM Comic · 漫画搜索、阅读、收藏与章节导出" },
+  { label: "Pixiv", to: "/pixiv", href: "https://pixiv.yukino.bond/", description: "Pixiv 画廊 · P站 · 插画、标签和 PID 搜索、排行榜、多图浏览与本机收藏" },
   { label: "轻小说", to: "/novel", href: "https://novel.yukino.bond/", description: "轻小说书房 · Yukino Novel · 小说搜索、最近更新、分卷阅读与追更书架" },
   { label: "番剧", to: "/comic", href: "https://comic.yukino.bond/", description: "番剧放映室 · Yukino Comic · 动漫搜索、多番源、在线看番、追番与观看进度" },
   { label: "影视", to: "/cinema", href: "https://cinema.yukino.bond/", description: "影视馆 · Yukino Cinema · 电影、电视剧、综艺、纪录片搜索与多源播放、片单和观看进度" },

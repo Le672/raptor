@@ -1,0 +1,38 @@
+name: Deploy Pixiv to Cloudflare
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'pixiv/**'
+      - 'scripts/*pixiv*.mjs'
+      - 'src/test/pixiv-library.test.ts'
+      - '.github/workflows/deploy-pixiv.yml'
+  workflow_dispatch:
+concurrency:
+  group: deploy-pixiv-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check Pixiv API, image boundary and local collection
+        run: npm run pixiv:test
+      - name: Build the art room
+        run: npm run pixiv:build
+      - name: Deploy website, public API, image proxy and domain
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config pixiv/wrangler.jsonc
+      - name: Verify production search, detail, pictures and deep links
+        run: node scripts/verify-pixiv-live.mjs

@@ -19,6 +19,7 @@ import {
   Clapperboard,
   Play,
   FlaskConical,
+  Palette,
 } from "lucide-react";
 import { SiteLink as Link } from "@/components/SiteLink";
 import { siteProfile } from "@/data/site";
@@ -56,6 +57,7 @@ const corners = [
   },
   { icon: Newspaper, title: "新闻阅读室", en: "READING ROOM", text: "从不同的视角，看看今天的世界。", to: "/news" },
   { icon: BookOpen, title: "姬漫图书馆", en: "JM COMIC", text: "漫画搜索、阅读、收藏与章节导出，在这里直接进入。", to: "/jm" },
+  { icon: Palette, title: "Pixiv 画廊", en: "YUKINO ART ROOM", text: "寻找喜欢的插画，在榜单与画师作品里收集一点灵感。", to: "/pixiv" },
   { icon: BookOpen, title: "轻小说书房", en: "YUKINO NOVEL", text: "找一本喜欢的轻小说，关注更新，把故事慢慢读下去。", to: "/novel" },
   { icon: Play, title: "番剧放映室", en: "YUKINO COMIC", text: "找一部喜欢的番剧，收藏片单，接着上次的进度看下去。", to: "/comic" },
   { icon: Clapperboard, title: "影视馆", en: "YUKINO CINEMA", text: "搜索电影、电视剧与纪录片，收藏想看的故事。", to: "/cinema" },

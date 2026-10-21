@@ -7,6 +7,9 @@
   "author": "Yukino",
   "description": "Yukino 的个人博客应用",
   "scripts": {
+    "pixiv:dev": "node scripts/dev-pixiv.mjs",
+    "pixiv:build": "tsc -p pixiv/tsconfig.json && node scripts/build-pixiv.mjs",
+    "pixiv:test": "node --test pixiv/test/*.test.mjs && vitest run src/test/pixiv-library.test.ts",
     "kv:budget": "node scripts/check-kv-budget.mjs",
     "cinema:dev": "node scripts/dev-cinema.mjs",
     "cinema:build": "tsc -p cinema/tsconfig.json && node scripts/build-cinema.mjs",

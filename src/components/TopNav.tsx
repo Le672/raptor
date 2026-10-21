@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, BookMarked, BookOpen, ChevronRight, CircleHelp, Clock3, Code2, FileText, Film, Flag, FlaskConical, FolderDown, Gamepad2, Gauge, Globe2, Home, Laptop, LayoutGrid, Link2, Mail, Newspaper, Radio, Rss, Search, Settings2, ShieldCheck, TrainFront, Users, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BookMarked, BookOpen, ChevronRight, CircleHelp, Clock3, Code2, FileText, Film, Flag, FlaskConical, FolderDown, Gamepad2, Gauge, Globe2, Home, Laptop, LayoutGrid, Link2, Mail, Newspaper, Palette, Radio, Rss, Search, Settings2, ShieldCheck, TrainFront, Users, type LucideIcon } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { SiteLink as Link } from "@/components/SiteLink";
 import { useSiteNavigate } from "@/hooks/useSiteNavigate";
@@ -15,6 +15,7 @@ import "@/styles/chrome-refresh.css";
 const navigationIcons: Record<string, LucideIcon> = {
   "/": Home, "/notes": FileText, "/dev": Code2, "/links": LayoutGrid,
   "/games": Gamepad2, "/jm": BookOpen, "/novel": BookMarked, "/comic": Film,
+  "/pixiv": Palette,
   "/cinema": Film, "/news": Newspaper, "/focus": Clock3, "/cr": TrainFront,
   "/f1": Flag, "/speed": Gauge, "/ip": Globe2, "/box": FolderDown,
   "/blog": BookOpen, "/uses": Laptop, "/lab": FlaskConical, "/friends": Users,
