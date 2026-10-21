@@ -137,7 +137,7 @@ async function imageResponse(url, fetcher = fetch) {
   let response;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      response = await fetcher(source, { headers: { Referer: ORIGIN + '/', 'User-Agent': HEADERS['User-Agent'] }, redirect: 'error', signal: AbortSignal.timeout(15000) });
+      response = await fetcher(source, { headers: { Referer: ORIGIN + '/', 'User-Agent': HEADERS['User-Agent'] }, redirect: 'error', signal: AbortSignal.timeout(60000) });
       if (response.status >= 500 && attempt === 0) { await response.body?.cancel(); continue; }
       break;
     } catch { if (attempt === 1) throw new ApiError(502, '图片连接失败，请重试。', 'IMAGE_UNAVAILABLE'); }
@@ -146,6 +146,8 @@ async function imageResponse(url, fetcher = fetch) {
   const type = response.headers.get('Content-Type')?.split(';')[0] || '';
   if (!/^image\/(?:jpeg|png|gif|webp)$/.test(type)) throw new ApiError(502, '图片格式无效。', 'INVALID_IMAGE_RESPONSE');
   const headers = { 'Content-Type': type, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff', 'Cross-Origin-Resource-Policy': 'same-origin' };
+  const length = response.headers.get('Content-Length');
+  if (length && /^\d+$/.test(length) && !response.headers.get('Content-Encoding')) headers['Content-Length'] = length;
   if (url.searchParams.get('download') === '1') headers['Content-Disposition'] = `attachment; filename="pixiv-${new URL(source).pathname.split('/').pop().replace(/[^a-zA-Z0-9_.-]/g, '_')}"`;
   return new Response(response.body, { headers });
 }

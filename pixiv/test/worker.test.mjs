@@ -73,9 +73,10 @@ test('image proxy refuses private, arbitrary, deceptive, redirector and non-imag
 test('image proxy preserves image content and downloadable filename with redirect disabled', async () => {
   const response = await api('/api/image?' + new URLSearchParams({ url: image, download: '1' }), async (address, options) => {
     assert.equal(address, image); assert.equal(options.redirect, 'error'); assert.equal(options.headers.Cookie, undefined);
-    return new Response(new Uint8Array([255, 216, 255, 217]), { headers: { 'Content-Type': 'image/jpeg' } });
+    return new Response(new Uint8Array([255, 216, 255, 217]), { headers: { 'Content-Type': 'image/jpeg', 'Content-Length': '4' } });
   });
   assert.equal(response.status, 200); assert.equal(response.headers.get('Content-Type'), 'image/jpeg');
+  assert.equal(response.headers.get('Content-Length'), '4');
   assert.match(response.headers.get('Content-Disposition'), /attachment; filename="pixiv-123456_p0.jpg"/);
   assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [255, 216, 255, 217]);
 });

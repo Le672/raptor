@@ -12,7 +12,10 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(response.status, Object.fromEntries(response.headers));
     if (response.body) for await (const chunk of response.body) if (!res.write(Buffer.from(chunk))) await new Promise(r => res.once('drain', r));
     res.end();
-  } catch { if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '本地预览连接失败。' })); }
+  } catch {
+    if (res.headersSent) { res.destroy(); return; }
+    res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '本地预览连接失败。' }));
+  }
 });
 server.listen(5188, '127.0.0.1', () => console.log('Yukino Pixiv local preview: http://127.0.0.1:5188'));
 process.on('SIGINT', () => { server.close(); void vite.close().then(() => process.exit(0)); });

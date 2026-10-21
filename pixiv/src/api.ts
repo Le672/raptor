@@ -25,6 +25,17 @@ export function imageUrl(source: string, download = false) {
   return '/api/image?' + new URLSearchParams({ url: source, ...(download ? { download: '1' } : {}) });
 }
 
+export async function assertCompleteImage(blob: Blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer()), size = bytes.length;
+  const ends = (values: number[]) => size >= values.length && values.every((value, index) => bytes[size - values.length + index] === value);
+  let valid = false;
+  if (blob.type === 'image/jpeg') valid = size > 4 && bytes[0] === 255 && bytes[1] === 216 && ends([255, 217]);
+  else if (blob.type === 'image/png') valid = size > 20 && bytes[0] === 137 && ends([0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130]);
+  else if (blob.type === 'image/webp') valid = size >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF' && String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP' && new DataView(bytes.buffer).getUint32(4, true) + 8 === size;
+  else if (blob.type === 'image/gif') valid = size > 14 && String.fromCharCode(...bytes.slice(0, 3)) === 'GIF' && ends([59]);
+  if (!valid) throw new Error('图片传输不完整，请重试保存原图。');
+}
+
 export function directDestination(input: string): string | null {
   const value = input.trim();
   if (/^[1-9]\d{0,11}$/.test(value)) return '/artworks/' + value;

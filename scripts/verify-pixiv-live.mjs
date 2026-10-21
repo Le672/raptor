@@ -25,7 +25,9 @@ const artist = await json('/api/users/' + detail.userId + '?page=1');
 assert(artist.items?.length > 0 && artist.user?.id === detail.userId, 'Live artist gallery missing');
 const img = await response('/api/image?' + new URLSearchParams({ url: detail.images[0].original, download: '1' }));
 assert(img.ok && /^image\//.test(img.headers.get('content-type') || ''), 'Original image proxy failed');
-assert((await img.arrayBuffer()).byteLength > 1000, 'Original image is empty');
+const bytes = new Uint8Array(await img.arrayBuffer());
+assert(bytes.length > 1000, 'Original image is empty');
+if (img.headers.get('content-type')?.startsWith('image/jpeg')) assert(bytes[0] === 255 && bytes[1] === 216 && bytes.at(-2) === 255 && bytes.at(-1) === 217, 'Original JPEG transfer is incomplete');
 for (const path of ['/search?q=風景', '/artworks/' + detail.id, '/users/' + detail.userId, '/favorites', '/settings']) {
   const result = await response(path);
   assert(result.ok && (await result.text()).includes('Pixiv 画廊'), 'Direct navigation failed for ' + path);

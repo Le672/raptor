@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { directDestination, type Artwork, type ArtworkCard } from '../../pixiv/src/api';
+import { Blob as NodeBlob } from 'node:buffer';
+import { assertCompleteImage, directDestination, type Artwork, type ArtworkCard } from '../../pixiv/src/api';
 import { exportLibrary, importLibrary, readLibrary, recordView, toggleFavorite, writeLibrary } from '../../pixiv/src/library';
 import { canonicalPageUrl, isPortalHost, siteHref } from '../lib/site-routing';
 const item: ArtworkCard = { id: '123456', title: '風景', userId: '456', userName: 'Artist', image: 'https://i.pximg.net/img-original/img/2026/10/21/00/00/00/123456_p0.jpg', width: 1200, height: 800, pageCount: 3, type: 0, ai: false, tags: ['風景'], createdAt: '2026-10-21' };
@@ -20,6 +21,13 @@ describe('Pixiv direct navigation and independent ownership', () => {
 });
 
 describe('local Pixiv collection', () => {
+  it('rejects interrupted image downloads and appended error messages before saving', async () => {
+    const blob = (values: number[], type = 'image/jpeg') => new NodeBlob([new Uint8Array(values)], { type }) as unknown as Blob;
+    await expect(assertCompleteImage(blob([255, 216, 0, 1, 255, 217]))).resolves.toBeUndefined();
+    await expect(assertCompleteImage(blob([255, 216, 0, 1, 123, 125]))).rejects.toThrow('图片传输不完整');
+    await expect(assertCompleteImage(blob([255, 216, 255, 217, 123, 125]))).rejects.toThrow('图片传输不完整');
+    await expect(assertCompleteImage(blob([60, 104, 116, 109, 108, 62], 'text/html'))).rejects.toThrow();
+  });
   it('toggles favorites and persists reloadable local data', () => {
     const next = toggleFavorite(readLibrary(), item); writeLibrary(next);
     expect(readLibrary().favorites).toHaveLength(1); expect(toggleFavorite(next, item).favorites).toHaveLength(0);

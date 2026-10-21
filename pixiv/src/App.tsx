@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Download, ExternalLink, Heart, Home, Image as ImageIcon, Layers, LoaderCircle, Moon, Palette, RefreshCw, Search, Settings2, Sun, Trophy, Upload, UserRound, X } from 'lucide-react';
-import { directDestination, getJson, imageUrl, type Artwork, type ArtworkCard, type ArtworkPage } from './api';
+import { assertCompleteImage, directDestination, getJson, imageUrl, type Artwork, type ArtworkCard, type ArtworkPage } from './api';
 import { exportLibrary, importLibrary, readLibrary, recordView, toggleFavorite, writeLibrary, type Library } from './library';
 
 type Go = (path: string) => void;
@@ -88,10 +88,11 @@ function Detail({ id, go, library, update, notify }: { id: string; go: Go; libra
     try {
       const response = await fetch(imageUrl(image.original, true));
       if (!response.ok) { const data = await response.json().catch(() => ({})); throw new Error(data.error || '原图下载失败，请重试。'); }
-      const blob = await response.blob(), url = URL.createObjectURL(blob), anchor = document.createElement('a');
+      const blob = await response.blob(); await assertCompleteImage(blob);
+      const url = URL.createObjectURL(blob), anchor = document.createElement('a');
       anchor.href = url; anchor.download = `pixiv-${id}_p${page}.${image.original.split('.').pop()}`; anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 60000); notify('已交给浏览器保存原图。');
-    } catch (error) { notify(errorText(error)); } finally { setDownloading(false); }
+    } catch (error) { notify(error instanceof TypeError ? '原图传输中断，请重试保存。' : errorText(error)); } finally { setDownloading(false); }
   }
   return <>
     <div className="detail-back"><button className="text-button" onClick={() => { let from = ''; try { from = sessionStorage.getItem('pixiv-return') || ''; } catch { /* Return to the gallery when session storage is unavailable. */ } go(from.startsWith('/') && !from.startsWith('//') ? from : '/'); }}><ArrowLeft size={16} />返回作品列表</button><span>PIXIV / {id}</span></div>
