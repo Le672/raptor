@@ -34,6 +34,18 @@ test('invalid filters, premium sorting and excessive page counts fail before net
   assert.equal(requests, 0);
 });
 
+test('a fixed public PixivNow fallback supplies search when the official origin blocks server requests', async () => {
+  const addresses = [];
+  const result = await searchArtworks(new URLSearchParams({ q: '風景' }), async (address, options) => {
+    const url = new URL(address); addresses.push(url);
+    assert.equal(options.headers.Cookie, undefined); assert.equal(options.headers.Authorization, undefined);
+    if (url.hostname === 'www.pixiv.net') return new Response(null, { status: 403 });
+    assert.equal(url.hostname, 'pixiv.js.org'); assert.equal(url.searchParams.get('mode'), 'safe');
+    return reply({ illustManga: { data: [card], total: 1 } });
+  });
+  assert.equal(result.items[0].id, card.id); assert.equal(addresses.length, 2); assert.equal(addresses[0].pathname, addresses[1].pathname);
+});
+
 test('ranking keeps actual source date and rank after public visibility filtering', async () => {
   const result = await rankingArtworks(new URLSearchParams({ mode: 'weekly' }), async address => {
     assert.equal(new URL(address).searchParams.get('mode'), 'weekly');
@@ -79,6 +91,15 @@ test('image proxy preserves image content and downloadable filename with redirec
   assert.equal(response.headers.get('Content-Length'), '4');
   assert.match(response.headers.get('Content-Disposition'), /attachment; filename="pixiv-123456_p0.jpg"/);
   assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [255, 216, 255, 217]);
+});
+
+test('blocked public images use only the documented PixivNow image path', async () => {
+  const addresses = [];
+  const result = await api('/api/image?' + new URLSearchParams({ url: image }), async address => {
+    addresses.push(address);
+    return addresses.length === 1 ? new Response(null, { status: 403 }) : new Response(new Uint8Array([255, 216, 255, 217]), { headers: { 'Content-Type': 'image/jpeg' } });
+  });
+  assert.equal(result.status, 200); assert.equal(addresses[1], 'https://pixiv.js.org/-/' + new URL(image).pathname.slice(1));
 });
 
 test('HTML masquerading as a picture and invalid upstream JSON cannot look like success', async () => {

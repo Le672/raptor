@@ -1,4 +1,5 @@
 const ORIGIN = 'https://www.pixiv.net';
+const FALLBACK_ORIGIN = 'https://pixiv.js.org';
 const HEADERS = { Referer: ORIGIN + '/', 'User-Agent': 'Mozilla/5.0', Accept: 'application/json', 'Accept-Language': 'zh-CN,zh;q=0.9' };
 
 export class ApiError extends Error {
@@ -58,10 +59,15 @@ async function upstream(path, params = {}, fetcher = fetch) {
   const url = new URL(path, ORIGIN);
   for (const [key, value] of Object.entries({ lang: 'zh', ...params })) if (value !== undefined && value !== '') url.searchParams.set(key, String(value));
   let response;
-  try {
-    // Workers supports manual redirects; non-2xx responses below are rejected.
-    response = await fetcher(url.href, { headers: HEADERS, redirect: 'manual', signal: AbortSignal.timeout(18000) });
-  } catch { throw new ApiError(502, '暂时无法连接 Pixiv，请稍后重试。', 'UPSTREAM_UNAVAILABLE'); }
+  const candidates = [url.href, new URL(url.pathname + url.search, FALLBACK_ORIGIN).href];
+  for (let index = 0; index < candidates.length; index++) {
+    try {
+      // Both fixed origins expose the same public API; never forward credentials.
+      response = await fetcher(candidates[index], { headers: HEADERS, redirect: 'manual', signal: AbortSignal.timeout(18000) });
+      if (index === 0 && (response.status === 403 || response.status === 429 || response.status >= 500)) { await response.body?.cancel(); continue; }
+      break;
+    } catch { if (index === candidates.length - 1) throw new ApiError(502, '暂时无法连接 Pixiv 和备用公开接口，请稍后重试。', 'UPSTREAM_UNAVAILABLE'); }
+  }
   if (!response.ok) throw new ApiError(response.status === 404 ? 404 : 502, response.status === 429 ? 'Pixiv 请求较多，请稍后重试。' : response.status === 403 ? 'Pixiv 暂时限制了访问，请稍后重试或打开原站。' : `Pixiv 返回了 ${response.status}，请稍后重试。`, 'UPSTREAM_HTTP');
   let result;
   try { result = await response.json(); } catch { throw new ApiError(502, 'Pixiv 返回了无法读取的数据，请稍后重试。', 'INVALID_RESPONSE'); }
@@ -136,10 +142,11 @@ function json(value, status = 200, ttl = 0) {
 async function imageResponse(url, fetcher = fetch) {
   const source = imageSource(url.searchParams.get('url') || '');
   let response;
+  const candidates = [source, new URL('/-/' + new URL(source).pathname.slice(1), FALLBACK_ORIGIN).href];
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      response = await fetcher(source, { headers: { Referer: ORIGIN + '/', 'User-Agent': HEADERS['User-Agent'] }, redirect: 'manual', signal: AbortSignal.timeout(60000) });
-      if (response.status >= 500 && attempt === 0) { await response.body?.cancel(); continue; }
+      response = await fetcher(candidates[attempt], { headers: { Referer: ORIGIN + '/', 'User-Agent': HEADERS['User-Agent'] }, redirect: 'manual', signal: AbortSignal.timeout(60000) });
+      if (attempt === 0 && (response.status === 403 || response.status === 429 || response.status >= 500)) { await response.body?.cancel(); continue; }
       break;
     } catch { if (attempt === 1) throw new ApiError(502, '图片连接失败，请重试。', 'IMAGE_UNAVAILABLE'); }
   }
