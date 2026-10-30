@@ -35,6 +35,22 @@ test('a missing database and malformed reports have explicit error responses', a
   } finally { DB.sqlite.close(); }
 });
 
+test('migration seeds existing traffic once and total reads never rescan run history', async () => {
+  const DB = database(), queries = [];
+  const prepare = DB.prepare;
+  DB.prepare = sql => { queries.push(sql); return prepare(sql); };
+  try {
+    const insert = DB.sqlite.prepare('INSERT INTO speed_runs VALUES(?,?,?,?,?,?,?)');
+    for (let i = 0; i < 1000; i++) insert.run(crypto.randomUUID(), 'legacy-hash', 1000, 1000, 1, 1, 1);
+    for (let i = 0; i < 25; i++) {
+      const result = await (await handleSpeed(request('totals'), { DB })).json();
+      assert.equal(result.bytes, 1000000); assert.equal(result.sessions, 1000);
+    }
+    assert.equal(queries.filter(sql => /SUM\(bytes\)/i.test(sql)).length, 1, 'only startup may seed the aggregate');
+    assert.equal(queries.filter(sql => /^SELECT.*FROM speed_runs/i.test(sql)).length, 0);
+  } finally { DB.sqlite.close(); }
+});
+
 test('old portal subdomains can reconcile reports, while unrelated and deceptive origins remain blocked', async () => {
   const DB = database();
   try {

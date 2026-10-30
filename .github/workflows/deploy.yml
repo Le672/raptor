@@ -42,6 +42,12 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=raptor --branch=master
 
+      - name: Detach independent VPS status page from Pages
+        run: node scripts/ensure-vps-status-domain.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Verify portal API and VPS session validation
         run: node scripts/verify-portal-auth.mjs
 

@@ -10,7 +10,7 @@ os.umask(0o077)
 target = Path('/var/backups/yukino-content') / datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
 target.mkdir(parents=True, exist_ok=False, mode=0o700)
 saved = []
-for site in ['cinema', 'comic', 'novel']:
+for site in ['cinema', 'comic', 'novel', 'speed']:
     source = Path('/var/lib/yukino-content') / site / 'storage.sqlite'
     with sqlite3.connect(f'file:{source}?mode=ro', uri=True) as incoming:
         with sqlite3.connect(target / f'{site}.sqlite') as outgoing:

@@ -67,5 +67,18 @@ export class ContentStorage {
     return { entries: this.db.prepare('SELECT count(*) AS count FROM kv WHERE expires IS NULL OR expires>?').get(this.now()).count,
       responseBytes: this.db.prepare('SELECT coalesce(sum(length(body)),0) AS size FROM responses').get().size };
   }
+  databaseBinding() {
+    const db = this.db;
+    return { prepare(sql) {
+      const statement = db.prepare(sql);
+      function bound(values = []) { return {
+        bind: (...next) => bound(next),
+        async first() { return statement.get(...values) || null; },
+        async all() { return { results: statement.all(...values), success: true }; },
+        async run() { const result = statement.run(...values); return { success: true, meta: { changes: Number(result.changes), last_row_id: Number(result.lastInsertRowid) } }; },
+      }; }
+      return bound();
+    } };
+  }
   close() { this.db.close(); }
 }

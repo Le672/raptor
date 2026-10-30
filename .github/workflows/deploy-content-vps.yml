@@ -6,8 +6,12 @@ on:
       - 'cinema/**'
       - 'comic/**'
       - 'novel/**'
+      - 'speed/**'
       - 'shared/**'
       - 'vps-content/**'
+      - 'src/pages/Status.tsx'
+      - 'src/lib/status.ts'
+      - 'functions/api/status.ts'
       - 'scripts/build-vps-content.mjs'
       - 'scripts/*cinema*.mjs'
       - 'scripts/*comic*.mjs'
@@ -33,9 +37,9 @@ jobs:
       - name: Verify retired edge schedules and local storage
         run: |
           node scripts/check-kv-budget.mjs
-          node --test vps-content/*.test.mjs shared/test/*.test.mjs cinema/test/*.test.mjs comic/test/*.test.mjs novel/test/*.test.mjs
+          node --test vps-content/*.test.mjs shared/test/*.test.mjs cinema/test/*.test.mjs comic/test/*.test.mjs novel/test/*.test.mjs speed/test/api.test.mjs
       - name: Check protected media and browser libraries
-        run: npx vitest run src/test/content-media-access.test.tsx src/test/cinema-library.test.ts src/test/comic-library.test.ts
+        run: npx vitest run src/test/content-media-access.test.tsx src/test/cinema-library.test.ts src/test/comic-library.test.ts src/test/status-probe.test.ts src/test/status-resilience.test.tsx
       - name: Build portable VPS release
         run: node scripts/build-vps-content.mjs --build
       - name: Package release without caches, credentials or user data

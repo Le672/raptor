@@ -54,10 +54,10 @@ test('HTTP adapter preserves actual app login gates, origin separation, SPA rout
   const dir = await mkdtemp(join(tmpdir(), 'yukino-server-'));
   let app;
   try {
-    for (const name of ['cinema', 'comic', 'novel']) {
+    for (const name of ['cinema', 'comic', 'novel', 'speed', 'status']) {
       await mkdir(join(dir, name, 'dist'), { recursive: true });
-      const source = new URL(`../${name}/server/worker.mjs`, import.meta.url).href;
-      await writeFile(join(dir, name, 'worker.mjs'), `export { default } from ${JSON.stringify(source)};`);
+      const source = new URL(name === 'speed' ? './speed-worker.mjs' : name === 'status' ? './status-worker.mjs' : `../${name}/server/worker.mjs`, import.meta.url).href;
+      await writeFile(join(dir, name, 'worker.mjs'), name === 'status' ? `export default { fetch: () => new Response('status') };` : `export { default } from ${JSON.stringify(source)};`);
       await writeFile(join(dir, name, 'dist/index.html'), `<html>${name} shell</html>`);
     }
     app = await start({ root: dir, data: join(dir, 'data'), port: 0, schedule: false, network: false });

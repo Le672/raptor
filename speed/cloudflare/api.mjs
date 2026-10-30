@@ -7,7 +7,7 @@ function cors(request) {
 function json(request, value, status = 200) { return new Response(JSON.stringify(value), { status, headers: { ...cors(request), 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } }); }
 async function hash(value) { const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))); return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join(''); }
 export async function totals(db) {
-  const value = await db.prepare('SELECT COALESCE(SUM(bytes),0) AS bytes, COUNT(CASE WHEN bytes>0 THEN 1 END) AS sessions FROM speed_runs').first();
+  const value = await db.prepare('SELECT bytes,sessions FROM speed_totals WHERE id=1').first();
   return { bytes: Number(value.bytes), sessions: Number(value.sessions), updatedAt: new Date().toISOString(), source: 'anonymous-client-reports' };
 }
 let directoryCache = new Map();
@@ -16,6 +16,13 @@ async function initialize(db) {
   if (!initializedDatabases.has(db)) initializedDatabases.set(db, (async () => {
     await db.prepare('CREATE TABLE IF NOT EXISTS speed_runs (id TEXT PRIMARY KEY,token_hash TEXT NOT NULL,bytes INTEGER NOT NULL DEFAULT 0,duration_ms INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,finished INTEGER NOT NULL DEFAULT 0)').run();
     await db.prepare('CREATE INDEX IF NOT EXISTS speed_runs_updated ON speed_runs(updated_at)').run();
+    await db.prepare('CREATE TABLE IF NOT EXISTS speed_totals (id INTEGER PRIMARY KEY CHECK(id=1),bytes INTEGER NOT NULL,sessions INTEGER NOT NULL)').run();
+    // Seed once for old databases; thereafter each report adjusts one aggregate
+    // row in the same transaction as the monotonic run update.
+    await db.prepare('INSERT OR IGNORE INTO speed_totals SELECT 1,COALESCE(SUM(bytes),0),COUNT(CASE WHEN bytes>0 THEN 1 END) FROM speed_runs').run();
+    await db.prepare('CREATE TRIGGER IF NOT EXISTS speed_total_insert AFTER INSERT ON speed_runs BEGIN UPDATE speed_totals SET bytes=bytes+NEW.bytes,sessions=sessions+CASE WHEN NEW.bytes>0 THEN 1 ELSE 0 END WHERE id=1; END').run();
+    await db.prepare('CREATE TRIGGER IF NOT EXISTS speed_total_update AFTER UPDATE OF bytes ON speed_runs BEGIN UPDATE speed_totals SET bytes=bytes+NEW.bytes-OLD.bytes,sessions=sessions+CASE WHEN NEW.bytes>0 THEN 1 ELSE 0 END-CASE WHEN OLD.bytes>0 THEN 1 ELSE 0 END WHERE id=1; END').run();
+    await db.prepare('CREATE TRIGGER IF NOT EXISTS speed_total_delete AFTER DELETE ON speed_runs BEGIN UPDATE speed_totals SET bytes=bytes-OLD.bytes,sessions=sessions-CASE WHEN OLD.bytes>0 THEN 1 ELSE 0 END WHERE id=1; END').run();
   })().catch(error => { initializedDatabases.delete(db); throw error; }));
   await initializedDatabases.get(db);
 }

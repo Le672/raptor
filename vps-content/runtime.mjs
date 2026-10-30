@@ -69,7 +69,7 @@ export function assets(directory) {
 
 export async function start({ root, data, port = 18780, schedule = true, network = true } = {}) {
   if (network) installPublicNetwork();
-  const configurations = [['cinema', 'CINEMA_CACHE', 0], ['comic', 'COMIC_CACHE', 20], ['novel', 'NOVEL_CACHE', 40]];
+  const configurations = [['cinema', 'CINEMA_CACHE', 0], ['comic', 'COMIC_CACHE', 20], ['novel', 'NOVEL_CACHE', 40], ['speed', 'DB', null], ['status', 'STATUS_STORAGE', null]];
   const sites = new Map(), waiting = new Set(), jobs = new Map();
   const ctx = { waitUntil(promise) {
     const work = Promise.resolve(promise).catch(error => console.error('Background task failed', error.name)).finally(() => waiting.delete(work));
@@ -78,8 +78,8 @@ export async function start({ root, data, port = 18780, schedule = true, network
   for (const [name, binding, minute] of configurations) {
     const storage = new ContentStorage(resolve(data, name));
     const worker = (await import(pathToFileURL(resolve(root, name, 'worker.mjs')))).default;
-    const env = { [binding]: storage, ASSETS: assets(resolve(root, name, 'dist')) };
-    if (name !== 'novel' && !await storage.get('private:media-key')) await storage.put('private:media-key', crypto.randomUUID() + crypto.randomUUID());
+    const env = { [binding]: name === 'speed' ? storage.databaseBinding() : storage, ASSETS: assets(resolve(root, name, 'dist')) };
+    if (['cinema','comic'].includes(name) && !await storage.get('private:media-key')) await storage.put('private:media-key', crypto.randomUUID() + crypto.randomUUID());
     sites.set(`${name}.yukino.bond`, { name, storage, worker, env, minute });
   }
   globalThis.caches = { default: {
@@ -95,12 +95,15 @@ export async function start({ root, data, port = 18780, schedule = true, network
       const url = new URL(req.url, `https://${site.name}.yukino.bond`);
       if (url.hostname !== `${site.name}.yukino.bond` || !req.url.startsWith('/') || req.url.startsWith('//')) { res.writeHead(400); res.end(); return; }
       let result;
-      if (!['GET', 'HEAD'].includes(req.method)) result = new Response(null, { status: 405 });
+      const speedApi = site.name === 'speed' && /^\/api\/speed(?:\/|$)/.test(url.pathname);
+      if (!['GET', 'HEAD'].includes(req.method) && !(speedApi && ['POST', 'OPTIONS'].includes(req.method))) result = new Response(null, { status: 405 });
       else if (url.pathname === '/__health') result = Response.json({ origin: 'yukino-vps-content', site: site.name, storage: 'local-sqlite',
         ...site.storage.stats(), job: jobs.get(site.name) || null }, { headers: { 'Cache-Control': 'no-store' } });
       // Do not allow hidden source files to receive a SPA fallback.
       else if (url.pathname.split('/').some(part => part.startsWith('.')) || /(?:storage\.sqlite|\.env|worker\.mjs|runtime\.mjs)$/.test(url.pathname)) result = new Response(null, { status: 404 });
-      else result = await site.worker.fetch(new Request(url, { method: req.method, headers: req.headers, signal: controller.signal }), site.env, ctx);
+      else if (Number(req.headers['content-length']) > 4096) result = new Response(null, { status: 413 });
+      else result = await site.worker.fetch(new Request(url, { method: req.method, headers: req.headers, signal: controller.signal,
+        ...(req.method === 'POST' ? { body: Readable.toWeb(req), duplex: 'half' } : {}) }), site.env, ctx);
       const headers = new Headers(result.headers);
       headers.set('X-Yukino-Origin', 'vps-content');
       headers.set('X-Content-Type-Options', 'nosniff');
@@ -128,7 +131,7 @@ export async function start({ root, data, port = 18780, schedule = true, network
   }
   const timers = [];
   if (schedule) {
-    for (const site of sites.values()) timers.push(setTimeout(() => void refresh(site), 1000 + site.minute * 500));
+    for (const site of sites.values()) if (site.minute !== null) timers.push(setTimeout(() => void refresh(site), 1000 + site.minute * 500));
     let lastMinute = -1;
     timers.push(setInterval(() => {
       const now = new Date(), minute = Math.floor(now.getTime() / 60000);

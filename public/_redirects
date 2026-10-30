@@ -1,2 +1,4 @@
+/api/speed/* https://speed.yukino.bond/api/speed/:splat 307
+/api/speed https://speed.yukino.bond/api/speed 307
 /api/* /api/:splat 200
 /* /index.html 200
