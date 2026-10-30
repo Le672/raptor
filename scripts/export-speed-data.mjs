@@ -1,16 +1,19 @@
 // Export only anonymous speed runs. The private decryption key never enters CI.
 import { execFileSync } from 'node:child_process';
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
 import { randomBytes, createCipheriv, publicEncrypt, constants } from 'node:crypto';
 await mkdir('.wrangler/speed-migration', { recursive: true });
 const file = '.wrangler/speed-migration/speed.sql';
+let failure = '';
 try {
-  execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'export', 'yukino-portal', '--remote', '--table', 'speed_runs', '--output', file],
+  execFileSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'd1', 'export', 'yukino-portal', '--remote', '--skip-confirmation', '--table', 'speed_runs', '--output', file],
     { stdio: 'pipe', timeout: 180000, maxBuffer: 5 * 1024 * 1024 });
-} catch { throw new Error('Speed table export failed; no private response was logged'); }
+} catch (error) {
+  failure = String(error.stderr || error.stdout || error.message).replaceAll(process.env.CLOUDFLARE_API_TOKEN || 'not-a-credential', '[redacted]').slice(-12000);
+}
 const key = randomBytes(32), iv = randomBytes(12), cipher = createCipheriv('aes-256-gcm', key, iv);
-const input = gzipSync(await readFile(file));
+const input = gzipSync(JSON.stringify(failure ? { kind: 'diagnostic', message: failure } : { kind: 'speed-sql', sql: await readFile(file, 'utf8') }));
 const body = Buffer.concat([cipher.update(input), cipher.final()]);
 const envelope = { version: 1, key: publicEncrypt({ key: await readFile('vps-content/export-public.pem'), padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, key).toString('base64'),
   iv: iv.toString('base64'), tag: cipher.getAuthTag().toString('base64'), body: body.toString('base64') };
@@ -25,3 +28,4 @@ for (let offset = 0; offset < encoded.length; offset += 6000) {
   if (!response.ok) throw new Error('Private transfer to the authorized VPS did not succeed');
 }
 console.log('Encrypted speed data sent directly to the existing tools.yukino.bond VPS inbox; no data was logged.');
+if (failure) { console.error('Export failed; diagnostic details were sent privately to the VPS.'); process.exitCode = 1; }
