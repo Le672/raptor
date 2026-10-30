@@ -1,0 +1,47 @@
+name: Validate and package VPS content sites
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'cinema/**'
+      - 'comic/**'
+      - 'novel/**'
+      - 'shared/**'
+      - 'vps-content/**'
+      - 'scripts/build-vps-content.mjs'
+      - 'scripts/*cinema*.mjs'
+      - 'scripts/*comic*.mjs'
+      - 'scripts/*novel*.mjs'
+      - 'scripts/check-kv-budget.mjs'
+      - '.github/workflows/deploy-content-vps.yml'
+  workflow_dispatch:
+concurrency:
+  group: package-content-vps
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+          cache: npm
+      - run: npm ci
+      - name: Verify retired edge schedules and local storage
+        run: |
+          node scripts/check-kv-budget.mjs
+          node --test vps-content/*.test.mjs shared/test/*.test.mjs cinema/test/*.test.mjs comic/test/*.test.mjs novel/test/*.test.mjs
+      - name: Check protected media and browser libraries
+        run: npx vitest run src/test/content-media-access.test.tsx src/test/cinema-library.test.ts src/test/comic-library.test.ts
+      - name: Build portable VPS release
+        run: node scripts/build-vps-content.mjs --build
+      - name: Package release without caches, credentials or user data
+        run: tar -czf yukino-content.tar.gz -C .wrangler/vps-content .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yukino-content-vps
+          path: yukino-content.tar.gz
+          retention-days: 7

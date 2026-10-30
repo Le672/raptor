@@ -1,0 +1,32 @@
+[Unit]
+Description=Yukino content sites on VPS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=yukino-content
+StateDirectoryMode=0700
+WorkingDirectory=/opt/yukino-content/current
+ExecStart=/opt/yukino-content/node/bin/node vps-content/runtime.mjs
+Environment=CONTENT_DATA=/var/lib/yukino-content
+Environment=PORT=18780
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=45
+MemoryMax=768M
+CPUQuota=100%
+TasksMax=128
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

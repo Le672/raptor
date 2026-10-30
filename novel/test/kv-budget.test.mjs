@@ -54,13 +54,15 @@ test('all visitor routes, manual refresh and concurrent distinct searches spend 
   assert.equal(env.NOVEL_CACHE.puts.length, 0);
 });
 
-test('configured hourly Cron has one aggregate write per run and 24 writes per day including discovered books and health', async t => {
+test('hourly application refresh keeps its snapshot bound while the old edge schedule stays disabled', async t => {
   sources(t);
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse(time) });
   t.mock.method(adapters.wenku, 'book', async id => book(`wenku-${id}`));
   const env = environment(Object.fromEntries(['sf', 'linovel', 'wenku'].map(source => [`discovered:v2:${source}`, entry([book(`${source}-1`)])])));
-  const config = readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8');
-  assert.match(config, /"crons":\s*\["40 \* \* \* \*"\]/);
+  const config = JSON.parse(readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8'));
+  assert.deepEqual(config.triggers.crons, []);
+  assert.equal(config.workers_dev, false);
+  assert.deepEqual(config.routes, []);
   for (let hour = 0; hour < 24; hour++) {
     if(hour)t.mock.timers.tick(3600000);
     const ctx = context(), before = env.NOVEL_CACHE.puts.length;

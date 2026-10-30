@@ -60,7 +60,9 @@ test('one scheduled refresh persists all sources and homepage parts in one bound
   assert.equal(cache.reads.length,1+SOURCES.length,'read the combined snapshot once, then absent legacy source bundles');
   assert(calls.length+cache.reads.length+cache.writes.length<=50,'a cold scheduled refresh must fit the edge subrequest limit');
   const config=JSON.parse(await readFile(new URL('../wrangler.jsonc',import.meta.url),'utf8'));
-  assert.deepEqual(config.triggers.crons,['0 * * * *'],'the deployed schedule must run only once an hour');
+  assert.deepEqual(config.triggers.crons,[],'the retired Worker must not run alongside the VPS scheduler');
+  assert.equal(config.workers_dev,false);
+  assert.deepEqual(config.routes,[]);
   assert.equal(KV_WRITES_PER_REFRESH,cache.writes.length);
   assert.equal(cache.writes.length*24,24,'cinema must reserve shared account quota for other sites');
   assert.equal(result.sources.length,SOURCES.length);

@@ -15,6 +15,10 @@ const budget = [];
 for (const [site, writes] of sites) {
   const config = JSON.parse(await readFile(new URL(`../${site}/wrangler.jsonc`, import.meta.url), 'utf8'));
   const crons = config.triggers?.crons;
+  if (Array.isArray(crons) && crons.length === 0 && config.workers_dev === false && config.routes?.length === 0) {
+    budget.push({ site, cron: 'VPS: local scheduler and SQLite', writesPerRefresh: 0, scheduledWritesPerDay: 0 });
+    continue;
+  }
   if (!Array.isArray(crons) || crons.length !== 1 || !/^(?:[0-5]?\d) \* \* \* \*$/.test(crons[0])) {
     throw new Error(`${site}: catalog persistence must run once per hour; review the account KV budget before changing its schedule`);
   }

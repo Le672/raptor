@@ -42,6 +42,9 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=raptor --branch=master
 
+      - name: Verify portal API and VPS session validation
+        run: node scripts/verify-portal-auth.mjs
+
       - name: Attach rail watch subdomain
         run: node scripts/ensure-rail-domain.mjs
         env:

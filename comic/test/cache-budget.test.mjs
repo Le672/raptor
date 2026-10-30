@@ -47,7 +47,9 @@ test('hourly refresh combines every source and category into one bounded snapsho
   assert.equal(cache.writes.length,KV_WRITES_PER_REFRESH);
   assert(calls.length+cache.reads.length+cache.writes.length<=50,'cold refresh including legacy reads must fit the free edge subrequest budget');
   const config=JSON.parse(await readFile(new URL('../wrangler.jsonc',import.meta.url),'utf8'));
-  assert.deepEqual(config.triggers.crons,['20 * * * *']);
+  assert.deepEqual(config.triggers.crons,[],'the retired Worker must not run alongside the VPS scheduler');
+  assert.equal(config.workers_dev,false);
+  assert.deepEqual(config.routes,[]);
   assert.equal(cache.writes.length*24,24);
   assert.equal(result.meta.scheduledMinutes,60);
   for(const source of SOURCES){
