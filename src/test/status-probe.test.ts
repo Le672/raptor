@@ -1,8 +1,17 @@
+// @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { checkService } from '../../functions/api/status';
+import statusWorker from '../../vps-content/status-worker.mjs';
 
 afterEach(() => vi.unstubAllGlobals());
 describe('status checks stay meaningful during quota failures', () => {
+  it('serves the status deep link to GET and HEAD without turning API failures into pages', async () => {
+    const env = { ASSETS: { fetch: vi.fn(async (request: Request) => new URL(request.url).pathname === '/'
+      ? new Response(request.method === 'HEAD' ? null : '<html>status</html>', { headers: { 'Content-Type': 'text/html' } })
+      : new Response(null, { status: 404 })) } };
+    for (const method of ['GET', 'HEAD']) expect((await statusWorker.fetch(new Request('https://status.yukino.bond/status', { method }), env)).status).toBe(200);
+    expect((await statusWorker.fetch(new Request('https://status.yukino.bond/api/auth/me'), env)).status).toBe(503);
+  });
   it('does not report an HTML fallback with HTTP 200 as a healthy API', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>quota fallback</html>', { headers: { 'Content-Type': 'text/html' } })));
     const result = await checkService({ name: 'API', url: 'https://www.yukino.bond/api/posts', jsonKeys: ['posts'] });

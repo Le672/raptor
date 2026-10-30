@@ -6,7 +6,7 @@ export default { async fetch(request, env) {
     return handleSpeed(request, env);
   }
   let result = await env.ASSETS.fetch(request);
-  if (result.status === 404 && request.method === 'GET' && !/\.[\w]+$/.test(url.pathname)) result = await env.ASSETS.fetch(new Request(new URL('/', url), request));
+  if (result.status === 404 && ['GET', 'HEAD'].includes(request.method) && !/\.[\w]+$/.test(url.pathname)) result = await env.ASSETS.fetch(new Request(new URL('/', url), request));
   const headers = new Headers(result.headers);
   headers.set('Referrer-Policy', 'no-referrer');
   headers.set('X-Frame-Options', 'DENY');

@@ -1,6 +1,6 @@
 # Yukino content sites on VPS
 
-2026-10-31：影视、番剧、轻小说、测速与状态页使用原页面和 API，运行在 VPS 的独立 Node 服务中。Cloudflare Tunnel 提供域名入口和 HTTPS，页面和统计不使用主站的计算或数据库额度；三个内容站的旧 Worker 均停用，不再使用其 KV。内容站账户验证仍调用 `www.yukino.bond/api/auth/access`，每个活跃会话最多约五分钟一次。
+2026-10-31：影视、番剧、轻小说与状态页使用原页面和 API，运行在 VPS 的独立 Node 服务中。测速运行环境已预置，历史记录导出与核对完成后再切换其公共域名。Cloudflare Tunnel 提供域名入口和 HTTPS，迁移后的页面和接口不使用主站的计算或数据库额度；三个内容站的旧 Worker 均停用，不再使用其 KV。内容站账户验证仍调用 `www.yukino.bond/api/auth/access`，每个活跃会话最多约五分钟一次。
 
 ## Build and deploy
 
