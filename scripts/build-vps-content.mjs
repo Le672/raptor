@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { cp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { build as viteBuild } from 'vite';
 if (process.argv.includes('--build')) {
@@ -15,7 +16,11 @@ if (process.argv.includes('--build')) for (const name of ['cinema', 'comic', 'no
 }
 if (process.argv.includes('--build')) await viteBuild({ root: resolve('speed'), configFile: resolve('speed/vite.config.ts') });
 if (process.argv.includes('--build')) await viteBuild({ configFile: resolve('vite.config.ts') });
+const repository = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const root = resolve('.wrangler/vps-content');
+if (root !== resolve(repository, '.wrangler', 'vps-content') || !root.startsWith(repository + sep)) throw new Error('Unexpected build destination');
+// Clear only this reproducible bundle so removed files cannot reach a release.
+await rm(root, { recursive: true, force: true });
 await mkdir(root, { recursive: true });
 for (const name of ['cinema', 'comic', 'novel']) {
   await build({ entryPoints: [`${name}/server/worker.mjs`], outfile: `${root}/${name}/worker.mjs`, bundle: true, platform: 'node', target: 'node22', format: 'esm' });
@@ -26,7 +31,7 @@ await cp('speed/dist', `${root}/speed/dist`, { recursive: true });
 await build({ entryPoints: ['vps-content/status-worker.mjs'], outfile: `${root}/status/worker.mjs`, bundle: true, platform: 'node', target: 'node22', format: 'esm' });
 await cp('dist', `${root}/status/dist`, { recursive: true, filter: name => !name.endsWith('.map') &&
   !['rail-network', 'f1', 'f1-player'].some(directory => resolve(name) === resolve('dist', directory) || resolve(name).startsWith(resolve('dist', directory) + '/')) });
-await cp('vps-content', `${root}/vps-content`, { recursive: true, filter: name => !name.endsWith('.test.mjs') });
+await cp('vps-content', `${root}/vps-content`, { recursive: true, filter: name => !name.endsWith('.test.mjs') && !name.endsWith('.pyc') && !name.includes('__pycache__') });
 await cp('node_modules/undici', `${root}/node_modules/undici`, { recursive: true });
 const version = { builtAt: new Date().toISOString(), storage: 'local-sqlite', sites: ['cinema', 'comic', 'novel', 'speed', 'status'],
   node: '22.23.4', dependencies: { undici: JSON.parse(await readFile('node_modules/undici/package.json', 'utf8')).version } };

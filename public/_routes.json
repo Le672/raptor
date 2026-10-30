@@ -1,5 +1,5 @@
 {
   "version": 1,
   "include": ["/*"],
-  "exclude": ["/api/speed", "/api/speed/*", "/assets/*", "/rail-network/*", "/favicon.*", "/icon-*.png", "/manifest.webmanifest"]
+  "exclude": ["/status", "/status/*", "/api/speed", "/api/speed/*", "/assets/*", "/rail-network/*", "/favicon.*", "/icon-*.png", "/manifest.webmanifest"]
 }

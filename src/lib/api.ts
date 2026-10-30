@@ -3,7 +3,7 @@ import type { User } from "@/hooks/useAuthStore";
 import type { UsesDocument, UsesResponse } from "@/lib/uses";
 import type { Post, PostSummary, PostInput, BoxItem, BoxInput } from "@/lib/content";
 import { useAuthStore } from "@/hooks/useAuthStore";
-import type { StatusReport } from "@/lib/status";
+import { readStatusReport } from "@/lib/status-client";
 import type { P4Choice, P4Poll, RadioText, RadioTextRequest } from "@/lib/f1-community";
 
 export class ApiError extends Error {
@@ -60,7 +60,7 @@ export const api = {
   voteLeclerc: (pollKey: string, choice: P4Choice) => request<P4Poll>("POST", "/f1/leclerc-vote", { pollKey, choice }),
   getRadioText: (entry: RadioTextRequest) => request<RadioText>("GET", "/f1/radio-text", undefined, { session: String(entry.session), driver: String(entry.driver), date: entry.date }),
   transcribeRadio: (entry: RadioTextRequest) => request<RadioText>("POST", "/f1/radio-text", entry, undefined, 90000),
-  getStatus: () => request<StatusReport>("GET", "/status"),
+  getStatus: readStatusReport,
   getMe: () => request<{ user: User }>("GET", "/auth/me"),
   login: (email: string, password: string, source: "mail" | "local" = "mail") =>
     request<{ token: string; user: User }>("POST", "/auth/me", { email, password, source }, { action: "login" }),

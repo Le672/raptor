@@ -1,4 +1,4 @@
-"""Online SQLite backups of the three content caches, including playback keys."""
+"""Online SQLite backups of content caches and speed history, including keys."""
 from pathlib import Path
 from datetime import datetime, timezone
 import hashlib

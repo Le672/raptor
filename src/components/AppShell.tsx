@@ -14,6 +14,7 @@ import { SUBDOMAIN_ROUTES } from "@/lib/site-routing";
 
 export function AppShell() {
   const location = useLocation();
+  const independentStatus = window.location.hostname === 'status.yukino.bond';
   const isRailPage = isRailPath(location.pathname);
   const isF1Page = location.pathname.replace(/\/+$/, "").toLowerCase() === "/f1";
   const visualPath = location.pathname === "/" ? SUBDOMAIN_ROUTES[window.location.hostname.split(".")[0]] || "/" : location.pathname;
@@ -22,6 +23,7 @@ export function AppShell() {
   const token = useAuthStore(state => state.token);
   const authLoading = useAuthStore(state => state.isLoading);
   useEffect(() => {
+    if (independentStatus) { useAuthStore.getState().setLoading(false); return; }
     let active = true;
     useAuthStore.getState().setLoading(true);
     api.getMe().then(result => { if (active && useAuthStore.getState().token === token) useAuthStore.getState().setUser(result.user); })
@@ -36,21 +38,20 @@ export function AppShell() {
       })
       .finally(() => { if (active && useAuthStore.getState().token === token) useAuthStore.getState().setLoading(false); });
     return () => { active = false; };
-  }, [token]);
+  }, [token, independentStatus]);
 
   useEffect(() => {
     closeMobileMenu();
     window.scrollTo(0, 0);
   }, [closeMobileMenu, location.pathname]);
 
-  return (
-    <SiteVisitsProvider>
+  const content = (
     <div className="site-shell site-refresh" data-page={visualPage}>
       <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); const main = document.getElementById("main-content"); main?.focus(); main?.scrollIntoView(); }}>
         跳转到正文
       </a>
       <TopNav />
-      <LegacySpeedRecovery />
+      {!independentStatus && <LegacySpeedRecovery />}
       <main
         id="main-content"
         key={isRailPage ? "rail" : location.pathname}
@@ -59,9 +60,9 @@ export function AppShell() {
       >
         <PageErrorBoundary resetKey={location.pathname + location.search}><Suspense fallback={<p className="game-notice mx-auto my-10 max-w-md" role="status">正在打开页面…</p>}>{authLoading && location.pathname.startsWith("/admin") ? <p className="game-notice mx-auto my-10 max-w-md" role="status">正在确认登录状态…</p> : <Outlet />}</Suspense></PageErrorBoundary>
       </main>
-      {!isRailPage && !isF1Page && <Footer />}
+      {!isRailPage && !isF1Page && <Footer liveInfo={!independentStatus} />}
       <PageUtilities />
     </div>
-    </SiteVisitsProvider>
   );
+  return independentStatus ? content : <SiteVisitsProvider>{content}</SiteVisitsProvider>;
 }

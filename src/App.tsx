@@ -60,7 +60,7 @@ export default function App() {
       <SubdomainRouter />
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={isRailHost() ? <Rail /> : window.location.hostname === "speed.yukino.bond" ? <Speed /> : window.location.hostname === "ip.yukino.bond" ? <Ip /> : <Home />} />
+          <Route path="/" element={isRailHost() ? <Rail /> : window.location.hostname === "status.yukino.bond" ? <Status /> : window.location.hostname === "speed.yukino.bond" ? <Speed /> : window.location.hostname === "ip.yukino.bond" ? <Ip /> : <Home />} />
           {isRailHost() && Object.values(RAIL_FEATURE_PATHS).map(path => <Route key={path} path={path} element={<Rail />} />)}
           <Route path="/notes" element={<Notes />} />
           <Route path="/about-me" element={<AboutMe />} />

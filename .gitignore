@@ -20,6 +20,8 @@ dist-ssr
 .novel-work
 .comic-work
 .cinema-work
+__pycache__/
+*.pyc
 
 # Electron / Capacitor 构建产物
 release
