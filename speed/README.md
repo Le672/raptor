@@ -3,7 +3,7 @@
 网络测速与流量消耗工具，网页版与 Windows 原生下载引擎共用计量和控制逻辑。
 
 - 在线使用：[speed.yukino.bond](https://speed.yukino.bond)
-- 备用入口：[yukino-speed.pages.dev](https://yukino-speed.pages.dev)
+- 旧入口（自动跳转）：[yukino-speed.pages.dev](https://yukino-speed.pages.dev)
 - Windows 安装包、便携版与 SHA-256：[GitHub Releases](https://github.com/Le672/yukino-speed/releases/latest)
 - 主站：[Yukino](https://www.yukino.bond/)
 
@@ -11,9 +11,9 @@
 
 内置 339 个完整地址、覆盖 58 个国家和地区，169 个可直接在网页使用。按四运营商、国内 CDN、Steam 和全球节点分组，支持名称、国家地区、域名与兼容性组合筛选，无需手填。全球目录覆盖 Vultr、Akamai Cloud、Leaseweb、OVHcloud、HostHatch、DataPacket、EDIS Global、Psychz、Clouvider，保留 Steam Fastly / Akamai 官方资源包与安装文件。另保留公开 Speedtest 节点目录及自定义 URL。完整地址、大小、分段读取与来源说明见 [SOURCES.md](SOURCES.md)。支持 1–32 个并发下载任务、定时测速或持续消耗、暂停 / 继续、配额自动停止、运行中调整共享带宽上限。显示实际已读取字节、持续时间、实时 MB/s 与 Mbps、平均与峰值带宽及可悬停 / 触摸 / 键盘查看采样点的曲线，保存本机历史，可导出 JSON。
 
-全站累计由 Cloudflare D1 持久保存，包括网页与 Windows 客户端。统计接口只接收随机任务 ID、字节和时间，不接收下载 URL。每个任务使用独立随机密钥，重复、乱序和重试上报只计新增字节；断网记录自动补传。匿名客户端可以伪造其自身数据，因此公开总量明确标注为客户端上报。
+全站累计由 VPS SQLite 持久保存，包括网页与 Windows 客户端。统计接口只接收随机任务 ID、字节和时间，不接收下载 URL。每个任务使用独立随机密钥，重复、乱序和重试上报只计新增字节；断网记录自动补传。匿名客户端可以伪造其自身数据，因此公开总量明确标注为客户端上报。
 
-任务凭据独立于待同步队列持久保存，已确认检查点、刷新和后续上报使用相同身份。单项失败不阻塞其他任务；独立域名暂时连接失败时统计和节点目录可切换到同数据库的 Pages 备用接口。
+任务凭据独立于待同步队列持久保存，已确认检查点、刷新和后续上报使用相同身份。单项失败不阻塞其他任务；旧 Pages 统计地址保留 307 跳转，网页和原有客户端最终读取同一服务器；这个旧地址不再提供独立后端。
 
 所有网页入口统一使用独立测速站的统计 API；本站的 HTTPS 子域可以补报旧任务，来源不会因从 IP、专注或其他页面进入而被误拒绝。主站旧 `/speed` 地址先保留原任务 ID 和凭据补报，再转入正式域名；原域名的本机历史继续保留。`src/site-routing.mjs` 为主站与测速 Pages 共用的域名策略，错误的跨功能页面路径自动纠正，API 和静态资源不跳转。
 
@@ -45,9 +45,9 @@ pnpm sources:check
 
 测试覆盖跨线程配额、实际字节不截断、共享速率、暂停恢复、陈旧请求隔离、超时与错误重试；原生引擎在本地无 CORS 的 HTTP 服务器上验证 Range、重定向和取消。全站 API 使用真实 SQLite 验证重复 / 乱序提交、凭据与来源校验。
 
-Cloudflare Pages 配置在 `wrangler.toml`，表结构在 `cloudflare/schema.sql`。数据库绑定名为 `DB`。自行部署时改为自己的 D1 ID，并执行 schema；Yukino 域名部署由主仓库 [Le672/raptor](https://github.com/Le672/raptor) 的 `Deploy Yukino Speed` workflow 使用既有 Cloudflare secrets 完成。核心不提供任意 URL 的服务端流量中转。
+2026-10-31 起，页面与统计服务使用主仓库的 `vps-content` 运行环境，维护步骤见 `../vps-content/README.md`。原 D1 历史和切换期间增量已私人导出、核对并合并，任务身份与重复上报规则不变；原库保留作核对与回退，当前流量不再写入它。旧的 Pages 部署工作流与数据库绑定已停用，避免再次消耗共享额度。
 
-部署完成后，workflow 自动验证正式域名的 HTTPS 页面和持久统计接口。初次绑定域名时需要 DNS 编辑权限，或在 Cloudflare 控制台将 `speed` CNAME 指向 `yukino-speed.pages.dev`；域名已激活后可使用现有 Pages 部署权限继续发布。
+`node scripts/retire-speed-pages.mjs --deploy`（从主仓库根目录执行）可重新发布旧 `yukino-speed.pages.dev` 的静态跳转，隔离产物不包含 Functions 或 D1。正式 `speed.yukino.bond` 经现有 Cloudflare Tunnel 到 VPS，不要重新绑定到 Pages。测速负载仍直接来自用户选择的下载服务器，不经 VPS 中转。
 
 源代码在主仓库 `speed/` 与此独立仓库同步，独立提交可通过 `git subtree split --prefix=speed` 生成，再推送至本仓库。推送与 package version 对应的 `v*` 标签即可在 Windows Actions 中测试、打包并发布安装版 / 便携版和校验文件。
 
