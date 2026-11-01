@@ -22,14 +22,14 @@ describe('novel library and deep links', () => {
     expect(directId('https://www.linovelib.com.evil.test/novel/4649.html')).toBe('');
   });
   it('keeps legacy and source-specific shelves and progress separate when native IDs match', () => {
-    const sf = { ...book, id: 'sf-8', source: 'sf' as const };
+    const wenku = { ...book, id: 'wenku-8', source: 'wenku' as const };
     saveProgress({ book, volumeId: '11', chapterId: '22', chapterTitle: '旧书签', percent: 65, updatedAt: 200 });
     toggleSaved(book);
-    importLibrary(JSON.stringify({ version: 1, shelf: [{ book: sf, savedAt: 300 }], history: [{ book: sf, volumeId: 'v12345678', chapterId: '22', chapterTitle: '新书源', percent: 10, updatedAt: 300 }] }));
-    expect(shelf().map(x => x.book.id)).toEqual(['8', 'sf-8']);
+    importLibrary(JSON.stringify({ version: 1, shelf: [{ book: wenku, savedAt: 300 }], history: [{ book: wenku, volumeId: 'v12345678', chapterId: '22', chapterTitle: '新书源', percent: 10, updatedAt: 300 }] }));
+    expect(shelf().map(x => x.book.id)).toEqual(['8', 'wenku-8']);
     expect(history().find(x => x.book.id === '8')?.percent).toBe(65);
-    expect(history().find(x => x.book.id === 'sf-8')?.percent).toBe(10);
-    expect(directId('https://book.sfacg.com/Novel/775221/')).toBe('sf-775221');
+    expect(history().find(x => x.book.id === 'wenku-8')?.percent).toBe(10);
+    expect(directId('https://book.sfacg.com/Novel/775221/')).toBe('');
     expect(directId('https://www.linovel.net/book/122429.html')).toBe('linovel-122429');
     expect(directId('https://www.wenku8.net/book/1973.htm')).toBe('wenku-1973');
     expect(directId('https://book.sfacg.com.evil.test/Novel/8/')).toBe('');
@@ -38,7 +38,15 @@ describe('novel library and deep links', () => {
     const match = vi.fn(async () => new Response(JSON.stringify({ data: { text: 'old' }, meta: {} })));
     vi.stubGlobal('caches', { open: async () => ({ match }) });
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: '需要订阅' }), { status: 403 })));
-    await expect(request('/api/book/sf-8/chapter/12')).rejects.toThrow('需要订阅');
+    await expect(request('/api/book/linovel-8/chapter/12')).rejects.toThrow('需要订阅');
     expect(match).not.toHaveBeenCalled();
+  });
+  it('hides retired source entries while retaining other books, progress and preferences', () => {
+    localStorage.setItem('novel:shelf', JSON.stringify([{ book, savedAt: 100 }, { book: { ...book, id: 'sf-8' }, savedAt: 200 }]));
+    localStorage.setItem('novel:history', JSON.stringify([{ book, volumeId: '11', chapterId: '22', percent: 65, updatedAt: 200 }, { book: { ...book, id: 'sf-8' }, chapterId: '11', percent: 10 }]));
+    localStorage.setItem('novel:settings', JSON.stringify({ theme: 'dark', fontSize: 24 }));
+    expect(shelf().map(x => x.book.id)).toEqual(['8']);
+    expect(history().map(x => x.book.id)).toEqual(['8']);expect(history()[0].percent).toBe(65);
+    expect(preferences()).toMatchObject({ theme: 'dark', fontSize: 24 });expect(directId('sf-8')).toBe('');
   });
 });

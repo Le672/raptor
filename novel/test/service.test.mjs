@@ -69,7 +69,7 @@ test('guest chapters and every manual refresh require login before touching sour
   let upstream=0,reads=0,writes=0;
   t.mock.method(globalThis,'fetch',async()=>{upstream++;throw new Error('must not reach upstream');});
   const env={NOVEL_CACHE:{get:async()=>{reads++;return null;},put:async()=>{writes++;}}};
-  for(const path of ['/api/book/1/chapter/1','/api/book/sf-8/chapter/11','/api/books?refresh=1','/api/status?refresh=1','/api/book/1?refresh=1','/api/book/1/volume/1?refresh=1']){
+  for(const path of ['/api/book/1/chapter/1','/api/book/linovel-8/chapter/11','/api/books?refresh=1','/api/status?refresh=1','/api/book/1?refresh=1','/api/book/1/volume/1?refresh=1']){
     const response=await worker.fetch(new Request(`https://novel.yukino.bond${path}`),env,ctx),value=await response.json();
     assert.equal(response.status,401);assert.equal(value.code,'LOGIN_REQUIRED');assert.equal(new URL(value.loginUrl).origin,'https://www.yukino.bond');
   }

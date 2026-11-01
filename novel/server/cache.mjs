@@ -3,8 +3,8 @@
 export const SNAPSHOT_KEY = 'catalog-snapshot:v3';
 export const KV_WRITES_PER_REFRESH = 1;
 export const SNAPSHOT_KEYS = Object.freeze([
-  'catalog:v1', 'feed:v2:sf', 'feed:v2:linovel',
-  'discovered:v2:sf', 'discovered:v2:linovel', 'discovered:v2:wenku', 'health:v2:wenku',
+  'catalog:v1', 'feed:v2:linovel', 'feed:v2:wenku',
+  'discovered:v2:linovel', 'discovered:v2:wenku', 'health:v2:wenku',
 ]);
 export const CACHE_LIMITS = Object.freeze({ entries: 128, bytes: 16 * 1024 * 1024, entryBytes: 8 * 1024 * 1024, snapshotBytes: 20 * 1024 * 1024 });
 const DAY = 86400;

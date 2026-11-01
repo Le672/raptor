@@ -25,6 +25,7 @@ export async function access(signal?: AbortSignal): Promise<Access> {
 
 export async function request<T>(path: string, signal?: AbortSignal): Promise<Envelope<T>> {
   const key = new URL(path, location.origin); key.searchParams.delete('refresh');
+  if (/^\/api\/book\/sf-/.test(key.pathname) || key.searchParams.get('source') === 'sf') throw Object.assign(new Error('该书源已移除，请选择其他书源'), { status: 410 });
   const protectedChapter = /^\/api\/book\/[^/]+\/chapter\/[^/]+\/?$/.test(key.pathname);
   const explicitRefresh = new URL(path, location.origin).searchParams.get('refresh') === '1';
   let cache: Cache | undefined;
@@ -50,9 +51,9 @@ export async function request<T>(path: string, signal?: AbortSignal): Promise<En
   } catch (error) {
     if (signal?.aborted) throw error;
     if (protectedChapter || explicitRefresh) throw error;
-    if ([400, 401, 403, 404].includes((error as { status?: number })?.status || 0)) throw error;
+    if ([400, 401, 403, 404, 410].includes((error as { status?: number })?.status || 0)) throw error;
     const old = await cache?.match(key.href).catch(() => undefined);
-    if (old) { const result = await old.json(); return { ...result, meta: { ...result.meta, stale: true, offline: true, reason: `正在使用此浏览器的阅读缓存：${error instanceof Error ? error.message : '网络不可用'}` } }; }
+    if (old) { const result = await old.json(); if (result.data?.sources?.some((source: { id: string }) => source.id === 'sf') || result.data?.items?.some((book: { id: string }) => /^sf-/.test(book.id))) throw error; return { ...result, meta: { ...result.meta, stale: true, offline: true, reason: `正在使用此浏览器的阅读缓存：${error instanceof Error ? error.message : '网络不可用'}` } }; }
     throw error;
   }
 }
@@ -70,12 +71,11 @@ export function relativeDate(value?: string | null) {
 }
 export function directId(value: string) {
   const text = value.trim();
-  if (/^(?:sf|linovel|wenku)-[1-9]\d{0,8}$/.test(text)) return text;
+  if (/^(?:linovel|wenku)-[1-9]\d{0,8}$/.test(text)) return text;
   if (/^[1-9]\d{0,7}$/.test(text)) return text;
   try {
     const url = new URL(text); if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return '';
     if (/^(?:www\.|w\.)?(?:linovelib|bilinovel)\.com$/.test(url.hostname)) return url.pathname.match(/^\/novel\/([1-9]\d{0,7})(?:\.html|\/)/)?.[1] || '';
-    if (url.hostname === 'book.sfacg.com') { const id=url.pathname.match(/^\/Novel\/([1-9]\d{0,8})(?:\/|$)/i)?.[1]; return id ? `sf-${id}` : ''; }
     if (['www.linovel.net','linovel.net'].includes(url.hostname)) { const id=url.pathname.match(/^\/book\/([1-9]\d{0,8})\.html/)?.[1]; return id ? `linovel-${id}` : ''; }
     if (/^(?:www\.)?wenku8\.(?:net|com|cc)$/.test(url.hostname)) { const id=url.pathname.match(/^\/book\/([1-9]\d{0,8})\.htm/)?.[1]; return id ? `wenku-${id}` : ''; }
   } catch { /* Normal search text. */ }

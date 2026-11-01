@@ -27,22 +27,29 @@ async function feed(source, env, ctx, force) {
   }
   const old = await stored(env, rememberedKey(source));
   if (source === 'wenku') {
+    const result = await cached(env,ctx,'feed:v2:wenku',()=>adapters.wenku.catalog(),5*60000,{force,background:true,provider:sourceInfo(source).name});
+    const books = new Map(result.data.map(book=>[book.id,book]));
+    for(const known of old?.data||[])if(bookIdValid(known.id)&&bookSource(known.id)==='wenku'){
+      const current=books.get(known.id);
+      if(!current||(known.updatedAt||'')>=(current.updatedAt||''))books.set(known.id,{...current,...known});
+    }
     const health=await stored(env,'health:v2:wenku');
-    const failed=health&&health.state!=='limited'&&Date.now()-Date.parse(health.checkedAt)<3600000;
-    return { data: old?.data || [], meta: {...freshMeta(sourceInfo(source).name,old?.checkedAt),state:failed?health.state:'limited',reason:failed?health.reason:sourceInfo(source).note,stale:Boolean(failed&&old?.data?.length)} };
+    const restricted=health?.state==='restricted'&&Date.now()-Date.parse(health.checkedAt)<3600000;
+    return { ...result, data: [...books.values()], meta:{...result.meta,...(restricted?{state:'restricted',reason:`书目可检索；最近一次源站目录访问受限：${health.reason}`}:{})} };
   }
   const result = await cached(env,ctx,`feed:v2:${source}`,()=>adapters[source].catalog(),5*60000,{force,background:true,provider:sourceInfo(source).name});
   return {...result,data:merge(old?.data||[],result.data)};
 }
 function selectedSources(params) {
   const selected=params.get('source');
+  if(selected==='sf')throw new SourceError('该书源已移除，请选择其他书源',410,'removed');
   if (selected && selected !== 'all' && !sourceInfo(selected)) throw new SourceError('书源编号不正确',400);
   return selected && selected !== 'all' ? [selected] : SOURCES.map(item=>item.id);
 }
 function summarize(source, result, error) {
   const info=sourceInfo(source);
   if (error) return {...info,count:0,state:error.state||'error',stale:false,checkedAt:null,reason:error.message || '书源连接失败'};
-  return {...info,count:result.data.length,state:source==='wenku'?(result.meta.state||'limited'):result.meta.stale?'stale':'ok',stale:result.meta.stale,checkedAt:result.meta.checkedAt,reason:result.meta.reason};
+  return {...info,count:result.data.length,state:result.meta.state||(result.meta.stale?'stale':'ok'),stale:result.meta.stale,checkedAt:result.meta.checkedAt,reason:result.meta.reason};
 }
 export async function allCatalog(env,ctx,params=new URLSearchParams()) {
   const force=params.get('refresh')==='1', selected=selectedSources(params);
@@ -73,7 +80,7 @@ export async function findBooks(env,ctx,params) {
       return{data:{items:[...known.values()].filter(item=>wanted.has(item.id)),indexed:known.size,sources:result.sources,scope:'收藏书目，每次最多检查六本新增书源作品，其余轮流检查'},meta:stale?{...result.meta,stale:true,reason:'部分收藏正在同步或获取失败，保留上次书目信息'}:result.meta};
     }
     const data=searchBooks(result.data,params);
-    return{data:{...data,sources:result.sources,scope:'各源当前发现书目'},meta:result.meta};
+    return{data:{...data,sources:result.sources,scope:'哔哩与文库公开索引，以及轻之文库最近更新书目'},meta:result.meta};
   }
   const results=await Promise.all(selected.map(async source=>{
     try {
@@ -86,7 +93,7 @@ export async function findBooks(env,ctx,params) {
   const filteredParams=new URLSearchParams(params);filteredParams.delete('q');
   const matching=items.filter(item=>!['bili','wenku'].includes(bookSource(item.id)) || searchBooks([item],params).total>0);
   const data=searchBooks(matching,filteredParams),times=sources.map(x=>x.checkedAt).filter(Boolean).sort();
-  return{data:{...data,sources,scope:'哔哩索引与各新增书源当前返回的公开搜索结果'},meta:{...freshMeta('多书源搜索',times.at(-1)||null),stale:false,reason:''}};
+  return{data:{...data,sources,scope:'哔哩与文库公开索引，以及轻之文库源站当前返回的公开搜索结果'},meta:{...freshMeta('多书源搜索',times.at(-1)||null),stale:sources.some(source=>source.stale),reason:sources.some(source=>source.state==='error'||source.state==='restricted')?'部分书源暂不可用，其他结果正常显示':''}};
 }
 export async function getBook(env,ctx,id,force=false,rememberEntry=true) {
   if(!bookIdValid(id))throw new SourceError('书籍编号不正确',404);
@@ -94,7 +101,7 @@ export async function getBook(env,ctx,id,force=false,rememberEntry=true) {
   let result;
   try{
     result=await cached(env,ctx,`detail:v2:${id}`,()=>adapters[source].book(nativeBookId(id)),5*60000,{force,background:true,provider:sourceInfo(source).name});
-    if(source==='wenku'&&!result.meta.stale)await wenkuHealth(env,'limited').catch(()=>{});
+    if(source==='wenku'&&!result.meta.stale)await wenkuHealth(env,'ok').catch(()=>{});
   }catch(error){if(source==='wenku')await wenkuHealth(env,error.state||'error',error.message).catch(()=>{});throw error;}
   if(rememberEntry&&!result.meta.stale)ctx.waitUntil(remember(env,result.data,result.meta.checkedAt).catch(()=>{}));return result;
 }
@@ -117,7 +124,7 @@ export async function getChapter(env,ctx,id,cid,force=false) {
 }
 export function validPartId(value){return /^(?:[1-9]\d{0,15}|v[0-9a-f]{8})$/.test(String(value));}
 export async function refreshKnownSources(env,ctx) {
-  await Promise.all(['sf','linovel','wenku'].map(async source=>{
+  await Promise.all(['linovel','wenku'].map(async source=>{
     const old=await stored(env,rememberedKey(source));if(!old?.data?.length)return;
     // Fetches and Cache API operations share the free Worker's 50-subrequest limit.
     const batch=[...old.data].sort((a,b)=>(a.sourceFetchedAt||'').localeCompare(b.sourceFetchedAt||'')).slice(0,1);

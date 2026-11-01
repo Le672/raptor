@@ -28,7 +28,7 @@ async function image(request, url) {
   const key = new Request(new URL(`/api/image?src=${encodeURIComponent(src)}`, url.origin));
   if (cache) { const hit = await cache.match(key); if (hit) return hit; }
   const host = new URL(src).hostname;
-  const referer = /sfacg\.com$/.test(host) ? 'https://book.sfacg.com/' : /linovel\.net$/.test(host) ? 'https://www.linovel.net/' : /wenku8\.(?:com|net)$/.test(host) ? 'https://www.wenku8.net/' : `${SOURCE}/`;
+  const referer = /linovel\.net$/.test(host) ? 'https://www.linovel.net/' : /wenku8\.(?:com|net)$/.test(host) ? 'https://www.wenku8.net/' : `${SOURCE}/`;
   const result = await fetch(src, { headers: { Referer: referer, Accept: 'image/avif,image/webp,image/*' }, signal: AbortSignal.timeout(18000), redirect: 'manual' });
   if (!result.ok) return json({ error: `图片源暂不可用（${result.status}）` }, 502);
   const type = (result.headers.get('content-type') || '').split(';')[0];
@@ -61,6 +61,7 @@ export default {
     if (request.method !== 'GET') return json({ error: '仅支持 GET 请求' }, 405);
     try {
       if (url.pathname === '/api/access') return await access.status(request);
+      if (/^\/api\/book\/sf-/.test(url.pathname)) return json({ error: '该书源已移除，请选择其他书源', code: 'SOURCE_REMOVED' }, 410);
       const force = url.searchParams.get('refresh') === '1';
       const protectedRequest = force || /^\/api\/book\/[^/]+\/chapter\/[^/]+$/.test(url.pathname);
       if (protectedRequest) { const denied = await access.require(request, { refresh: force }); if (denied) return denied; }

@@ -1,4 +1,4 @@
-export type SourceId = 'bili' | 'sf' | 'linovel' | 'wenku';
+export type SourceId = 'bili' | 'linovel' | 'wenku';
 export type SourceInfo = { id: SourceId; name: string; kind: string; origin: string; search: boolean; note: string };
 export const SOURCES: SourceInfo[];
 export function sourceInfo(id: string): SourceInfo | undefined;

@@ -23,7 +23,7 @@ export function SourceStateStrip({ sources }: { sources?: SourceStatus[] }) {
       <span className="status-dot" />{source.name}<small>{source.state === 'ok' ? `${source.count} 条` : stateNames[source.state]}</small>
     </span>)}</div>
     {sources.filter(source => ['error','restricted','stale'].includes(source.state)).map(source => <p className="source-query-warning" key={source.id} role="status">{source.name}：{source.reason || '当前仅能显示上次获取的数据'}。其他书源不受影响。</p>)}
-    {sources.length === 1 && sources[0].id === 'wenku' && <p className="source-query-warning">文库仅搜索已通过链接打开的书目。要添加其他作品，请粘贴源站书籍链接；完整搜索需要前往源站登录。</p>}
+    {sources.length === 1 && sources[0].id === 'wenku' && <p className="source-query-warning">文库书名索引已与源站公开站点地图核对。目录和正文的实际可读性仍以源站权限为准。</p>}
   </div>;
 }
 export function SourceSwitcher({ book }: { book: Book }) {
@@ -72,14 +72,14 @@ export function SourceSettings() {
       const state=result?.data.sources?.find(item=>item.id===info.id);
       return <section className={`provider-card provider-${info.id}`} key={info.id}>
         <div className="provider-heading"><span className="source-logo"><BookOpen size={24} /></span><div><h2>{info.name}</h2><span>{info.kind}</span></div><span className={`provider-state state-${state?.state||'pending'}`}>{state ? stateNames[state.state] : '检查中'}</span></div>
-        <p>{info.note}</p>
-        <dl><div><dt>当前发现书目</dt><dd>{state ? state.count : '—'} 条</dd></div><div><dt>最近成功获取</dt><dd>{dateLabel(state?.checkedAt,true)}</dd></div><div><dt>搜索范围</dt><dd>{info.id==='bili'?'聚合接口已索引书库':info.id==='wenku'?'已打开的公开书目':'源站当前返回的公开结果'}</dd></div></dl>
+        <p>{info.note}{info.id==='wenku' && <> <a href="https://github.com/mojimoon/wenku8" target="_blank" rel="noreferrer">书目索引来源</a></>}</p>
+        <dl><div><dt>当前发现书目</dt><dd>{state ? state.count : '—'} 条</dd></div><div><dt>最近成功获取</dt><dd>{dateLabel(state?.checkedAt,true)}</dd></div><div><dt>搜索范围</dt><dd>{info.id==='bili'?'聚合接口已索引书库':info.id==='wenku'?'公开书名、作者与标签索引':'源站当前返回的公开结果'}</dd></div></dl>
         {state && ['error','restricted','stale'].includes(state.state) && <p className="provider-warning" role="status">{state.reason}</p>}
         <div className="source-links"><Link to={`/?source=${info.id}`}>浏览此书源<ChevronRight size={13} /></Link><a href={info.origin} target="_blank" rel="noreferrer">访问源站<ExternalLink size={12} /></a></div>
       </section>;
     })}</div>
     <div className="source-update-note"><Check size={17} /><div><p>每小时检查公开索引并尝试保存快照，轮流检查已知书目；浏览时按缓存时间检查更新，收藏每次最多检查 6 本。源站失败时保留有效旧结果，并标明上次成功时间。</p>{result?.data.persistence && <p role="status">索引快照：{result.data.persistence.lastPersistedAt ? `上次保存 ${dateLabel(result.data.persistence.lastPersistedAt,true)}` : '尚未保存'}{result.data.persistence.state !== 'ok' && `。${result.data.persistence.reason || '等待下一次同步'}`}</p>}</div></div>
-    <section className="settings-card"><span className="eyebrow">YOUR OWN LITTLE LIBRARY</span><h2>让书签跟着你走</h2><p>收藏、阅读进度与设置保存在此浏览器。旧书架继续保留，同一本书在不同书源的进度分别记录。浏览过的目录和章节会自动缓存，明确受限的章节不会用旧缓存冒充可读正文。备份仅含书目和进度。</p>
+    <section className="settings-card"><span className="eyebrow">YOUR OWN LITTLE LIBRARY</span><h2>让书签跟着你走</h2><p>收藏、阅读进度与设置保存在此浏览器。旧书架继续保留，同一本书在不同书源的进度分别记录。浏览过的公开目录会自动缓存，正文需联网验证登录，明确受限的章节不会用旧缓存冒充可读正文。备份仅含书目和进度。</p>
       <div className="button-group"><button className="button" onClick={exportLibrary}><Download size={15} />导出书架与进度</button><button className="button secondary" onClick={()=>file.current?.click()}><Upload size={15} />导入备份</button><button className="text-button" onClick={async()=>{await caches.delete(READING_CACHE).catch(()=>false);setNotice('已清理阅读缓存，书架和进度保留。');}}>清理阅读缓存</button>
         <input className="sr-only" type="file" ref={file} accept=".json,application/json" aria-label="导入书架备份文件" onChange={async event=>{const upload=event.target.files?.[0];if(!upload)return;try{if(upload.size>3*1024*1024)throw new Error('备份文件不能超过 3 MB');importLibrary(await upload.text());setNotice('书架与阅读进度已合并导入。');}catch(error){setNotice(error instanceof Error?error.message:'导入失败');}event.target.value='';}} />
       </div>{notice&&<p className="notice" role="status">{notice}</p>}

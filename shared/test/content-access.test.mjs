@@ -116,7 +116,7 @@ test('all content Workers enforce gates before source/cache/network work while k
   const endpoints = [
     [cinema, 'cinema', ['/api/title/bf-1/play?line=0&episode=0', '/api/media?token=old-signed-url', '/api/catalog?refresh=1']],
     [comic, 'comic', ['/api/anime/bf-1/play?line=0&episode=0', '/api/media?token=old-signed-url', '/api/catalog?refresh=1']],
-    [novel, 'novel', ['/api/book/sf-1/chapter/1', '/api/books?refresh=1', '/api/status?refresh=1']],
+    [novel, 'novel', ['/api/book/linovel-1/chapter/1', '/api/books?refresh=1', '/api/status?refresh=1']],
   ];
   for (const [worker, site, paths] of endpoints) {
     for (const path of paths) {

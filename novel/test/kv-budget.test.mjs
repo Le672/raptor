@@ -11,7 +11,7 @@ import { CACHE_LIMITS, KV_WRITES_PER_REFRESH, SNAPSHOT_KEY, SNAPSHOT_KEYS, cache
 const time = '2026-10-20T00:00:00Z';
 const entry = data => ({ data, checkedAt: time });
 const raw = nid => ({ nid, name: `测试书 ${nid}`, labels: [], volumes: [], updatedAt: time });
-const book = id => ({ id, title: `测试书 ${id}`, author: '作者', tags: [], updatedAt: time, volumes: [{ id: '1', title: '卷一', chapters: [{ id: '1', title: '一', sourceUrl: 'https://book.sfacg.com/Novel/1/1/1/' }] }] });
+const book = id => ({ id, title: `测试书 ${id}`, author: '作者', tags: [], updatedAt: time, volumes: [{ id: '1', title: '卷一', chapters: [{ id: '1', title: '一', sourceUrl: 'https://www.linovel.net/book/1/1.html' }] }] });
 function environment(initial = {}, fail = false) {
   const records = new Map(Object.entries(initial)), puts = [];
   return { NOVEL_CACHE: {
@@ -34,10 +34,10 @@ function sources(t, failed = () => false) {
     if (String(url).includes('/vol/')) return Response.json({ ok: true, data: { nid: 1, vid: 1, title: '卷一', chapters: [{ nid: 1, vid: 1, cid: 1, title: '章节' }] } });
     return Response.json({ ok: true, data: raw(1) });
   });
-  for (const source of ['sf', 'linovel']) {
+  for (const source of ['linovel', 'wenku']) {
     t.mock.method(adapters[source], 'catalog', async () => { if(failed())throw new Error('source down');return [book(`${source}-1`)]; });
-    t.mock.method(adapters[source], 'search', async () => [book(`${source}-1`)]);
-    t.mock.method(adapters[source], 'book', async id => book(`${source}-${id}`));
+    if(adapters[source].search)t.mock.method(adapters[source], 'search', async () => [book(`${source}-1`)]);
+    t.mock.method(adapters[source], 'book', async id => { if(failed())throw new Error('source down');return book(`${source}-${id}`); });
     t.mock.method(adapters[source], 'chapter', async () => ({ title: '一', blocks: [{ type: 'text', text: '成功正文' }] }));
   }
 }
@@ -45,11 +45,11 @@ function sources(t, failed = () => false) {
 test('all visitor routes, manual refresh and concurrent distinct searches spend zero KV puts', async t => {
   sources(t);
   const env = environment({}, true);
-  for (const path of ['/api/status?refresh=1', '/api/books?refresh=1', '/api/book/1?refresh=1', '/api/book/1/volume/1?refresh=1', '/api/book/1/chapter/1?refresh=1', '/api/book/sf-1?refresh=1', '/api/book/sf-1/chapter/1?refresh=1']) {
+  for (const path of ['/api/status?refresh=1', '/api/books?refresh=1', '/api/book/1?refresh=1', '/api/book/1/volume/1?refresh=1', '/api/book/1/chapter/1?refresh=1', '/api/book/linovel-1?refresh=1', '/api/book/linovel-1/chapter/1?refresh=1']) {
     const { response, value } = await call(env, path);
     assert.equal(response.status, 200, `${path}: ${JSON.stringify(value)}`);
   }
-  const searches = await Promise.all(Array.from({ length: 35 }, (_, index) => call(env, `/api/books?source=sf&q=query-${index}`)));
+  const searches = await Promise.all(Array.from({ length: 35 }, (_, index) => call(env, `/api/books?source=linovel&q=query-${index}`)));
   assert.ok(searches.every(item => item.response.status === 200));
   assert.equal(env.NOVEL_CACHE.puts.length, 0);
 });
@@ -57,8 +57,7 @@ test('all visitor routes, manual refresh and concurrent distinct searches spend 
 test('hourly application refresh keeps its snapshot bound while the old edge schedule stays disabled', async t => {
   sources(t);
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse(time) });
-  t.mock.method(adapters.wenku, 'book', async id => book(`wenku-${id}`));
-  const env = environment(Object.fromEntries(['sf', 'linovel', 'wenku'].map(source => [`discovered:v2:${source}`, entry([book(`${source}-1`)])])));
+  const env = environment(Object.fromEntries(['linovel', 'wenku'].map(source => [`discovered:v2:${source}`, entry([book(`${source}-1`)])])));
   const config = JSON.parse(readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8'));
   assert.deepEqual(config.triggers.crons, []);
   assert.equal(config.workers_dev, false);
@@ -70,7 +69,7 @@ test('hourly application refresh keeps its snapshot bound while the old edge sch
     assert.ok(env.NOVEL_CACHE.puts.length - before <= KV_WRITES_PER_REFRESH);
   }
   assert.equal(env.NOVEL_CACHE.puts.length, 24);
-  assert.equal(adapters.sf.catalog.mock.callCount(), 24, 'each hourly event must actually recheck the source');
+  assert.equal(adapters.wenku.catalog.mock.callCount(), 24, 'each hourly event must actually recheck the source');
   assert.ok(env.NOVEL_CACHE.puts.every(item => item.key === SNAPSHOT_KEY));
   const snapshot = env.NOVEL_CACHE.records.get(SNAPSHOT_KEY);
   assert.deepEqual(Object.keys(snapshot.records).sort(), [...SNAPSHOT_KEYS].sort());
@@ -117,8 +116,8 @@ test('edge cache failure cannot turn successful source content stale and memory 
 
 test('concurrent discovered books merge rather than overwriting one another, with no KV writes', async () => {
   const env = environment();
-  await Promise.all(Array.from({ length: 20 }, (_, index) => remember(env, book(`sf-${index + 1}`))));
-  assert.equal((await stored(env, 'discovered:v2:sf')).data.length, 20);
+  await Promise.all(Array.from({ length: 20 }, (_, index) => remember(env, book(`linovel-${index + 1}`))));
+  assert.equal((await stored(env, 'discovered:v2:linovel')).data.length, 20);
   assert.equal(env.NOVEL_CACHE.puts.length, 0);
 });
 
@@ -140,7 +139,6 @@ test('another instance can reuse Cache API chapter content without KV or an upst
 test('failed sources and freshly recorded health errors cannot renew old snapshots hour after hour', async t => {
   let down=false;
   const origin=Date.parse(time);t.mock.timers.enable({apis:['Date'],now:origin});sources(t,()=>down);
-  t.mock.method(adapters.wenku,'book',async id=>{if(down)throw new Error('source down');return book(`wenku-${id}`);});
   const env=environment({'discovered:v2:wenku':entry([book('wenku-1')])}),first=context();
   await worker.scheduled({scheduledTime:origin},env,first);await first.finish();
   const saved=env.NOVEL_CACHE.records.get(SNAPSHOT_KEY);assert.equal(env.NOVEL_CACHE.puts.length,1);
@@ -155,8 +153,8 @@ test('edge and memory hydration preserve original expiry and expired snapshot re
   const original=Object.getOwnPropertyDescriptor(globalThis,'caches'),response={data:['old'],checkedAt:new Date(origin-3600000+1000).toISOString()};
   Object.defineProperty(globalThis,'caches',{configurable:true,value:{default:{match:async key=>key.url.includes('search%3A')?Response.json(response):undefined}}});
   t.after(()=>{if(original)Object.defineProperty(globalThis,'caches',original);else delete globalThis.caches;});
-  const env=environment();assert.deepEqual((await stored(env,'search:v2:sf:old')).data,['old']);
-  t.mock.timers.tick(1001);assert.equal(await stored(env,'search:v2:sf:old'),null);
+  const env=environment();assert.deepEqual((await stored(env,'search:v2:linovel:old')).data,['old']);
+  t.mock.timers.tick(1001);assert.equal(await stored(env,'search:v2:linovel:old'),null);
   const expired={data:['expired'],checkedAt:new Date(origin-31*86400000).toISOString()};
   const old={version:3,hour:0,checkedAt:expired.checkedAt,records:{'catalog:v1':expired}};
   const cold=environment({[SNAPSHOT_KEY]:old,'catalog:v1':expired});
@@ -171,9 +169,8 @@ test('cold scheduled refresh with all known sources fits below 45 shared fetch a
   t.mock.method(globalThis,'fetch',async input=>{
     external++;const url=String(input);
     if(url.includes('/api/bili/novels'))return Response.json({ok:true,data:[raw(8)]});
-    if(url.includes('sfacg.com/List'))return new Response(fixture.sfList);
-    if(url.includes('MainIndex'))return new Response(fixture.sfToc);
-    if(url.includes('sfacg.com/Novel'))return new Response(fixture.sfDetail);
+    if(url.includes('/sitemap.xml'))return new Response(fixture.wenkuSitemap);
+    if(url.includes('wenku_catalog.json'))return Response.json(fixture.wenkuCatalog);
     if(url.includes('linovel.net/cat'))return new Response(fixture.linovelList);
     if(url.includes('linovel.net/book'))return new Response(fixture.linovelDetail);
     return new Response(url.includes('/book/')?fixture.wenkuDetail:fixture.wenkuToc);
@@ -181,9 +178,9 @@ test('cold scheduled refresh with all known sources fits below 45 shared fetch a
   const original=Object.getOwnPropertyDescriptor(globalThis,'caches');
   Object.defineProperty(globalThis,'caches',{configurable:true,value:{default:{match:async()=>{cacheOps++;return undefined;},put:async()=>{cacheOps++;}}}});
   t.after(()=>{if(original)Object.defineProperty(globalThis,'caches',original);else delete globalThis.caches;});
-  const env=environment(Object.fromEntries(['sf','linovel','wenku'].map(source=>[`discovered:v2:${source}`,entry([book(`${source}-8`),book(`${source}-9`),book(`${source}-10`)])]))),ctx=context();
+  const env=environment(Object.fromEntries(['linovel','wenku'].map(source=>[`discovered:v2:${source}`,entry([book(`${source}-8`),book(`${source}-9`),book(`${source}-10`)])]))),ctx=context();
   await worker.scheduled({scheduledTime:Date.now()},env,ctx);await ctx.finish();
   console.log(`Cold novel Cron subrequests: ${external} fetch + ${cacheOps} Cache API = ${external+cacheOps}`);
-  assert.equal(external,8);assert.ok(external+cacheOps<45,`${external} fetch + ${cacheOps} cache operations`);
+  assert.equal(external,7);assert.ok(external+cacheOps<45,`${external} fetch + ${cacheOps} cache operations`);
   assert.equal(env.NOVEL_CACHE.puts.length,1);
 });

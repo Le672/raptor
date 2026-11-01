@@ -3,7 +3,17 @@ self.addEventListener('install', event => { event.waitUntil(caches.open(VERSION)
 self.addEventListener('message', event => { if (event.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
 self.addEventListener('activate', event => { event.waitUntil(Promise.all([
   caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('yukino-novel-shell-') && key !== VERSION).map(key => caches.delete(key)))),
-  caches.open('yukino-novel-data-v1').then(async cache => { const keys = await cache.keys(); await Promise.all(keys.filter(key => /^\/api\/book\/[^/]+\/chapter\//.test(new URL(key.url).pathname)).map(key => cache.delete(key))); }),
+  caches.open('yukino-novel-data-v1').then(async cache => {
+    const keys = await cache.keys();
+    await Promise.all(keys.map(async key => {
+      const url = new URL(key.url);
+      if (/^\/api\/book\/[^/]+\/chapter\//.test(url.pathname) || /^\/api\/book\/sf-/.test(url.pathname) || url.searchParams.get('source') === 'sf') return cache.delete(key);
+      if (['/api/books', '/api/status'].includes(url.pathname) && cache.match) {
+        const response = await cache.match(key), value = await response?.json().catch(() => null);
+        if (value?.data?.sources?.some(source => source.id === 'sf') || value?.data?.items?.some(book => /^sf-/.test(book.id))) await cache.delete(key);
+      }
+    }));
+  }),
 ]).then(() => self.clients.claim())); });
 self.addEventListener('fetch', event => {
   const request = event.request, url = new URL(request.url);
