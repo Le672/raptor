@@ -76,6 +76,10 @@ export default function Home() {
   );
   return (
     <div className="home-page home-refresh">
+      <section className="home-daily" aria-labelledby="daily-title">
+        <div className="section-top"><div><p className="eyebrow"><span className="section-index">01</span> A LITTLE EVERYDAY</p><h2 id="daily-title">日常，一角<span> / Everyday</span></h2></div><span className="daily-heading-note">看看天气，再开始今天。</span></div>
+        <div className="home-daily-grid"><WeatherCard /><div className="daily-side"><div className="daily-connection"><span className="eyebrow">YOUR CONNECTION</span><h3>从世界的某一处，来到这里。</h3><VisitorNetwork /><SiteVisits /></div><Link className="daily-focus" to="/focus"><span className="daily-focus-icon"><Timer size={23} strokeWidth={1.5} /></span><div><span className="eyebrow">A MOMENT OF FOCUS</span><h3>给自己一段专注的时间。</h3></div><ArrowUpRight size={20} /></Link></div></div>
+      </section>
       <section className="home-hero" aria-labelledby="hero-title">
         <div className="hero-copy">
           <p className="eyebrow">
@@ -126,7 +130,7 @@ export default function Home() {
       <section className="home-writing" aria-labelledby="writing-title">
         <div className="section-top">
           <div>
-            <p className="eyebrow"><span className="section-index">01</span> THE JOURNAL</p>
+            <p className="eyebrow"><span className="section-index">02</span> THE JOURNAL</p>
             <h2 id="writing-title">
               最近写下的<span> / Notes</span>
             </h2>
@@ -180,7 +184,7 @@ export default function Home() {
       <section className="home-corners" aria-labelledby="corners-title">
         <div className="section-top">
           <div>
-            <p className="eyebrow"><span className="section-index">02</span> BEYOND THE WORDS</p>
+            <p className="eyebrow"><span className="section-index">03</span> BEYOND THE WORDS</p>
             <h2 id="corners-title">
               其他小角落<span> / Explore</span>
             </h2>
@@ -205,12 +209,8 @@ export default function Home() {
         </div>
       </section>
       <section className="home-corners home-services" aria-labelledby="services-title">
-        <div className="section-top"><div><p className="eyebrow"><span className="section-index">03</span> WITHIN REACH</p><h2 id="services-title">顺手的在线工具<span> / Services</span></h2></div><Link className="text-link" to="/links">全部入口 <ArrowUpRight size={17} /></Link></div>
+        <div className="section-top"><div><p className="eyebrow"><span className="section-index">04</span> WITHIN REACH</p><h2 id="services-title">顺手的在线工具<span> / Services</span></h2></div><Link className="text-link" to="/links">全部入口 <ArrowUpRight size={17} /></Link></div>
         <div className="home-service-grid">{serviceDomainLinks.map(service => <DomainCard key={service.hostname} domain={service} />)}</div>
-      </section>
-      <section className="home-daily" aria-labelledby="daily-title">
-        <div className="section-top"><div><p className="eyebrow"><span className="section-index">04</span> A LITTLE EVERYDAY</p><h2 id="daily-title">日常，一角<span> / Everyday</span></h2></div><span className="daily-heading-note">看看天气，再开始今天。</span></div>
-        <div className="home-daily-grid"><WeatherCard /><div className="daily-side"><div className="daily-connection"><span className="eyebrow">YOUR CONNECTION</span><h3>从世界的某一处，来到这里。</h3><VisitorNetwork /><SiteVisits /></div><Link className="daily-focus" to="/focus"><span className="daily-focus-icon"><Timer size={23} strokeWidth={1.5} /></span><div><span className="eyebrow">A MOMENT OF FOCUS</span><h3>给自己一段专注的时间。</h3></div><ArrowUpRight size={20} /></Link></div></div>
       </section>
       <section className="hello-strip">
         <div>

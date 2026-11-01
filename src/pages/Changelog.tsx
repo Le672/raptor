@@ -15,6 +15,7 @@ type ChangelogEntry = {
 };
 
 const changelog: ChangelogEntry[] = [
+  { date: "2026-11-01", type: "improvement", title: "天气与网络信息移至首页顶部", changes: ["打开首页即可先看到天气、IP 和访问量信息。"] },
   {
     date: "2026-11-01",
     type: "fix",
