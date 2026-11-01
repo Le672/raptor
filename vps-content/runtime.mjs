@@ -96,7 +96,8 @@ export async function start({ root, data, port = 18780, schedule = true, network
       if (url.hostname !== `${site.name}.yukino.bond` || !req.url.startsWith('/') || req.url.startsWith('//')) { res.writeHead(400); res.end(); return; }
       let result;
       const speedApi = site.name === 'speed' && /^\/api\/speed(?:\/|$)/.test(url.pathname);
-      if (!['GET', 'HEAD'].includes(req.method) && !(speedApi && ['POST', 'OPTIONS'].includes(req.method))) result = new Response(null, { status: 405 });
+      const novelAuth = site.name === 'novel' && /^\/api\/auth\/(?:login|logout)$/.test(url.pathname) && req.method === 'POST';
+      if (!['GET', 'HEAD'].includes(req.method) && !(speedApi && ['POST', 'OPTIONS'].includes(req.method)) && !novelAuth) result = new Response(null, { status: 405 });
       else if (url.pathname === '/__health') result = Response.json({ origin: 'yukino-vps-content', site: site.name, storage: 'local-sqlite',
         ...site.storage.stats(), job: jobs.get(site.name) || null }, { headers: { 'Cache-Control': 'no-store' } });
       // Do not allow hidden source files to receive a SPA fallback.

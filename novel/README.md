@@ -18,6 +18,12 @@ pnpm novel:test
 pnpm novel:build
 ```
 
+## 安装为应用与登录
+
+访问 `/install` 查看 iOS／iPadOS、安卓和电脑安装步骤。Chrome 支持时显示安装按钮；iOS 使用 Safari 的“分享 → 添加到主屏幕”。清单包含 PNG、maskable 和 Apple 图标及书架、足迹快捷方式。更新由用户点击提示应用，只替换应用外壳，不清理书架与进度；离线正文仍受原登录策略限制。
+
+`/login` 在书房自身窗口完成邮箱或主站账户登录，避免 iOS 独立存储无法接收外部浏览器会话。`POST /api/auth/login` 只向固定主站身份服务转发凭据，不跟随跳转，不将令牌返回前端；默认使用最长 7 天的 HttpOnly、Secure、SameSite=Lax Cookie。`POST /api/auth/logout` 清除当前存储空间的共享会话。两个接口严格检查同源 Origin，限流登录尝试，并由 VPS HTTP 适配器单独放行 POST。会话到期需重新登录；书架与进度仍是本机记录，不提供跨设备云端同步。
+
 ## 数据与更新
 
 | 书源 | 搜索范围 | 目录与阅读 |

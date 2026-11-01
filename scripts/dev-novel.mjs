@@ -15,7 +15,7 @@ const vite = await createServer({ configFile: resolve('novel/vite.config.ts'), s
 const server = http.createServer(async (req, res) => {
   if (!req.url.startsWith('/api/')) { vite.middlewares(req, res); return; }
   try {
-    const request = new Request(`http://127.0.0.1:5186${req.url}`, { method: req.method, headers: req.headers });
+    const request = new Request(`http://127.0.0.1:5186${req.url}`, { method: req.method, headers: req.headers, ...(req.method === 'POST' ? { body: req, duplex: 'half' } : {}) });
     const response = await worker.fetch(request, { NOVEL_CACHE }, { waitUntil: promise => promise.catch(error => console.error(error.message)) });
     res.writeHead(response.status, Object.fromEntries(response.headers)); res.end(Buffer.from(await response.arrayBuffer()));
   } catch (error) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: error.message })); }

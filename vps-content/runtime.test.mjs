@@ -63,8 +63,8 @@ test('HTTP adapter preserves actual app login gates, origin separation, SPA rout
     app = await start({ root: dir, data: join(dir, 'data'), port: 0, schedule: false, network: false });
     const base = `http://127.0.0.1:${app.server.address().port}`;
     for (const name of ['cinema', 'comic', 'novel']) {
-      const get = (path, method = 'GET') => new Promise((done, reject) => {
-        const req = httpRequest(base + path, { method, headers: { Host: `${name}.yukino.bond` } }, response => {
+      const get = (path, method = 'GET', headers = {}) => new Promise((done, reject) => {
+        const req = httpRequest(base + path, { method, headers: { Host: `${name}.yukino.bond`, ...headers } }, response => {
           const chunks = [];
           response.on('data', chunk => chunks.push(chunk));
           response.on('end', () => done(new Response(Buffer.concat(chunks), { status: response.statusCode, headers: response.headers })));
@@ -79,6 +79,14 @@ test('HTTP adapter preserves actual app login gates, origin separation, SPA rout
       for (const path of ['/.env', '/storage.sqlite', '/worker.mjs', '/.git/config']) assert.equal((await get(path)).status, 404);
       assert.equal((await get('/__health', 'POST')).status, 405);
       assert.equal((await get('/api/access', 'POST')).status, 405);
+      const logout = await get('/api/auth/logout', 'POST', { Origin: `https://${name}.yukino.bond` });
+      assert.equal(logout.status, name === 'novel' ? 200 : 405);
+      if (name === 'novel') {
+        assert.match(logout.headers.get('Set-Cookie'), /Max-Age=0/);
+        assert.equal((await get('/api/auth/login', 'POST')).status, 403);
+        assert.equal((await get('/api/auth/login', 'POST', { Origin: 'https://foreign.example' })).status, 403);
+        assert.equal((await get('/api/auth/register', 'POST')).status, 405);
+      }
       assert.equal((await (await get('/__health')).json()).storage, 'local-sqlite');
     }
     assert.equal((await fetch(base, { headers: { Host: 'foreign.example' } })).status, 404);

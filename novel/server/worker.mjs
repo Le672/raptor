@@ -3,7 +3,9 @@ import { bookIdValid, sourceBookUrl } from '../shared/sources.mjs';
 import { allCatalog, findBooks, getBook, getVolume, getChapter, validPartId, synchronizeSnapshot } from './multi-source.mjs';
 import { snapshotStatus } from './cache.mjs';
 import { createAccessGuard } from '../../shared/content-access.mjs';
+import { createNovelAuth } from './auth.mjs';
 const access = createAccessGuard('novel');
+const authenticate = createNovelAuth();
 const rate = new Map();
 const policy = {
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
@@ -49,6 +51,8 @@ export default {
       if (url.pathname === '/sw.js') headers.set('Cache-Control', 'no-cache');
       return new Response(response.body, { status: response.status, headers });
     }
+    const auth = await authenticate(request);
+    if (auth) { const headers = new Headers(auth.headers); for (const [key, value] of Object.entries(policy)) headers.set(key, value); return new Response(auth.body, { status: auth.status, headers }); }
     if (request.method !== 'GET') return json({ error: '仅支持 GET 请求' }, 405);
     try {
       if (url.pathname === '/api/access') return await access.status(request);

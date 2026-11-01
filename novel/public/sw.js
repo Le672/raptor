@@ -1,5 +1,6 @@
 const VERSION = 'yukino-novel-shell-v1';
-self.addEventListener('install', event => { event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(self.__NOVEL_PRECACHE || ['/', '/book.svg']))); self.skipWaiting(); });
+self.addEventListener('install', event => { event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(self.__NOVEL_PRECACHE || ['/', '/book.svg'])).then(() => { if (!self.registration.active) return self.skipWaiting(); })); });
+self.addEventListener('message', event => { if (event.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
 self.addEventListener('activate', event => { event.waitUntil(Promise.all([
   caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('yukino-novel-shell-') && key !== VERSION).map(key => caches.delete(key)))),
   caches.open('yukino-novel-data-v1').then(async cache => { const keys = await cache.keys(); await Promise.all(keys.filter(key => /^\/api\/book\/[^/]+\/chapter\//.test(new URL(key.url).pathname)).map(key => cache.delete(key))); }),
@@ -7,6 +8,14 @@ self.addEventListener('activate', event => { event.waitUntil(Promise.all([
 self.addEventListener('fetch', event => {
   const request = event.request, url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
-  if (request.mode === 'navigate') event.respondWith(fetch(request).then(response => { if (response.ok) { const copy = response.clone(); event.waitUntil(caches.open(VERSION).then(cache => cache.put('/', copy))); } return response; }).catch(() => caches.match('/')));
-  else if (url.pathname.startsWith('/assets/') || url.pathname === '/book.svg') event.respondWith(caches.match(request).then(hit => hit || fetch(request).then(response => { if (response.ok) { const copy = response.clone(); event.waitUntil(caches.open(VERSION).then(cache => cache.put(request, copy))); } return response; })));
+  if (request.mode === 'navigate') event.respondWith((async () => {
+    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 6000);
+    try {
+      const response = await fetch(request, { signal: controller.signal });
+      if (response.ok && response.headers.get('Content-Type')?.includes('text/html')) { const copy = response.clone(); event.waitUntil(caches.open(VERSION).then(cache => cache.put('/', copy))); }
+      return response;
+    } catch { return await caches.match('/') || new Response('书房暂时无法连接，请联网后重试。', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }); }
+    finally { clearTimeout(timeout); }
+  })());
+  else if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || ['/book.svg', '/manifest.webmanifest'].includes(url.pathname)) event.respondWith(caches.open(VERSION).then(async cache => await cache.match(request) || fetch(request).then(response => { if (response.ok) { const copy = response.clone(); event.waitUntil(cache.put(request, copy)); } return response; })));
 });

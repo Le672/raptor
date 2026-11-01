@@ -1,1 +1,25 @@
-{"name":"Yukino 轻小说书房","short_name":"轻小说书房","start_url":"/","display":"standalone","background_color":"#f8fafc","theme_color":"#edf5fc","icons":[{"src":"/book.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}
+{
+  "id": "/",
+  "name": "Yukino 轻小说书房",
+  "short_name": "轻小说书房",
+  "description": "随身的轻小说书房：发现故事、收藏书架、接着上次读。",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#f8fafc",
+  "theme_color": "#edf5fc",
+  "categories": ["books", "education", "entertainment"],
+  "prefer_related_applications": false,
+  "icons": [
+    {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    {"src": "/book.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ],
+  "shortcuts": [
+    {"name": "我的书架", "short_name": "书架", "url": "/shelf", "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "阅读足迹", "short_name": "足迹", "url": "/history", "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png"}]}
+  ]
+}
