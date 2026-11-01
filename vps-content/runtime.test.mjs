@@ -80,8 +80,8 @@ test('HTTP adapter preserves actual app login gates, origin separation, SPA rout
       assert.equal((await get('/__health', 'POST')).status, 405);
       assert.equal((await get('/api/access', 'POST')).status, 405);
       const logout = await get('/api/auth/logout', 'POST', { Origin: `https://${name}.yukino.bond` });
-      assert.equal(logout.status, name === 'novel' ? 200 : 405);
-      if (name === 'novel') {
+      assert.equal(logout.status, 200);
+      {
         assert.match(logout.headers.get('Set-Cookie'), /Max-Age=0/);
         assert.equal((await get('/api/auth/login', 'POST')).status, 403);
         assert.equal((await get('/api/auth/login', 'POST', { Origin: 'https://foreign.example' })).status, 403);

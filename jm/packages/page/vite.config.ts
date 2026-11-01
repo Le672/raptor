@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { gzipSync } from 'node:zlib';
+import { preparePwa } from '../../../scripts/prepare-pwa.mjs';
 
 const require = createRequire(import.meta.url);
 const ortModule = require.resolve('onnxruntime-web/ort-wasm-simd-threaded.jsep.mjs');
@@ -11,6 +12,7 @@ const ortModule = require.resolve('onnxruntime-web/ort-wasm-simd-threaded.jsep.m
 export default defineConfig({
   plugins: [react(), {
     name: 'offline-shell-and-compressed-wasm',
+    async closeBundle() { await preparePwa(resolve(__dirname, 'dist'), 'jm'); },
     generateBundle(_options, bundle) {
       for (const asset of Object.values(bundle)) {
         if (asset.type === 'asset' && asset.fileName.endsWith('.wasm')) {

@@ -4,6 +4,7 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { build as viteBuild } from 'vite';
+import { preparePwa } from './prepare-pwa.mjs';
 if (process.argv.includes('--build')) {
   const check = spawnSync(process.execPath, ['node_modules/typescript/bin/tsc', '-b', '--noEmit'], { stdio: 'inherit' });
   if (check.status !== 0) process.exit(check.status || 1);
@@ -16,6 +17,8 @@ if (process.argv.includes('--build')) for (const name of ['cinema', 'comic', 'no
 }
 if (process.argv.includes('--build')) await viteBuild({ root: resolve('speed'), configFile: resolve('speed/vite.config.ts') });
 if (process.argv.includes('--build')) await viteBuild({ configFile: resolve('vite.config.ts') });
+await preparePwa(resolve('dist'), 'portal');
+await preparePwa(resolve('speed/dist'), 'speed');
 const repository = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const root = resolve('.wrangler/vps-content');
 if (root !== resolve(repository, '.wrangler', 'vps-content') || !root.startsWith(repository + sep)) throw new Error('Unexpected build destination');

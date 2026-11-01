@@ -5,6 +5,8 @@ on:
     branches: [master]
     paths:
       - 'jm/**'
+      - 'shared/pwa/**'
+      - 'scripts/prepare-pwa.mjs'
       - '.github/workflows/deploy-jm.yml'
   workflow_dispatch:
 

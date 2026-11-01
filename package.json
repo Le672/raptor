@@ -21,7 +21,7 @@
     "novel:build": "tsc -p novel/tsconfig.json && node scripts/build-novel.mjs",
     "novel:test": "node --test novel/test/*.test.mjs",
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/check-build-assets.mjs web",
+    "build": "tsc -b && vite build && node scripts/prepare-pwa.mjs portal dist && node scripts/check-build-assets.mjs web",
     "build:desktop": "tsc -b && vite build --mode desktop && node scripts/check-build-assets.mjs desktop",
     "lint": "eslint .",
     "preview": "vite preview",

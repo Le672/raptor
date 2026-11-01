@@ -1,0 +1,13 @@
+# Installable Yukino sites
+
+`sites.mjs` lists the 28 public website subdomains; API and mail-transport hosts are intentionally outside this list. Novel keeps its existing reader-specific installer. Other sites use `scripts/prepare-pwa.mjs <app-id|portal> <dist-directory>` after building. The postprocessor adds a per-origin manifest, opaque PNG icons, Apple metadata, a framework-independent installer and a versioned Service Worker. Styles are external so Pixiv's strict CSP remains intact.
+
+The worker caches public application shells and selected startup assets. APIs, authentication, media, mutations and private shares never fall back to cached responses. Tools also exclude the private `/lab` routes; the portal's public Lab page is a separate application. Updates remove only this installer's prior shell versions, never localStorage, IndexedDB or other applications' caches. Install controls use a shadow root to avoid changing each site's layout.
+
+Main portal aliases validate their existing cookie on reopening/focus and can sign in inside the current PWA. Cinema, Comic and Novel use `shared/content-signin.mjs` to reach only the fixed portal identity service, issue the same seven-day HttpOnly cookie and never return its bearer token to the installer. Mail, source configuration and private tools keep their existing authentication and expiry rules. The status page remains independent of portal authentication.
+
+Main Pages uses the normal build. Cinema, Comic, Pixiv and JM run the postprocessor in their build hooks; the VPS packager includes Speed and Status. Mail's workflow postprocesses its pinned existing frontend and preserves live storage/service bindings. No mailbox account data or variables are copied to the repository.
+
+For the three pinned-image gateway applications, run `node scripts/prepare-gateway-pwa.mjs`, then `python scripts/deploy-gateway-pwa.py`. The deployment adds public assets and an upgrade loader to the existing brand script so cached old tool shells can receive the installer. It backs up the gateway configuration and branding script, validates Nginx before reload, and preserves containers, volumes, uploads, drawings and credentials. Re-run preparation after changing an upstream image so offline startup dependencies match it.
+
+`node --test shared/test/pwa.test.mjs` checks origin coverage, icon dimensions, deterministic packaging, strict-CSP styling, private-route exclusion and persistent-cookie behavior. Chrome acceptance must also check the deployed manifest/installation errors, responsive installer and representative reopen/offline behavior; HTTP 200 alone does not prove installability.

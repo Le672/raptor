@@ -24,11 +24,11 @@ export function AppShell() {
   const authLoading = useAuthStore(state => state.isLoading);
   useEffect(() => {
     if (independentStatus) { useAuthStore.getState().setLoading(false); return; }
-    let active = true;
+    let active = true, revision = 0;
     useAuthStore.getState().setLoading(true);
-    api.getMe().then(result => { if (active && useAuthStore.getState().token === token) useAuthStore.getState().setUser(result.user); })
+    const check = () => { if (document.hidden) return; const current = ++revision; void api.getMe().then(result => { if (active && current === revision && useAuthStore.getState().token === token) useAuthStore.getState().setUser(result.user); })
       .catch(error => {
-        if (!active || useAuthStore.getState().token !== token || !(error instanceof ApiError) || error.status !== 401) return;
+        if (!active || current !== revision || useAuthStore.getState().token !== token || !(error instanceof ApiError) || error.status !== 401) return;
         if (token) {
           // An older origin-local Bearer token must not hide a newer shared
           // cookie session. Keep protected routes waiting for the cookie retry.
@@ -36,8 +36,17 @@ export function AppShell() {
           useAuthStore.getState().setUser(null);
         } else useAuthStore.getState().logout();
       })
-      .finally(() => { if (active && useAuthStore.getState().token === token) useAuthStore.getState().setLoading(false); });
-    return () => { active = false; };
+      .finally(() => { if (active && current === revision && useAuthStore.getState().token === token) useAuthStore.getState().setLoading(false); }); };
+    const sessionChanged = (event: Event) => {
+      const action = (event as CustomEvent<{ action: string }>).detail?.action;
+      if (action === 'logout') useAuthStore.getState().logout();
+      else if (useAuthStore.getState().token) useAuthStore.getState().setToken(null);
+      check();
+    };
+    const storageChanged = (event: StorageEvent) => { if (event.key === 'yukino-app-session-event') check(); };
+    check(); window.addEventListener('focus', check); document.addEventListener('visibilitychange', check);
+    window.addEventListener('yukino-app-session', sessionChanged); window.addEventListener('storage', storageChanged);
+    return () => { active = false; window.removeEventListener('focus', check); document.removeEventListener('visibilitychange', check); window.removeEventListener('yukino-app-session', sessionChanged); window.removeEventListener('storage', storageChanged); };
   }, [token, independentStatus]);
 
   useEffect(() => {

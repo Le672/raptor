@@ -13,3 +13,6 @@ self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.origin!==self.location.origin||e.request.method!=='GET'||u.pathname.startsWith('/api/'))return;if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).catch(()=>caches.match('/')));return;}e.respondWith(caches.match(e.request).then(hit=>hit||fetch(e.request)));});
 `);
 console.log('Comic app and versioned offline shell verified.');
+
+const { preparePwa } = await import('./prepare-pwa.mjs');
+await preparePwa(new URL('../comic/dist/', import.meta.url).pathname.replace(/^\/(\w:)/, '$1'), 'comic');

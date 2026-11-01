@@ -6,6 +6,8 @@ on:
       - '.github/workflows/deploy-mail.yml'
       - 'scripts/prepare-mail-deploy.mjs'
       - 'shared/test/mail-deploy-config.test.mjs'
+      - 'shared/pwa/**'
+      - 'scripts/prepare-pwa.mjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -42,6 +44,8 @@ jobs:
           node --test shared/test/mail-deploy-config.test.mjs
       - name: Build mailbox assets
         run: pnpm --dir mailbox/mail-vue run build
+      - name: Add installable mailbox app without changing account storage
+        run: node scripts/prepare-pwa.mjs mail mailbox/mail-worker/dist
       - name: Preserve live storage, email, variables and maintenance bindings
         run: node scripts/prepare-mail-deploy.mjs
         env:

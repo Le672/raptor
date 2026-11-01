@@ -2,6 +2,8 @@ import { SOURCES, splitId } from './sources.mjs';
 import { catalog, detail, refreshCatalogs } from './service.mjs';
 import { mediaPath, serveMedia, safeFetch, probeMedia } from './media.mjs';
 import { createAccessGuard, privateMedia } from '../../shared/content-access.mjs';
+import { createContentSignIn } from '../../shared/content-signin.mjs';
+const authenticate = createContentSignIn('cinema');
 const access = createAccessGuard('cinema');
 const policy={
   'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY',
@@ -30,6 +32,8 @@ export default {
       if(url.pathname==='/sw.js'||headers.get('content-type')?.includes('text/html'))headers.set('Cache-Control','no-cache');
       return new Response(result.body,{status:result.status,headers});
     }
+    const signedIn = await authenticate(request);
+    if(signedIn){const headers=new Headers(signedIn.headers);for(const[k,v]of Object.entries(policy))headers.set(k,v);return new Response(signedIn.body,{status:signedIn.status,headers});}
     if(request.method!=='GET')return json({error:'仅支持 GET 请求'},405);
     try{
       if(url.pathname==='/api/access')return await access.status(request);

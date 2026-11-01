@@ -4,6 +4,8 @@ on:
     branches: [master]
     paths:
       - 'pixiv/**'
+      - 'shared/pwa/**'
+      - 'scripts/prepare-pwa.mjs'
       - 'scripts/*pixiv*.mjs'
       - 'src/test/pixiv-library.test.ts'
       - '.github/workflows/deploy-pixiv.yml'

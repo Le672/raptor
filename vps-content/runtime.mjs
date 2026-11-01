@@ -61,7 +61,8 @@ export function assets(directory) {
       if (!info.isFile()) return new Response(null, { status: 404 });
       return new Response(request.method === 'HEAD' ? null : await readFile(actual), { headers: {
         'Content-Type': mime[extname(name)], 'Content-Length': String(info.size),
-        'Cache-Control': pathname.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+        'Cache-Control': /^\/yukino-app-sw-/.test(pathname) ? 'no-store, no-cache, must-revalidate' : pathname.startsWith('/assets/') || pathname.startsWith('/yukino-app-assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+        ...(/^\/yukino-app-sw-/.test(pathname) ? { 'CDN-Cache-Control': 'no-store', 'Cloudflare-CDN-Cache-Control': 'no-store', 'Service-Worker-Allowed': '/' } : {}),
       } });
     } catch (error) { if (['ENOENT', 'ENOTDIR'].includes(error.code)) return new Response(null, { status: 404 }); throw error; }
   } };
@@ -96,7 +97,7 @@ export async function start({ root, data, port = 18780, schedule = true, network
       if (url.hostname !== `${site.name}.yukino.bond` || !req.url.startsWith('/') || req.url.startsWith('//')) { res.writeHead(400); res.end(); return; }
       let result;
       const speedApi = site.name === 'speed' && /^\/api\/speed(?:\/|$)/.test(url.pathname);
-      const novelAuth = site.name === 'novel' && /^\/api\/auth\/(?:login|logout)$/.test(url.pathname) && req.method === 'POST';
+      const novelAuth = ['novel', 'cinema', 'comic'].includes(site.name) && /^\/api\/auth\/(?:login|logout)$/.test(url.pathname) && req.method === 'POST';
       if (!['GET', 'HEAD'].includes(req.method) && !(speedApi && ['POST', 'OPTIONS'].includes(req.method)) && !novelAuth) result = new Response(null, { status: 405 });
       else if (url.pathname === '/__health') result = Response.json({ origin: 'yukino-vps-content', site: site.name, storage: 'local-sqlite',
         ...site.storage.stats(), job: jobs.get(site.name) || null }, { headers: { 'Cache-Control': 'no-store' } });
