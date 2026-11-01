@@ -1,10 +1,10 @@
 // Public reading caches must never spend the account's KV write allowance.
 // Only persistSnapshot(), called by the hourly Cron, may write to NOVEL_CACHE.
+import { SOURCES } from '../shared/sources.mjs';
 export const SNAPSHOT_KEY = 'catalog-snapshot:v3';
 export const KV_WRITES_PER_REFRESH = 1;
 export const SNAPSHOT_KEYS = Object.freeze([
-  'catalog:v1', 'feed:v2:linovel', 'feed:v2:wenku',
-  'discovered:v2:linovel', 'discovered:v2:wenku', 'health:v2:wenku',
+  'catalog:v1', ...SOURCES.filter(source=>source.id!=='bili').flatMap(source=>[`feed:v2:${source.id}`,`discovered:v2:${source.id}`]), 'health:v2:wenku',
 ]);
 export const CACHE_LIMITS = Object.freeze({ entries: 128, bytes: 16 * 1024 * 1024, entryBytes: 8 * 1024 * 1024, snapshotBytes: 20 * 1024 * 1024 });
 const DAY = 86400;

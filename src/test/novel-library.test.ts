@@ -32,6 +32,10 @@ describe('novel library and deep links', () => {
     expect(directId('https://book.sfacg.com/Novel/775221/')).toBe('');
     expect(directId('https://www.linovel.net/book/122429.html')).toBe('linovel-122429');
     expect(directId('https://www.wenku8.net/book/1973.htm')).toBe('wenku-1973');
+    expect(directId('https://kxgxs.com/index.php/book/info/6893')).toBe('kxg-6893');
+    expect(directId('https://lnovel.org/books-3163')).toBe('encyclopedia-3163');
+    expect(directId('https://re0zero.top/mdbook/book/index.html')).toBe('rezero-1');
+    expect(directId('rezero-2')).toBe('');
     expect(directId('https://book.sfacg.com.evil.test/Novel/8/')).toBe('');
   });
   it('does not use a browser body cache after an explicit subscription denial', async () => {

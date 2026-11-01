@@ -28,7 +28,7 @@ async function image(request, url) {
   const key = new Request(new URL(`/api/image?src=${encodeURIComponent(src)}`, url.origin));
   if (cache) { const hit = await cache.match(key); if (hit) return hit; }
   const host = new URL(src).hostname;
-  const referer = /linovel\.net$/.test(host) ? 'https://www.linovel.net/' : /wenku8\.(?:com|net)$/.test(host) ? 'https://www.wenku8.net/' : `${SOURCE}/`;
+  const referer = /linovel\.net$/.test(host) ? 'https://www.linovel.net/' : /wenku8\.(?:com|net)$/.test(host) ? 'https://www.wenku8.net/' : ['kxgxs.com','lnovel.org','re0zero.top'].includes(host)?`https://${host}/`:`${SOURCE}/`;
   const result = await fetch(src, { headers: { Referer: referer, Accept: 'image/avif,image/webp,image/*' }, signal: AbortSignal.timeout(18000), redirect: 'manual' });
   if (!result.ok) return json({ error: `图片源暂不可用（${result.status}）` }, 502);
   const type = (result.headers.get('content-type') || '').split(';')[0];

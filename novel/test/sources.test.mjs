@@ -35,7 +35,7 @@ test('a restricted provider does not hide other sources or collide with legacy I
   t.mock.method(globalThis,'fetch',async url=>String(url).includes('linovel.net')?new Response(fixture.linovelList):new Response('',{status:403}));
   const response=await call('/api/books?source=all',env),result=await response.json();
   assert.equal(response.status,200);assert.deepEqual(result.data.items.map(x=>x.id).sort(),['8','linovel-8']);
-  assert.equal(result.data.sources.length,3);assert.equal(result.data.sources.find(x=>x.id==='wenku').state,'restricted');
+  assert.equal(result.data.sources.length,6);assert.equal(result.data.sources.find(x=>x.id==='wenku').state,'restricted');
   assert.equal((await call('/api/books?source=evil',env)).status,400);
 });
 test('source search keeps remote alias matches while isolating a failed search',async t=>{
@@ -114,7 +114,7 @@ test('empty Wenku index cannot erase a successful cached catalog',async t=>{
 test('removed source never returns old cached books or triggers source requests',async t=>{
   const env=environment({'feed:v2:sf':record([{id:'sf-8',title:'old'}]),'detail:v2:sf-8':record({id:'sf-8',title:'old'})});
   let fetches=0;t.mock.method(globalThis,'fetch',async()=>{fetches++;throw new Error('must not fetch');});
-  assert.deepEqual(SOURCES.map(source=>source.id),['bili','linovel','wenku']);assert.equal(bookIdValid('sf-8'),false);
+  assert.deepEqual(SOURCES.map(source=>source.id),['bili','linovel','wenku','kxg','encyclopedia','rezero']);assert.equal(bookIdValid('sf-8'),false);
   for(const path of ['/api/books?source=sf','/api/status?source=sf','/api/book/sf-8','/api/book/sf-8/chapter/11'])assert.equal((await call(path,env)).status,410,path);
   assert.equal(fetches,0);
 });

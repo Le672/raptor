@@ -72,8 +72,8 @@ export function SourceSettings() {
       const state=result?.data.sources?.find(item=>item.id===info.id);
       return <section className={`provider-card provider-${info.id}`} key={info.id}>
         <div className="provider-heading"><span className="source-logo"><BookOpen size={24} /></span><div><h2>{info.name}</h2><span>{info.kind}</span></div><span className={`provider-state state-${state?.state||'pending'}`}>{state ? stateNames[state.state] : '检查中'}</span></div>
-        <p>{info.note}{info.id==='wenku' && <> <a href="https://github.com/mojimoon/wenku8" target="_blank" rel="noreferrer">书目索引来源</a></>}</p>
-        <dl><div><dt>当前发现书目</dt><dd>{state ? state.count : '—'} 条</dd></div><div><dt>最近成功获取</dt><dd>{dateLabel(state?.checkedAt,true)}</dd></div><div><dt>搜索范围</dt><dd>{info.id==='bili'?'聚合接口已索引书库':info.id==='wenku'?'公开书名、作者与标签索引':'源站当前返回的公开结果'}</dd></div></dl>
+        <p>{info.note}{info.id==='wenku' && <> <a href="https://github.com/mojimoon/wenku8" target="_blank" rel="noreferrer">书目索引来源</a></>}{info.id==='rezero'&&<> <a href="https://github.com/re-zero-khis/re0-web" target="_blank" rel="noreferrer">汉化项目与译者说明</a></>}</p>
+        <dl><div><dt>当前发现书目</dt><dd>{state ? state.count : '—'} 条</dd></div><div><dt>最近成功获取</dt><dd>{dateLabel(state?.checkedAt,true)}</dd></div><div><dt>搜索范围</dt><dd>{info.searchScope||(info.id==='bili'?'聚合接口已索引书库':info.id==='wenku'?'公开书名、作者与标签索引':'源站当前返回的公开结果')}</dd></div></dl>
         {state && ['error','restricted','stale'].includes(state.state) && <p className="provider-warning" role="status">{state.reason}</p>}
         <div className="source-links"><Link to={`/?source=${info.id}`}>浏览此书源<ChevronRight size={13} /></Link><a href={info.origin} target="_blank" rel="noreferrer">访问源站<ExternalLink size={12} /></a></div>
       </section>;

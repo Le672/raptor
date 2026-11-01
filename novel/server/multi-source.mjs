@@ -37,8 +37,13 @@ async function feed(source, env, ctx, force) {
     const restricted=health?.state==='restricted'&&Date.now()-Date.parse(health.checkedAt)<3600000;
     return { ...result, data: [...books.values()], meta:{...result.meta,...(restricted?{state:'restricted',reason:`书目可检索；最近一次源站目录访问受限：${health.reason}`}:{})} };
   }
-  const result = await cached(env,ctx,`feed:v2:${source}`,()=>adapters[source].catalog(),5*60000,{force,background:true,provider:sourceInfo(source).name});
-  return {...result,data:merge(old?.data||[],result.data)};
+  const key=`feed:v2:${source}`,previous=source==='encyclopedia'?await stored(env,key):null;
+  const result = await cached(env,ctx,key,()=>adapters[source].catalog(previous?.data||[]),source==='encyclopedia'?3600000:5*60000,{force,background:true,provider:sourceInfo(source).name});
+  const books=new Map(result.data.map(book=>[book.id,book]));
+  for(const known of old?.data||[])if(bookIdValid(known.id)&&bookSource(known.id)===source){
+    const current=books.get(known.id);books.set(known.id,{...current,...known,title:current?.title||known.title});
+  }
+  return {...result,data:[...books.values()]};
 }
 function selectedSources(params) {
   const selected=params.get('source');
@@ -80,20 +85,20 @@ export async function findBooks(env,ctx,params) {
       return{data:{items:[...known.values()].filter(item=>wanted.has(item.id)),indexed:known.size,sources:result.sources,scope:'收藏书目，每次最多检查六本新增书源作品，其余轮流检查'},meta:stale?{...result.meta,stale:true,reason:'部分收藏正在同步或获取失败，保留上次书目信息'}:result.meta};
     }
     const data=searchBooks(result.data,params);
-    return{data:{...data,sources:result.sources,scope:'哔哩与文库公开索引，以及轻之文库最近更新书目'},meta:result.meta};
+    return{data:{...data,sources:result.sources,scope:'已索引的轻小说与各书源当前公开列表，专题译本按系列收录'},meta:result.meta};
   }
   const results=await Promise.all(selected.map(async source=>{
     try {
-      const result=source==='bili'||source==='wenku'?await feed(source,env,ctx,force):await searchRemote(source,query,env,ctx,force);
+      const result=sourceInfo(source).indexSearch?await feed(source,env,ctx,force):await searchRemote(source,query,env,ctx,force);
       return{source,result};
     } catch(error){return{source,error};}
   }));
   const sources=results.map(x=>summarize(x.source,x.result,x.error)), items=merge(...results.filter(x=>x.result).map(x=>x.result.data));
   // The source's own search can match aliases which are absent from its result title.
   const filteredParams=new URLSearchParams(params);filteredParams.delete('q');
-  const matching=items.filter(item=>!['bili','wenku'].includes(bookSource(item.id)) || searchBooks([item],params).total>0);
+  const matching=items.filter(item=>!sourceInfo(bookSource(item.id)).indexSearch || searchBooks([item],params).total>0);
   const data=searchBooks(matching,filteredParams),times=sources.map(x=>x.checkedAt).filter(Boolean).sort();
-  return{data:{...data,sources,scope:'哔哩与文库公开索引，以及轻之文库源站当前返回的公开搜索结果'},meta:{...freshMeta('多书源搜索',times.at(-1)||null),stale:sources.some(source=>source.stale),reason:sources.some(source=>source.state==='error'||source.state==='restricted')?'部分书源暂不可用，其他结果正常显示':''}};
+  return{data:{...data,sources,scope:'按各书源标明的索引或源站搜索范围返回结果，专题译本仅匹配对应系列'},meta:{...freshMeta('多书源搜索',times.at(-1)||null),stale:sources.some(source=>source.stale),reason:sources.some(source=>source.state==='error'||source.state==='restricted')?'部分书源暂不可用，其他结果正常显示':''}};
 }
 export async function getBook(env,ctx,id,force=false,rememberEntry=true) {
   if(!bookIdValid(id))throw new SourceError('书籍编号不正确',404);
@@ -124,9 +129,9 @@ export async function getChapter(env,ctx,id,cid,force=false) {
 }
 export function validPartId(value){return /^(?:[1-9]\d{0,15}|v[0-9a-f]{8})$/.test(String(value));}
 export async function refreshKnownSources(env,ctx) {
-  await Promise.all(['linovel','wenku'].map(async source=>{
+  await Promise.all(SOURCES.filter(source=>source.id!=='bili').map(async({id:source})=>{
     const old=await stored(env,rememberedKey(source));if(!old?.data?.length)return;
-    // Fetches and Cache API operations share the free Worker's 50-subrequest limit.
+    // Rotate one known book per provider to bound scheduled origin traffic.
     const batch=[...old.data].sort((a,b)=>(a.sourceFetchedAt||'').localeCompare(b.sourceFetchedAt||'')).slice(0,1);
     const results=await Promise.allSettled(batch.map(item=>getBook(env,ctx,item.id,true,false)));
     const changed=results.filter(item=>item.status==='fulfilled'&&!item.value.meta.stale).map(item=>metadata(item.value.data));

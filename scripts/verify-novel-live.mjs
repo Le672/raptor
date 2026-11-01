@@ -1,8 +1,11 @@
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
+import { SOURCES } from '../novel/shared/sources.mjs';
 import { verifyContentSession } from './verify-content-session.mjs';
 const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 if (proxy) setGlobalDispatcher(new ProxyAgent(proxy));
 const origin = process.env.NOVEL_ORIGIN || 'https://novel.yukino.bond';
+const selectedSources=(process.env.NOVEL_VERIFY_SOURCES||SOURCES.map(source=>source.id).join(',')).split(',');
+if(selectedSources.some(id=>!SOURCES.some(source=>source.id===id)))throw new Error('Unknown verification source');
 await verifyContentSession(origin);
 async function get(path, ready = async () => true, allowedStatuses = []) {
   let lastError;
@@ -26,14 +29,14 @@ const access = await getJson('/api/access',result=>result.user===null&&new URL(r
 if(access.user!==null)throw new Error('Guest access probe unexpectedly has an authenticated session');
 const refreshGate=await(await get('/api/status?refresh=1',async response=>response.status===401&&(await response.json()).code==='LOGIN_REQUIRED',[401])).json();
 if(refreshGate.code!=='LOGIN_REQUIRED')throw new Error('Anonymous manual refresh must require login');
-const status = await getJson('/api/status',result=>result.data?.sources?.length===3&&result.data?.indexed&&result.data?.persisted&&!result.meta?.stale&&result.data?.scheduledMinutes===60&&result.data?.persistence?.mode==='hourly-snapshot');
+const status = await getJson('/api/status',result=>result.data?.sources?.length===SOURCES.length&&result.data?.indexed&&result.data?.persisted&&!result.meta?.stale&&result.data?.scheduledMinutes===60&&result.data?.persistence?.mode==='hourly-snapshot');
 if (!status.data?.indexed || !status.data?.persisted || status.meta?.stale) throw new Error('Live source data or configured snapshot storage is unavailable');
 if (status.data.persistence.scheduledWritesPerDay !== 24) throw new Error('The hourly novel snapshot write budget is missing');
-if (status.data.sources?.length !== 3 || status.data.sources.some(source=>source.id==='sf')) throw new Error('Active source definitions include a removed provider');
+if (status.data.sources?.length !== SOURCES.length || status.data.sources.some(source=>source.id==='sf')) throw new Error('Active source definitions include a removed provider');
 const search = await (await get('/api/books?source=bili&q=' + encodeURIComponent('实力'))).json();
 if (!search.data?.items?.some(x => x.title.includes('实力'))) throw new Error('Live Chinese search did not return matching novels');
-for (const source of ['linovel']) {
-  const results = await getJson(`/api/books?source=${source}&q=${encodeURIComponent('魔女')}`,result=>result.data?.items?.some(book=>book.source===source)&&result.data?.sources?.[0]?.state==='ok');
+for (const source of selectedSources.filter(id=>['linovel','kxg'].includes(id))) {
+  const results = await getJson(`/api/books?source=${source}&q=${encodeURIComponent(source==='kxg'?'实力':'魔女')}`,result=>result.data?.items?.some(book=>book.source===source)&&result.data?.sources?.[0]?.state==='ok');
   if (!results.data?.items?.some(book=>book.source===source) || ['error','restricted'].includes(results.data.sources?.[0]?.state)) throw new Error(`${source}: live public search unavailable`);
   console.log(`${source}: ${results.data.total} public search results`);
 }
@@ -43,7 +46,15 @@ for(const query of ['实力','衣笠']){
   if(!result.data.items.some(book=>book.sourceUrl==='https://www.wenku8.net/book/1973.htm'))throw new Error('Wenku title/author search does not retain its official source URL');
 }
 for(const path of ['/api/books?source=sf','/api/book/sf-775221'])await get(path,async response=>response.status===410,[410]);
-for (const id of ['linovel-122429']) {
+const sampleBooks={linovel:'linovel-122429',kxg:'kxg-7604',encyclopedia:'encyclopedia-3163',rezero:'rezero-1'};
+for(const source of selectedSources.filter(id=>['kxg','encyclopedia','rezero'].includes(id))){
+  const query=source==='kxg'?'实力':source==='encyclopedia'?'败北':'从零';
+  const list=await getJson(`/api/books?source=${source}`,result=>result.data?.total>=(source==='encyclopedia'?1000:1)&&result.data?.sources?.[0]?.state==='ok');
+  const matches=await getJson(`/api/books?source=${source}&q=${encodeURIComponent(query)}`,result=>result.data?.items?.some(book=>book.id===sampleBooks[source]));
+  if(source==='rezero'&&list.data.total!==1)throw new Error('Re0 must remain a single-series source');
+  console.log(`${source}: ${list.data.total} indexed records; matching public search verified`);
+}
+for (const id of selectedSources.map(source=>sampleBooks[source]).filter(Boolean)) {
   const detail = await getJson(`/api/book/${id}`,result=>result.data?.volumes?.length&&!result.meta?.stale);
   if (!detail.data?.volumes?.length || !detail.data.title) throw new Error(`${id}: missing source detail or TOC`);
   const volume = await (await get(`/api/book/${id}/volume/${detail.data.volumes[0].id}`)).json();
@@ -60,4 +71,4 @@ else {
   await get(`/api/book/wenku-1973/chapter/${volume.data.chapters[0].id}`,async response=>response.status===401&&(await response.json()).code==='LOGIN_REQUIRED',[401]);
   console.log(`wenku: ${wenkuList.data.total} searchable books; ${wenku.data.volumes.length} public volumes; title/author searches and chapter login gate verified`);
 }
-console.log(JSON.stringify({origin,indexed:status.data.indexed,wenkuIndexed:wenkuList.data.total,sources:3,checkedAt:status.meta.checkedAt,scheduledMinutes:status.data.scheduledMinutes,persistence:status.data.persistence}));
+console.log(JSON.stringify({origin,indexed:status.data.indexed,wenkuIndexed:wenkuList.data.total,sources:SOURCES.length,verifiedSources:selectedSources,checkedAt:status.meta.checkedAt,scheduledMinutes:status.data.scheduledMinutes,persistence:status.data.persistence}));

@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import worker from '../server/worker.mjs';
 import { adapters } from '../server/adapters.mjs';
 import * as fixture from './fixtures/sources.mjs';
+import * as extra from './fixtures/new-sources.mjs';
+import { SOURCES } from '../shared/sources.mjs';
 import { authenticatedHeaders, portalIdentity } from './fixtures/access.mjs';
 import { remember } from '../server/multi-source.mjs';
 import { CACHE_LIMITS, KV_WRITES_PER_REFRESH, SNAPSHOT_KEY, SNAPSHOT_KEYS, cached, persist, stored, snapshotStatus, cacheUsage } from '../server/cache.mjs';
@@ -34,7 +36,7 @@ function sources(t, failed = () => false) {
     if (String(url).includes('/vol/')) return Response.json({ ok: true, data: { nid: 1, vid: 1, title: '卷一', chapters: [{ nid: 1, vid: 1, cid: 1, title: '章节' }] } });
     return Response.json({ ok: true, data: raw(1) });
   });
-  for (const source of ['linovel', 'wenku']) {
+  for (const {id:source} of SOURCES.filter(source=>source.id!=='bili')) {
     t.mock.method(adapters[source], 'catalog', async () => { if(failed())throw new Error('source down');return [book(`${source}-1`)]; });
     if(adapters[source].search)t.mock.method(adapters[source], 'search', async () => [book(`${source}-1`)]);
     t.mock.method(adapters[source], 'book', async id => { if(failed())throw new Error('source down');return book(`${source}-${id}`); });
@@ -57,7 +59,7 @@ test('all visitor routes, manual refresh and concurrent distinct searches spend 
 test('hourly application refresh keeps its snapshot bound while the old edge schedule stays disabled', async t => {
   sources(t);
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse(time) });
-  const env = environment(Object.fromEntries(['linovel', 'wenku'].map(source => [`discovered:v2:${source}`, entry([book(`${source}-1`)])])));
+  const env = environment(Object.fromEntries(SOURCES.filter(source=>source.id!=='bili').map(({id:source}) => [`discovered:v2:${source}`, entry([book(`${source}-1`)])])));
   const config = JSON.parse(readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8'));
   assert.deepEqual(config.triggers.crons, []);
   assert.equal(config.workers_dev, false);
@@ -163,12 +165,18 @@ test('edge and memory hydration preserve original expiry and expired snapshot re
   await assert.rejects(()=>cached(cold,context(),'catalog:v1',async()=>{throw new Error('source down');},60000),/source down/);
 });
 
-test('cold scheduled refresh with all known sources fits below 45 shared fetch and Cache API operations',async t=>{
+test('VPS scheduled refresh across six sources keeps metadata and known-book requests bounded',async t=>{
   t.mock.timers.enable({apis:['Date'],now:Date.parse(time)+3600000});
   let external=0,cacheOps=0;
   t.mock.method(globalThis,'fetch',async input=>{
     external++;const url=String(input);
     if(url.includes('/api/bili/novels'))return Response.json({ok:true,data:[raw(8)]});
+    if(url.includes('kxgxs.com/index.php/library'))return new Response(extra.kxgList);
+    if(url.includes('kxgxs.com/index.php/book/catalog/'))return new Response(extra.kxgToc);
+    if(url.includes('kxgxs.com/index.php/book/info/'))return new Response(extra.kxgBook);
+    if(url.includes('lnovel.org/books-'))return new Response(extra.encyclopediaBook);
+    if(url.includes('lnovel.org/books'))return new Response(url.includes('page=2')?extra.encyclopediaSecond:extra.encyclopediaList);
+    if(url.includes('re0zero.top'))return new Response(extra.rezeroBook);
     if(url.includes('/sitemap.xml'))return new Response(fixture.wenkuSitemap);
     if(url.includes('wenku_catalog.json'))return Response.json(fixture.wenkuCatalog);
     if(url.includes('linovel.net/cat'))return new Response(fixture.linovelList);
@@ -178,9 +186,9 @@ test('cold scheduled refresh with all known sources fits below 45 shared fetch a
   const original=Object.getOwnPropertyDescriptor(globalThis,'caches');
   Object.defineProperty(globalThis,'caches',{configurable:true,value:{default:{match:async()=>{cacheOps++;return undefined;},put:async()=>{cacheOps++;}}}});
   t.after(()=>{if(original)Object.defineProperty(globalThis,'caches',original);else delete globalThis.caches;});
-  const env=environment(Object.fromEntries(['linovel','wenku'].map(source=>[`discovered:v2:${source}`,entry([book(`${source}-8`),book(`${source}-9`),book(`${source}-10`)])]))),ctx=context();
+  const env=environment(Object.fromEntries(SOURCES.filter(s=>s.id!=='bili').map(({id:source})=>[`discovered:v2:${source}`,entry(source==='rezero'?[book('rezero-1')]:[book(`${source}-8`),book(`${source}-9`),book(`${source}-10`)])]))),ctx=context();
   await worker.scheduled({scheduledTime:Date.now()},env,ctx);await ctx.finish();
   console.log(`Cold novel Cron subrequests: ${external} fetch + ${cacheOps} Cache API = ${external+cacheOps}`);
-  assert.equal(external,7);assert.ok(external+cacheOps<45,`${external} fetch + ${cacheOps} cache operations`);
+  assert.equal(external,15);assert.ok(external+cacheOps<75,`${external} fetch + ${cacheOps} cache operations`);
   assert.equal(env.NOVEL_CACHE.puts.length,1);
 });

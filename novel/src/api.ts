@@ -1,4 +1,5 @@
 import type { SourceInfo, SourceId } from '../shared/sources.mjs';
+import { bookIdValid } from '../shared/sources.mjs';
 export type SourceStatus = SourceInfo & { count: number; state: 'ok' | 'stale' | 'error' | 'restricted' | 'limited'; checkedAt: string | null; stale: boolean; reason: string };
 export type SourceStatusData = { indexed: number; source: string; sources: SourceStatus[]; scheduledMinutes: number; cacheMinutes: number; persisted: boolean; persistence?: { mode: string; scheduledWritesPerDay: number; lastPersistedAt: string | null; state: string; reason: string }; newestUpdate: string | null };
 export type Book = { id: string; title: string; author: string; illustrator: string; description: string; cover: string; tags: string[]; status: 'ongoing' | 'completed' | 'unknown'; updatedAt: string | null; sourceFetchedAt: string | null; sourceUrl: string; source?: SourceId; sourceName?: string };
@@ -71,13 +72,16 @@ export function relativeDate(value?: string | null) {
 }
 export function directId(value: string) {
   const text = value.trim();
-  if (/^(?:linovel|wenku)-[1-9]\d{0,8}$/.test(text)) return text;
+  if (bookIdValid(text)&&text.includes('-')) return text;
   if (/^[1-9]\d{0,7}$/.test(text)) return text;
   try {
     const url = new URL(text); if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return '';
     if (/^(?:www\.|w\.)?(?:linovelib|bilinovel)\.com$/.test(url.hostname)) return url.pathname.match(/^\/novel\/([1-9]\d{0,7})(?:\.html|\/)/)?.[1] || '';
     if (['www.linovel.net','linovel.net'].includes(url.hostname)) { const id=url.pathname.match(/^\/book\/([1-9]\d{0,8})\.html/)?.[1]; return id ? `linovel-${id}` : ''; }
     if (/^(?:www\.)?wenku8\.(?:net|com|cc)$/.test(url.hostname)) { const id=url.pathname.match(/^\/book\/([1-9]\d{0,8})\.htm/)?.[1]; return id ? `wenku-${id}` : ''; }
+    if (url.hostname==='kxgxs.com') { const id=url.pathname.match(/^\/index\.php\/book\/(?:info|catalog)\/([1-9]\d{0,8})$/)?.[1]; return id?`kxg-${id}`:''; }
+    if (['lnovel.org','lnovel.tw'].includes(url.hostname.toLowerCase())) { const id=url.pathname.match(/^\/books-([1-9]\d{0,8})$/)?.[1]; return id?`encyclopedia-${id}`:''; }
+    if (url.hostname==='re0zero.top'&&(url.pathname==='/'||url.pathname.startsWith('/mdbook/book/')))return 'rezero-1';
   } catch { /* Normal search text. */ }
   return '';
 }

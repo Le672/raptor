@@ -1,11 +1,11 @@
+import { fetchHtml, SourceError } from './html-fetch.mjs';
+import { newSourceAdapters } from './new-source-adapters.mjs';
+export { fetchHtml, SourceError } from './html-fetch.mjs';
 import { document, all, attr, cls, tag, byId, clean, text, content, dateTime } from './html.mjs';
 import { imageUrl, parseContent, plainText } from './service.mjs';
 import { sourceInfo } from '../shared/sources.mjs';
 import { parseWenkuCatalog, WENKU_SITEMAP, WENKU_CATALOG } from './wenku-catalog.mjs';
 
-export class SourceError extends Error {
-  constructor(message, status = 503, state = 'error') { super(message); this.status = status; this.state = state; }
-}
 const origins = { linovel: 'https://www.linovel.net', wenku: 'https://www.wenku8.net' };
 const dedupe = items => [...new Map(items.filter(Boolean).map(item => [item.id, item])).values()];
 const statusOf = value => /已完[结結]|完本|\[完[结結]\]/.test(value) ? 'completed' : /[连連][载載]/.test(value) ? 'ongoing' : 'unknown';
@@ -16,20 +16,6 @@ function stableVolume(title) {
   let hash = 2166136261; for (const char of title) hash = Math.imul(hash ^ char.codePointAt(0), 16777619);
   return `v${(hash >>> 0).toString(16).padStart(8, '0')}`;
 }
-export async function fetchHtml(url, encoding = 'utf-8', fetcher = fetch) {
-  let response;
-  try { response = await fetcher(url, { headers: { Accept: 'text/html', 'User-Agent': 'YukinoNovel/1.1 (+https://novel.yukino.bond)', 'Accept-Language': 'zh-CN,zh;q=0.9' }, redirect: 'manual', signal: AbortSignal.timeout(14000) }); }
-  catch (error) { throw new SourceError(error?.name === 'TimeoutError' ? '书源响应超时' : '书源连接失败'); }
-  if ([401, 403].includes(response.status) || response.headers.get('cf-mitigated') === 'challenge') throw new SourceError('书源要求登录或访问验证，请在源站查看', 403, 'restricted');
-  if (!response.ok) throw new SourceError(`书源暂不可用（HTTP ${response.status}）`);
-  if (Number(response.headers.get('content-length')) > 4 * 1024 * 1024) throw new SourceError('书源页面超过大小限制');
-  const bytes = await response.arrayBuffer();
-  if (bytes.byteLength > 4 * 1024 * 1024) throw new SourceError('书源页面超过大小限制');
-  const html = new TextDecoder(encoding).decode(bytes);
-  if (/<title>\s*(?:Just a moment|Attention Required|访问验证|用户登录|会员登录|登录|Login)/i.test(html)) throw new SourceError('书源要求登录或访问验证，请在源站查看', 403, 'restricted');
-  return html;
-}
-
 export function parseLinovelList(html) {
   const root=document(html), groups=[...cls(root,'rank-book'), ...cls(root,'search-book')];
   return dedupe(groups.map(node=>{
@@ -92,6 +78,7 @@ export function parseWenkuChapter(html) {
 }
 
 export const adapters = {
+  ...newSourceAdapters,
   linovel: {
     async catalog(){const data=parseLinovelList(await fetchHtml(`${origins.linovel}/cat/-1.html?sort=updates&sign=-1`));if(!data.length)throw new SourceError('轻之文库列表格式变化，保留已有书目');return data;},
     async search(query){const html=await fetchHtml(`${origins.linovel}/search/?kw=${encodeURIComponent(query)}`),data=parseLinovelList(html);if(!data.length&&!/class=["'][^"']*\bbox-search\b/.test(html))throw new SourceError('轻之文库搜索页面格式变化');return data;},
