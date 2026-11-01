@@ -15,7 +15,8 @@ for (const [size, purpose] of [[192, 'any'], [512, 'any'], [512, 'maskable']]) {
   const png = Buffer.from(await response.arrayBuffer()); assert.equal(png.readUInt32BE(16), size); assert.equal(png.readUInt32BE(20), size);
 }
 const apple = Buffer.from(await (await get('/icons/apple-touch-icon.png')).arrayBuffer()); assert.equal(apple.readUInt32BE(16), 180);
-const swResponse = await get('/sw.js'), sw = await swResponse.text();
+const version = html.match(/name="novel-app-version" content="([a-f0-9]+)"/)?.[1]; assert.ok(version, 'Versioned update script is required');
+const swResponse = await get(`/sw.js?v=${version}`), sw = await swResponse.text();
 assert.match(swResponse.headers.get('Cache-Control'), /no-cache/); assert.match(sw, /SKIP_WAITING/);
 const assets = Array.from(html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)"/g), match => match[1]);
 for (const path of assets) { assert.ok(sw.includes(path)); await get(path); }

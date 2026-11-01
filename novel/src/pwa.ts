@@ -26,7 +26,10 @@ export function startPwa() {
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (applying) window.location.reload(); });
   const register = async () => {
     try {
-      registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+      const version = document.querySelector('meta[name="novel-app-version"]')?.getAttribute('content');
+      // A versioned script URL also bypasses older CDN entries created before
+      // the no-store policy, without clearing anyone's application data.
+      registration = await navigator.serviceWorker.register(`/sw.js${version ? `?v=${encodeURIComponent(version)}` : ''}`, { updateViaCache: 'none' });
       if (registration.waiting) update({ updateReady: true });
       registration.addEventListener('updatefound', () => { const installing = registration?.installing; installing?.addEventListener('statechange', () => { if (installing.state === 'installed' && navigator.serviceWorker.controller) update({ updateReady: true }); }); });
       if (standalone()) void keepStorage();

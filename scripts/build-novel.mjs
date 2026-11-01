@@ -11,6 +11,7 @@ const icons = ['/icons/icon-192.png', '/icons/icon-512.png', '/icons/maskable-51
 const hashInput = createHash('sha256').update(html).update(worker).update(manifest);
 for (const icon of icons) hashInput.update(await readFile(new URL(icon.slice(1), root)));
 const hash = hashInput.digest('hex').slice(0, 12);
+await writeFile(new URL('index.html', root), html.replace('</head>', `<meta name="novel-app-version" content="${hash}"/></head>`));
 const sw = worker.replace('yukino-novel-shell-v1', `yukino-novel-shell-${hash}`);
 await writeFile(new URL('sw.js', root), `self.__NOVEL_PRECACHE = ${JSON.stringify(['/', '/book.svg', '/manifest.webmanifest', ...icons, ...assets])};\n${sw}`);
 console.log(`Verified offline shell: ${assets.length} versioned JS/CSS assets.`);

@@ -2,6 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
+import worker from '../server/worker.mjs';
+test('the update script forbids both browser and CDN caching at the real worker boundary', async () => {
+  const response = await worker.fetch(new Request('https://novel.yukino.bond/sw.js'), { ASSETS: { fetch: async () => new Response('worker', { headers: { 'Content-Type': 'application/javascript' } }) } }, {});
+  assert.match(response.headers.get('Cache-Control'), /no-store/);
+  assert.equal(response.headers.get('Cloudflare-CDN-Cache-Control'), 'no-store');
+  assert.equal(response.headers.get('CDN-Cache-Control'), 'no-store');
+  assert.equal(response.headers.get('Service-Worker-Allowed'), '/');
+});
 test('install manifest supplies a stable app identity, scoped shortcuts and genuine PNGs for each platform', () => {
   const manifest = JSON.parse(readFileSync(new URL('../public/manifest.webmanifest', import.meta.url)));
   assert.equal(manifest.id, '/'); assert.equal(manifest.scope, '/'); assert.equal(manifest.display, 'standalone');

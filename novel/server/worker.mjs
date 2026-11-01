@@ -48,7 +48,12 @@ export default {
       if (response.status === 404 && request.method === 'GET' && !/\.[\w]+$/.test(url.pathname)) response = await env.ASSETS.fetch(new Request(new URL('/', url), request));
       const headers = new Headers(response.headers);
       for (const [key, value] of Object.entries(policy)) headers.set(key, value);
-      if (url.pathname === '/sw.js') headers.set('Cache-Control', 'no-cache');
+      if (url.pathname === '/sw.js') {
+        headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        headers.set('Cloudflare-CDN-Cache-Control', 'no-store');
+        headers.set('CDN-Cache-Control', 'no-store');
+        headers.set('Service-Worker-Allowed', '/');
+      }
       return new Response(response.body, { status: response.status, headers });
     }
     const auth = await authenticate(request);
