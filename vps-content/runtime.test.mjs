@@ -54,15 +54,19 @@ test('HTTP adapter preserves actual app login gates, origin separation, SPA rout
   const dir = await mkdtemp(join(tmpdir(), 'yukino-server-'));
   let app;
   try {
-    for (const name of ['cinema', 'comic', 'novel', 'speed', 'status']) {
+    for (const name of ['cinema', 'comic', 'ln', 'novel', 'speed', 'status']) {
       await mkdir(join(dir, name, 'dist'), { recursive: true });
-      const source = new URL(name === 'speed' ? './speed-worker.mjs' : name === 'status' ? './status-worker.mjs' : `../${name}/server/worker.mjs`, import.meta.url).href;
+      const source = new URL(name === 'speed' ? './speed-worker.mjs' : name === 'status' ? './status-worker.mjs' : `../${name === 'ln' ? 'novel' : name === 'novel' ? 'fiction' : name}/server/worker.mjs`, import.meta.url).href;
       await writeFile(join(dir, name, 'worker.mjs'), name === 'status' ? `export default { fetch: () => new Response('status') };` : `export { default } from ${JSON.stringify(source)};`);
       await writeFile(join(dir, name, 'dist/index.html'), `<html>${name} shell</html>`);
     }
+    const legacy = new ContentStorage(join(dir, 'data', 'novel'));
+    await legacy.put('migration-proof', 'original light library');legacy.close();
     app = await start({ root: dir, data: join(dir, 'data'), port: 0, schedule: false, network: false });
+    assert.equal(await app.sites.get('ln.yukino.bond').storage.get('migration-proof'),'original light library');
+    assert.equal(await app.sites.get('novel.yukino.bond').storage.get('migration-proof'),null);
     const base = `http://127.0.0.1:${app.server.address().port}`;
-    for (const name of ['cinema', 'comic', 'novel']) {
+    for (const name of ['cinema', 'comic', 'ln', 'novel']) {
       const get = (path, method = 'GET', headers = {}) => new Promise((done, reject) => {
         const req = httpRequest(base + path, { method, headers: { Host: `${name}.yukino.bond`, ...headers } }, response => {
           const chunks = [];
@@ -75,7 +79,7 @@ test('HTTP adapter preserves actual app login gates, origin separation, SPA rout
       assert.equal(shell.status, 200); assert.match(await shell.text(), new RegExp(name + ' shell'));
       assert.equal(shell.headers.get('X-Yukino-Origin'), 'vps-content');
       const access = await get('/api/access'); assert.equal(access.status, 200); assert.equal((await access.json()).user, null);
-      assert.equal((await get(name === 'novel' ? '/api/book/8/chapter/1' : '/api/media?token=fake')).status, 401);
+      assert.equal((await get(['ln','novel'].includes(name) ? '/api/book/8/chapter/1' : '/api/media?token=fake')).status, 401);
       for (const path of ['/.env', '/storage.sqlite', '/worker.mjs', '/.git/config']) assert.equal((await get(path)).status, 404);
       assert.equal((await get('/__health', 'POST')).status, 405);
       assert.equal((await get('/api/access', 'POST')).status, 405);

@@ -10,6 +10,8 @@ const sites = [
   ['cinema', cinemaWrites],
   ['comic', comicWrites],
   ['novel', novelWrites],
+  ['ln', novelWrites],
+  ['fiction', novelWrites],
 ];
 const budget = [];
 for (const [site, writes] of sites) {

@@ -1,5 +1,6 @@
-import type { SourceInfo, SourceId } from '../shared/sources.mjs';
-import { bookIdValid } from '../shared/sources.mjs';
+import { readerSite } from './reader-site.mjs';
+import type { SourceInfo, SourceId } from './reader-sources.mjs';
+import { bookIdValid } from './reader-sources.mjs';
 export type SourceStatus = SourceInfo & { count: number; state: 'ok' | 'stale' | 'error' | 'restricted' | 'limited'; checkedAt: string | null; stale: boolean; reason: string };
 export type SourceStatusData = { indexed: number; source: string; sources: SourceStatus[]; scheduledMinutes: number; cacheMinutes: number; persisted: boolean; persistence?: { mode: string; scheduledWritesPerDay: number; lastPersistedAt: string | null; state: string; reason: string }; newestUpdate: string | null };
 export type Book = { id: string; title: string; author: string; illustrator: string; description: string; cover: string; tags: string[]; status: 'ongoing' | 'completed' | 'unknown'; updatedAt: string | null; sourceFetchedAt: string | null; sourceUrl: string; source?: SourceId; sourceName?: string };
@@ -10,11 +11,11 @@ export type Chapter = { id: string; bookId: string; volumeId: string; title: str
 export type Meta = { checkedAt: string | null; stale: boolean; reason: string; provider: string; refreshMinutes: number; offline?: boolean };
 export type Envelope<T> = { data: T; meta: Meta };
 export type SearchPage = { items: Book[]; total: number; page: number; pages: number; indexed: number; tags: string[]; sources?: SourceStatus[]; scope?: string };
-export const READING_CACHE = 'yukino-novel-data-v1';
+export const READING_CACHE = readerSite.cache;
 export type Access = { user: { id: number; name: string; role: string } | null; loginUrl: string; limits?: Record<string, unknown> };
 export function loginUrlForPage() {
-  const current = new URL(location.href || '/', 'https://novel.yukino.bond');
-  const target = new URL('https://novel.yukino.bond'); target.pathname=current.pathname;target.search=current.search;target.hash=current.hash;
+  const current = new URL(location.href || '/', readerSite.origin);
+  const target = new URL(readerSite.origin); target.pathname=current.pathname;target.search=current.search;target.hash=current.hash;
   const login = new URL('https://www.yukino.bond/login'); login.searchParams.set('returnTo', target.href); return login.href;
 }
 export const isLoginRequired = (error: unknown) => (error as { status?: number })?.status === 401;
@@ -73,9 +74,10 @@ export function relativeDate(value?: string | null) {
 export function directId(value: string) {
   const text = value.trim();
   if (bookIdValid(text)&&text.includes('-')) return text;
-  if (/^[1-9]\d{0,7}$/.test(text)) return text;
+  if (/^[1-9]\d{0,11}$/.test(text)) return readerSite.light?text:`biqu-${text}`;
   try {
     const url = new URL(text); if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return '';
+    if(!readerSite.light){if(['www.zongheng.com','book.zongheng.com'].includes(url.hostname)){const m=url.pathname.match(/^\/(?:detail\/([1-9]\d{0,11})|book\/([1-9]\d{0,11})\.html)/);return m?`zongheng-${m[1]||m[2]}`:'';}if(url.hostname==='www.biquge345.com'){const id=url.pathname.match(/^\/book\/(\d{1,12})\//)?.[1];return id?`biqu-${id}`:'';}return '';}
     if (/^(?:www\.|w\.)?(?:linovelib|bilinovel)\.com$/.test(url.hostname)) return url.pathname.match(/^\/novel\/([1-9]\d{0,7})(?:\.html|\/)/)?.[1] || '';
     if (['www.linovel.net','linovel.net'].includes(url.hostname)) { const id=url.pathname.match(/^\/book\/([1-9]\d{0,8})\.html/)?.[1]; return id ? `linovel-${id}` : ''; }
     if (/^(?:www\.)?wenku8\.(?:net|com|cc)$/.test(url.hostname)) { const id=url.pathname.match(/^\/book\/([1-9]\d{0,8})\.htm/)?.[1]; return id ? `wenku-${id}` : ''; }

@@ -5,7 +5,7 @@ import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 
 test('fresh app instances restore verified sessions, temporary failures preserve the account, and expiration clears it', async t => {
-  const dom = new JSDOM('<div id="app"></div>', { url: 'https://novel.yukino.bond/shelf', pretendToBeVisual: true });
+  const dom = new JSDOM('<div id="app"></div>', { url: 'https://ln.yukino.bond/shelf', pretendToBeVisual: true });
   const restore = [];
   let cleanup = async () => {};
   t.after(async () => { await cleanup(); dom.window.close(); restore.forEach(fn => fn()); });

@@ -3,7 +3,7 @@ export class SourceError extends Error {
 }
 export async function fetchHtml(url, encoding = 'utf-8', fetcher = fetch) {
   let response;
-  try { response = await fetcher(url, { headers: { Accept: 'text/html', 'User-Agent': 'YukinoNovel/1.1 (+https://novel.yukino.bond)', 'Accept-Language': 'zh-CN,zh;q=0.9' }, redirect: 'manual', signal: AbortSignal.timeout(14000) }); }
+  try { response = await fetcher(url, { headers: { Accept: 'text/html', 'User-Agent': 'YukinoNovel/1.1 (+https://ln.yukino.bond)', 'Accept-Language': 'zh-CN,zh;q=0.9' }, redirect: 'manual', signal: AbortSignal.timeout(14000) }); }
   catch (error) { throw new SourceError(error?.name === 'TimeoutError' ? '书源响应超时' : '书源连接失败'); }
   if ([401, 403].includes(response.status) || response.headers.get('cf-mitigated') === 'challenge') throw new SourceError('书源要求登录或访问验证，请在源站查看', 403, 'restricted');
   if (!response.ok) throw new SourceError(`书源暂不可用（HTTP ${response.status}）`);

@@ -1,7 +1,8 @@
+import { readerSite } from './reader-site.mjs';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightLeft, BookOpen, Check, ChevronRight, Download, ExternalLink, LoaderCircle, RefreshCw, Upload, X } from 'lucide-react';
-import { SOURCES, bookSource, sourceInfo } from '../shared/sources.mjs';
+import { SOURCES, bookSource, sourceInfo } from './reader-sources.mjs';
 import { dateLabel, request, READING_CACHE, type Book, type Envelope, type SearchPage, type SourceStatus, type SourceStatusData } from './api';
 import { exportLibrary, importLibrary } from './library';
 
@@ -64,7 +65,7 @@ export function SourceSettings() {
     return () => controller.abort();
   },[revision]);
   return <>
-    <div className="page-heading"><span className="eyebrow">MORE SHELVES, MORE STORIES</span><h1>书源与设置</h1><p>译文书库与中文原创一起找，每个书源的状态都清楚可见。</p></div>
+    <div className="page-heading"><span className="eyebrow">MORE SHELVES, MORE STORIES</span><h1>书源与设置</h1><p>{readerSite.sourcesIntro}</p></div>
     <div className="multi-source-heading"><div><strong>{SOURCES.length} 个书源</strong><span>{result ? `当前发现 ${result.data.indexed} 条书源记录` : '正在检查公开书目'}</span></div><button className="button secondary" disabled={loading} onClick={() => setRevision(value=>value+1)}><RefreshCw size={14} className={loading?'spin':''} />检查全部书源</button></div>
     {error && <p className="inline-error" role="alert">{error}</p>}
     {loading && <p className="source-loading" role="status"><LoaderCircle size={17} className="spin" />正在检查各书源，结果会保留各自的成功时间…</p>}

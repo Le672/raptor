@@ -2,6 +2,7 @@
 // Only persistSnapshot(), called by the hourly Cron, may write to NOVEL_CACHE.
 import { SOURCES } from '../shared/sources.mjs';
 export const SNAPSHOT_KEY = 'catalog-snapshot:v3';
+const snapshotKey=env=>env.READER_CACHE_ORIGIN==='https://novel.yukino.bond'?'fiction:'+SNAPSHOT_KEY:SNAPSHOT_KEY;
 export const KV_WRITES_PER_REFRESH = 1;
 export const SNAPSHOT_KEYS = Object.freeze([
   'catalog:v1', ...SOURCES.filter(source=>source.id!=='bili').flatMap(source=>[`feed:v2:${source.id}`,`discovered:v2:${source.id}`]), 'health:v2:wenku',
@@ -39,7 +40,7 @@ function local(env, key) {
   if (item.expires <= Date.now()) { current.bytes -= item.size; return null; }
   current.memory.set(key, item); return item.value;
 }
-const cacheKey = key => new Request(`https://novel.yukino.bond/__reading-cache/v3/${encodeURIComponent(key)}`);
+const cacheKey = (env,key) => new Request(`${env.READER_CACHE_ORIGIN||'https://ln.yukino.bond'}/__reading-cache/v3/${encodeURIComponent(key)}`);
 const edge = () => globalThis.caches?.default;
 function validRecord(value) { return value && typeof value === 'object' && Number.isFinite(Date.parse(value.checkedAt)); }
 async function readSnapshot(env) {
@@ -49,7 +50,7 @@ async function readSnapshot(env) {
   if (current.snapshotTask) return current.snapshotTask;
   current.snapshotTask = (async () => {
     try {
-      const value = await env.NOVEL_CACHE.get(SNAPSHOT_KEY, { type: 'json' });
+      const value = await env.NOVEL_CACHE.get(snapshotKey(env), { type: 'json' });
       if (value?.version === 3 && value.records && typeof value.records === 'object') current.snapshot = value;
       current.snapshotReadAt = Date.now();
     } catch { /* Previously read snapshots remain available during a KV outage. */ }
@@ -60,7 +61,7 @@ async function readSnapshot(env) {
 export async function stored(env, key) {
   const hit = local(env, key); if (hit) return hit;
   try {
-    const response = await edge()?.match(cacheKey(key));
+    const response = await edge()?.match(cacheKey(env,key));
     const value = response ? await response.json() : null;
     if (usable(key, value)) { retain(env, key, value); return value; }
   } catch { /* Cache API eviction/unavailability must not break reading. */ }
@@ -81,7 +82,7 @@ export async function persist(env, key, value, ttl) {
   retain(env, key, record, ttl);
   try {
     const serialized = JSON.stringify(record);
-    if (bytes(serialized) <= CACHE_LIMITS.entryBytes && edge()) await edge().put(cacheKey(key), new Response(serialized, { headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${remaining}` } }));
+    if (bytes(serialized) <= CACHE_LIMITS.entryBytes && edge()) await edge().put(cacheKey(env,key), new Response(serialized, { headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${remaining}` } }));
   } catch { /* A successful source response remains successful even if edge caching fails. */ }
   return value;
 }
@@ -141,7 +142,7 @@ export async function persistSnapshot(env, records, scheduledTime = Date.now()) 
   current.attemptedHour = hour;
   try {
     const latestExpiry = Math.max(...Object.entries(selected).map(([key, record]) => expiresAt(key, record)));
-    await env.NOVEL_CACHE.put(SNAPSHOT_KEY, serialized, { expirationTtl: Math.max(60, Math.floor((latestExpiry - Date.now()) / 1000)) });
+    await env.NOVEL_CACHE.put(snapshotKey(env), serialized, { expirationTtl: Math.max(60, Math.floor((latestExpiry - Date.now()) / 1000)) });
     current.snapshot = value; current.snapshotReadAt = Date.now(); current.persistenceError = ''; current.persistenceNotice = '';
     return { persisted: true, checkedAt: value.checkedAt, writes: 1 };
   } catch (error) {

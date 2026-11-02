@@ -15,7 +15,8 @@ const destinations = [
   ['游戏','https://games.yukino.bond/games'], ['新闻','https://news.yukino.bond/news'],
   ['姬漫','https://jm.yukino.bond/'],
   ['Pixiv','https://pixiv.yukino.bond/'],
-  ['轻小说','https://novel.yukino.bond/'],
+  ['轻小说','https://ln.yukino.bond/'],
+  ['小说','https://novel.yukino.bond/'],
   ['番剧','https://comic.yukino.bond/'],
   ['影视','https://cinema.yukino.bond/'],
   ['专注','https://focus.yukino.bond/focus'], ['余票','https://cr.yukino.bond/cr'],
@@ -46,6 +47,7 @@ describe('canonical site navigation', () => {
     expect(siteHref('/focus','localhost')).toBe('/focus');
     expect(siteHref('/speed','raptor.pages.dev')).toBe('/speed');
     expect(siteHref('/jm','www.yukino.bond')).toBe('https://jm.yukino.bond/');
+    expect(siteHref('/ln','www.yukino.bond')).toBe('https://ln.yukino.bond/');
     expect(siteHref('/novel','www.yukino.bond')).toBe('https://novel.yukino.bond/');
     expect(siteHref('/comic','www.yukino.bond')).toBe('https://comic.yukino.bond/');
     expect(siteHref('/cinema','www.yukino.bond')).toBe('https://cinema.yukino.bond/');

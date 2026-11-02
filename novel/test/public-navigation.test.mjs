@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 import { fileURLToPath } from 'node:url';
 
 test('a denied manual refresh does not turn later public searches or book navigation into protected refreshes',async t=>{
-  const dom=new JSDOM('<div id="app"></div>',{url:'https://novel.yukino.bond/'});
+  const dom=new JSDOM('<div id="app"></div>',{url:'https://ln.yukino.bond/'});
   const restore=[];let cleanup=async()=>{};
   t.after(async()=>{await cleanup();dom.window.close();restore.forEach(fn=>fn());});
   for(const [key,value]of Object.entries({window:dom.window,document:dom.window.document,navigator:dom.window.navigator,location:dom.window.location,CustomEvent:dom.window.CustomEvent,IS_REACT_ACT_ENVIRONMENT:true})){

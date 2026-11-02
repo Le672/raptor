@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
 const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 if (proxy) setGlobalDispatcher(new ProxyAgent(proxy));
-const origin = process.env.NOVEL_ORIGIN || 'https://novel.yukino.bond';
-const get = async path => { const response = await fetch(origin + path, { signal: AbortSignal.timeout(25000), redirect: 'manual', cache: 'no-store' }); assert.equal(response.status, 200, path); assert.equal(response.headers.get('X-Yukino-Origin'), 'vps-content'); return response; };
+const origin = process.env.NOVEL_ORIGIN || 'https://ln.yukino.bond';
+const get = async path => { const response = await fetch(origin + path, { signal: AbortSignal.timeout(25000), redirect: 'manual', cache: 'no-store' }); assert.equal(response.status, 200, path); return response; };
 const html = await (await get('/install')).text();
 assert.match(html, /apple-touch-icon/); assert.match(html, /viewport-fit=cover/);
-assert.match(await (await get('/login?returnTo=%2Fshelf')).text(), /Yukino Novel/);
+assert.match(await (await get('/login?returnTo=%2Fshelf')).text(), /Yukino (?:LN|Novel)/);
 const manifest = await (await get('/manifest.webmanifest')).json();
 assert.equal(manifest.display, 'standalone'); assert.equal(manifest.id, '/'); assert.equal(manifest.scope, '/');
 for (const [size, purpose] of [[192, 'any'], [512, 'any'], [512, 'maskable']]) {

@@ -4,6 +4,7 @@ import { ACCESS_LIMITS, contentLoginUrl, createAccessGuard, privateMedia } from 
 import cinema from '../../cinema/server/worker.mjs';
 import comic from '../../comic/server/worker.mjs';
 import novel from '../../novel/server/worker.mjs';
+import fiction from '../../fiction/server/worker.mjs';
 
 const now = 1792497600000;
 const token = (id = 'one', expiry = now + 3600000) => `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ exp: Math.floor(expiry / 1000), id })).toString('base64url')}.signature`;
@@ -116,7 +117,8 @@ test('all content Workers enforce gates before source/cache/network work while k
   const endpoints = [
     [cinema, 'cinema', ['/api/title/bf-1/play?line=0&episode=0', '/api/media?token=old-signed-url', '/api/catalog?refresh=1']],
     [comic, 'comic', ['/api/anime/bf-1/play?line=0&episode=0', '/api/media?token=old-signed-url', '/api/catalog?refresh=1']],
-    [novel, 'novel', ['/api/book/linovel-1/chapter/1', '/api/books?refresh=1', '/api/status?refresh=1']],
+    [fiction, 'novel', ['/api/book/zongheng-672340/chapter/36898237', '/api/books?refresh=1', '/api/status?refresh=1']],
+    [novel, 'ln', ['/api/book/linovel-1/chapter/1', '/api/books?refresh=1', '/api/status?refresh=1']],
   ];
   for (const [worker, site, paths] of endpoints) {
     for (const path of paths) {
@@ -125,6 +127,6 @@ test('all content Workers enforce gates before source/cache/network work while k
     }
     const status = await worker.fetch(new Request(`https://${site}.yukino.bond/api/access`), {}, {});
     assert.equal(status.status, 200); assert.equal((await status.json()).user, null);
-    if (site !== 'novel') assert.equal((await worker.fetch(new Request(`https://${site}.yukino.bond/api/sources`), {}, {})).status, 200);
+    if (!['ln','novel'].includes(site)) assert.equal((await worker.fetch(new Request(`https://${site}.yukino.bond/api/sources`), {}, {})).status, 200);
   }
 });

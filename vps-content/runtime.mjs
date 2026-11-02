@@ -70,16 +70,16 @@ export function assets(directory) {
 
 export async function start({ root, data, port = 18780, schedule = true, network = true } = {}) {
   if (network) installPublicNetwork();
-  const configurations = [['cinema', 'CINEMA_CACHE', 0], ['comic', 'COMIC_CACHE', 20], ['novel', 'NOVEL_CACHE', 40], ['speed', 'DB', null], ['status', 'STATUS_STORAGE', 5]];
+  const configurations = [['cinema', 'CINEMA_CACHE', 0], ['comic', 'COMIC_CACHE', 20], ['ln', 'NOVEL_CACHE', 40], ['novel', 'NOVEL_CACHE', 50], ['speed', 'DB', null], ['status', 'STATUS_STORAGE', 5]];
   const sites = new Map(), waiting = new Set(), jobs = new Map();
   const ctx = { waitUntil(promise) {
     const work = Promise.resolve(promise).catch(error => console.error('Background task failed', error.name)).finally(() => waiting.delete(work));
     waiting.add(work);
   } };
   for (const [name, binding, minute] of configurations) {
-    const storage = new ContentStorage(resolve(data, name));
+    const storage = new ContentStorage(resolve(data, name === 'ln' ? 'novel' : name === 'novel' ? 'fiction' : name));
     const worker = (await import(pathToFileURL(resolve(root, name, 'worker.mjs')))).default;
-    const env = { [binding]: name === 'speed' ? storage.databaseBinding() : storage, ASSETS: assets(resolve(root, name, 'dist')) };
+    const env = { [binding]: name === 'speed' ? storage.databaseBinding() : storage, ASSETS: assets(resolve(root, name, 'dist')), READER_CACHE_ORIGIN: `https://${name}.yukino.bond` };
     if (['cinema','comic'].includes(name) && !await storage.get('private:media-key')) await storage.put('private:media-key', crypto.randomUUID() + crypto.randomUUID());
     sites.set(`${name}.yukino.bond`, { name, storage, worker, env, minute });
   }
@@ -97,7 +97,7 @@ export async function start({ root, data, port = 18780, schedule = true, network
       if (url.hostname !== `${site.name}.yukino.bond` || !req.url.startsWith('/') || req.url.startsWith('//')) { res.writeHead(400); res.end(); return; }
       let result;
       const speedApi = site.name === 'speed' && /^\/api\/speed(?:\/|$)/.test(url.pathname);
-      const novelAuth = ['novel', 'cinema', 'comic'].includes(site.name) && /^\/api\/auth\/(?:login|logout)$/.test(url.pathname) && req.method === 'POST';
+      const novelAuth = ['ln', 'novel', 'cinema', 'comic'].includes(site.name) && /^\/api\/auth\/(?:login|logout)$/.test(url.pathname) && req.method === 'POST';
       if (!['GET', 'HEAD'].includes(req.method) && !(speedApi && ['POST', 'OPTIONS'].includes(req.method)) && !novelAuth) result = new Response(null, { status: 405 });
       else if (url.pathname === '/__health') result = Response.json({ origin: 'yukino-vps-content', site: site.name, storage: 'local-sqlite',
         ...site.storage.stats(), job: jobs.get(site.name) || null }, { headers: { 'Cache-Control': 'no-store' } });

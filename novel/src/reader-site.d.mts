@@ -1,0 +1,1 @@
+export const readerSite: { id:'ln'|'novel';light:boolean;origin:string;host:string;title:string;genre:string;brand:string;upperBrand:string;brandShort:string;storage:string;cache:string;hints:string[];sourcesIntro:string };

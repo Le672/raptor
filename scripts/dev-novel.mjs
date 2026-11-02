@@ -3,15 +3,16 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createServer } from 'vite';
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
-import worker from '../novel/server/worker.mjs';
+const ordinary=process.argv.includes('--fiction');
+const worker=(await import(ordinary?'../fiction/server/worker.mjs':'../novel/server/worker.mjs')).default;
 const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 if (proxy) setGlobalDispatcher(new ProxyAgent(proxy));
-const cacheRoot = resolve('.novel-work/local-kv'); await mkdir(cacheRoot, { recursive: true });
+const cacheRoot = resolve(ordinary?'.novel-work/local-fiction-kv':'.novel-work/local-kv'); await mkdir(cacheRoot, { recursive: true });
 const NOVEL_CACHE = {
   async get(key) { try { return JSON.parse(await readFile(resolve(cacheRoot, encodeURIComponent(key) + '.json'), 'utf8')); } catch { return null; } },
   async put(key, value) { await writeFile(resolve(cacheRoot, encodeURIComponent(key) + '.json'), value); },
 };
-const vite = await createServer({ configFile: resolve('novel/vite.config.ts'), server: { middlewareMode: true, proxy: {} }, appType: 'spa' });
+const vite = await createServer({ configFile: resolve('novel/vite.config.ts'), plugins:[{name:'reader-kind',transformIndexHtml:html=>html.replace('</head>',`<meta name="reader-kind" content="${ordinary?'fiction':'light'}"/></head>`)}], server: { middlewareMode: true, proxy: {} }, appType: 'spa' });
 const server = http.createServer(async (req, res) => {
   if (!req.url.startsWith('/api/')) { vite.middlewares(req, res); return; }
   try {

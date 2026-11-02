@@ -1,0 +1,30 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "yukino-ln",
+  "main": "../novel/server/worker.mjs",
+  "compatibility_date": "2026-10-19",
+  "compatibility_flags": [
+    "global_fetch_strictly_public"
+  ],
+  "workers_dev": false,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "triggers": {
+    "crons": [
+      "40 * * * *"
+    ]
+  },
+  "observability": {
+    "enabled": true
+  },
+  "routes": [],
+  "kv_namespaces": [
+    {
+      "binding": "NOVEL_CACHE",
+      "id": "34177d82ac60402c8afe25ca0bc7268a"
+    }
+  ]
+}

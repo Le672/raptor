@@ -5,7 +5,7 @@ import { runInNewContext } from 'node:vm';
 import { request, loginUrlForPage, access } from '../src/api.ts';
 
 function browser(t, fetcher) {
-  const values = { location: { origin:'https://novel.yukino.bond',href:'https://novel.yukino.bond/read/linovel-8/11/11?mode=night#bookmark' }, window:new EventTarget() };
+  const values = { location: { origin:'https://ln.yukino.bond',href:'https://ln.yukino.bond/read/linovel-8/11/11?mode=night#bookmark' }, window:new EventTarget() };
   const calls={open:0,match:0,put:0};
   const envelope={data:{title:'old body',blocks:[{type:'text',text:'cached private chapter'}]},meta:{checkedAt:'2026-10-21T00:00:00Z',stale:false}};
   values.caches={open:async()=>{calls.open++;return{match:async()=>{calls.match++;return Response.json(envelope);},put:async()=>{calls.put++;},keys:async()=>[]};}};
@@ -49,12 +49,12 @@ test('access status is a credentialed uncached request and never returns offline
   assert.equal((await access()).user,null);assert.equal(env.calls.open,0);
 });
 test('a double slash in the current path cannot turn the login return target into another origin',async t=>{
-  const env=browser(t,async()=>Response.json({user:null}));env.location.href='https://novel.yukino.bond//evil.test/path';
-  assert.equal(new URL(new URL(loginUrlForPage()).searchParams.get('returnTo')).origin,'https://novel.yukino.bond');
+  const env=browser(t,async()=>Response.json({user:null}));env.location.href='https://ln.yukino.bond//evil.test/path';
+  assert.equal(new URL(new URL(loginUrlForPage()).searchParams.get('returnTo')).origin,'https://ln.yukino.bond');
 });
 
 test('service worker upgrade deletes only old chapter bodies and keeps catalog and book metadata',async()=>{
-  const listeners={},deleted=[],keys=['https://novel.yukino.bond/api/book/8/chapter/11','https://novel.yukino.bond/api/book/8','https://novel.yukino.bond/api/books?q=hello'];
+  const listeners={},deleted=[],keys=['https://ln.yukino.bond/api/book/8/chapter/11','https://ln.yukino.bond/api/book/8','https://ln.yukino.bond/api/books?q=hello'];
   const cache={keys:async()=>keys.map(url=>({url})),delete:async key=>{deleted.push(key.url);return true;}};
   runInNewContext(readFileSync(new URL('../public/sw.js',import.meta.url),'utf8'),{self:{addEventListener:(name,fn)=>{listeners[name]=fn;},clients:{claim:async()=>{}}},caches:{keys:async()=>[],open:async()=>cache,delete:async()=>true},URL,Promise});
   let task;listeners.activate({waitUntil:value=>{task=value;}});await task;
@@ -72,7 +72,7 @@ test('removed source requests and old aggregate fallback cannot revive its books
 
 test('service worker removes retired source metadata without clearing other cached books',async()=>{
   const listeners={},deleted=[],paths=['/api/book/sf-8','/api/books?source=sf','/api/books','/api/status','/api/books?source=wenku','/api/book/wenku-8'];
-  const keys=paths.map(path=>({url:'https://novel.yukino.bond'+path}));
+  const keys=paths.map(path=>({url:'https://ln.yukino.bond'+path}));
   const cache={keys:async()=>keys,delete:async key=>{deleted.push(new URL(key.url).pathname+new URL(key.url).search);return true;},match:async key=>Response.json({data:key.url.endsWith('/api/books')?{items:[{id:'sf-8'}]}:key.url.endsWith('/api/status')?{sources:[{id:'sf'}]}:{items:[{id:'wenku-8'}]}})};
   runInNewContext(readFileSync(new URL('../public/sw.js',import.meta.url),'utf8'),{self:{addEventListener:(name,fn)=>{listeners[name]=fn;},clients:{claim:async()=>{}}},caches:{keys:async()=>[],open:async()=>cache,delete:async()=>true},URL,Promise});
   let task;listeners.activate({waitUntil:value=>{task=value;}});await task;

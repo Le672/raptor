@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import worker from '../server/worker.mjs';
 test('the update script forbids both browser and CDN caching at the real worker boundary', async () => {
-  const response = await worker.fetch(new Request('https://novel.yukino.bond/sw.js'), { ASSETS: { fetch: async () => new Response('worker', { headers: { 'Content-Type': 'application/javascript' } }) } }, {});
+  const response = await worker.fetch(new Request('https://ln.yukino.bond/sw.js'), { ASSETS: { fetch: async () => new Response('worker', { headers: { 'Content-Type': 'application/javascript' } }) } }, {});
   assert.match(response.headers.get('Cache-Control'), /no-store/);
   assert.equal(response.headers.get('Cloudflare-CDN-Cache-Control'), 'no-store');
   assert.equal(response.headers.get('CDN-Cache-Control'), 'no-store');
@@ -23,9 +23,9 @@ test('install manifest supplies a stable app identity, scoped shortcuts and genu
 });
 test('service worker leaves all identity, chapter, non-GET and foreign-origin traffic on the network', () => {
   const listeners = {};
-  runInNewContext(readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8'), { self: { location: { origin: 'https://novel.yukino.bond' }, addEventListener: (name, fn) => { listeners[name] = fn; } }, URL });
+  runInNewContext(readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8'), { self: { location: { origin: 'https://ln.yukino.bond' }, addEventListener: (name, fn) => { listeners[name] = fn; } }, URL });
   for (const [path, method] of [['/api/access', 'GET'], ['/api/auth/login', 'POST'], ['/api/auth/logout', 'POST'], ['/api/book/8/chapter/11', 'GET'], ['/api/books', 'GET'], ['https://www.yukino.bond/login', 'GET']]) {
-    let intercepted = false; listeners.fetch({ request: { url: new URL(path, 'https://novel.yukino.bond').href, method }, respondWith: () => { intercepted = true; } });
+    let intercepted = false; listeners.fetch({ request: { url: new URL(path, 'https://ln.yukino.bond').href, method }, respondWith: () => { intercepted = true; } });
     assert.equal(intercepted, false, path);
   }
 });
@@ -33,11 +33,11 @@ test('offline deep links open the app shell, while updates wait for an explicit 
   const listeners = {}; let skipped = 0, response;
   const shell = new Response('<html>offline shell</html>', { headers: { 'Content-Type': 'text/html' } });
   runInNewContext(readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8'), {
-    self: { location: { origin: 'https://novel.yukino.bond' }, registration: { active: {} }, addEventListener: (name, fn) => { listeners[name] = fn; }, skipWaiting: () => { skipped++; } },
-    caches: { open: async () => ({ addAll: async () => {} }), match: async key => key === '/' ? shell : undefined }, fetch: async () => { throw new Error('offline'); }, URL, Response, AbortController, setTimeout, clearTimeout,
+    self: { location: { origin: 'https://ln.yukino.bond' }, registration: { active: {} }, addEventListener: (name, fn) => { listeners[name] = fn; }, skipWaiting: () => { skipped++; } },
+    caches: { open: async () => ({ addAll: async () => {}, match: async key => key === '/' ? shell : undefined }) }, fetch: async () => { throw new Error('offline'); }, URL, Response, AbortController, setTimeout, clearTimeout,
   });
   let install; listeners.install({ waitUntil: task => { install = task; } }); await install; assert.equal(skipped, 0);
-  listeners.fetch({ request: { method: 'GET', url: 'https://novel.yukino.bond/shelf', mode: 'navigate' }, respondWith: value => { response = value; } });
+  listeners.fetch({ request: { method: 'GET', url: 'https://ln.yukino.bond/shelf', mode: 'navigate' }, respondWith: value => { response = value; } });
   assert.match(await (await response).text(), /offline shell/);
   listeners.message({ data: { type: 'SKIP_WAITING' } }); assert.equal(skipped, 1);
 });

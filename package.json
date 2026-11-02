@@ -30,7 +30,10 @@
     "cap:sync": "npm run build && npx cap sync android",
     "cap:android": "npm run build && npx cap sync android && npx cap open android",
     "electron:dev": "npm run build:desktop && electron electron/main.cjs",
-    "electron:build": "npm run build:desktop && electron-builder --config electron-builder.json"
+    "electron:build": "npm run build:desktop && electron-builder --config electron-builder.json",
+    "ln:dev": "node scripts/dev-novel.mjs",
+    "fiction:dev": "node scripts/dev-novel.mjs --fiction",
+    "readers:test": "node --test novel/test/*.test.mjs fiction/test/*.test.mjs shared/test/*.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",

@@ -17,6 +17,7 @@ self.addEventListener('activate', event => { event.waitUntil(Promise.all([
 ]).then(() => self.clients.claim())); });
 self.addEventListener('fetch', event => {
   const request = event.request, url = new URL(request.url);
+  if (url.pathname.startsWith('/migration')) return;
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
   if (request.mode === 'navigate') event.respondWith((async () => {
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 6000);
@@ -24,7 +25,7 @@ self.addEventListener('fetch', event => {
       const response = await fetch(request, { signal: controller.signal });
       if (response.ok && response.headers.get('Content-Type')?.includes('text/html')) { const copy = response.clone(); event.waitUntil(caches.open(VERSION).then(cache => cache.put('/', copy))); }
       return response;
-    } catch { return await caches.match('/') || new Response('书房暂时无法连接，请联网后重试。', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }); }
+    } catch { return await (await caches.open(VERSION)).match('/') || new Response('书房暂时无法连接，请联网后重试。', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }); }
     finally { clearTimeout(timeout); }
   })());
   else if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || ['/book.svg', '/manifest.webmanifest'].includes(url.pathname)) event.respondWith(caches.open(VERSION).then(async cache => await cache.match(request) || fetch(request).then(response => { if (response.ok) { const copy = response.clone(); event.waitUntil(cache.put(request, copy)); } return response; })));

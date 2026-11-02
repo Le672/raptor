@@ -24,7 +24,7 @@ function environment(initial = {}, fail = false) {
 }
 function context() { const pending = []; return { waitUntil: task => pending.push(task), async finish() { for (let i = 0; i < pending.length; i++) await pending[i]; } }; }
 async function call(env, path, ctx = context()) {
-  const response = await worker.fetch(new Request(`https://novel.yukino.bond${path}`,{headers:authenticatedHeaders()}), env, ctx);
+  const response = await worker.fetch(new Request(`https://ln.yukino.bond${path}`,{headers:authenticatedHeaders()}), env, ctx);
   const value = await response.json(); await ctx.finish(); return { response, value };
 }
 function sources(t, failed = () => false) {

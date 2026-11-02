@@ -3,7 +3,7 @@ import { SOURCES } from '../novel/shared/sources.mjs';
 import { verifyContentSession } from './verify-content-session.mjs';
 const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 if (proxy) setGlobalDispatcher(new ProxyAgent(proxy));
-const origin = process.env.NOVEL_ORIGIN || 'https://novel.yukino.bond';
+const origin = process.env.NOVEL_ORIGIN || 'https://ln.yukino.bond';
 const selectedSources=(process.env.NOVEL_VERIFY_SOURCES||SOURCES.map(source=>source.id).join(',')).split(',');
 if(selectedSources.some(id=>!SOURCES.some(source=>source.id===id)))throw new Error('Unknown verification source');
 await verifyContentSession(origin);

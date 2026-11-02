@@ -36,7 +36,7 @@ export function normalizeBook(raw) {
     source: 'bili', sourceName: sourceInfo('bili').name,
   };
 }
-export function parseContent(html) {
+export function parseContent(html, resolveImage = imageUrl) {
   const safe = String(html || '').replace(/<(script|style|iframe|object|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
   const blocks = []; let text = '';
   const flush = () => { const value = decodeEntities(text).replace(/[\t\r]/g, '').trim(); if (value) blocks.push({ type: 'text', text: value }); text = ''; };
@@ -45,7 +45,7 @@ export function parseContent(html) {
     if (/^<img\b/i.test(token)) {
       flush();
       const src = token.match(/\b(?:data-src|src)\s*=\s*["']([^"']+)["']/i)?.[1];
-      const url = imageUrl(decodeEntities(src || ''));
+      const url = resolveImage(decodeEntities(src || ''));
       if (url) blocks.push({ type: 'image', src: url, alt: plainText(token.match(/\balt\s*=\s*["']([^"']*)["']/i)?.[1] || '小说插图') });
     } else if (/^<(?:br|\/)/i.test(token)) flush();
     else if (!token.startsWith('<')) text += token;
@@ -59,7 +59,7 @@ export async function upstream(path, fetcher = fetch) {
   let response;
   try {
     response = await fetcher(`${SOURCE}/api/bili/${path}`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'YukinoNovel/1.0 (+https://novel.yukino.bond)', 'Cache-Control': 'no-cache' },
+      headers: { Accept: 'application/json', 'User-Agent': 'YukinoLN/2.0 (+https://ln.yukino.bond)', 'Cache-Control': 'no-cache' },
       signal: AbortSignal.timeout(22000), redirect: 'manual', cache: 'no-store',
     });
   } catch (error) {
@@ -117,7 +117,7 @@ export function searchBooks(books, params) {
     return (!tag || x.tags.includes(tag)) && (!status || x.status === status) && terms.every(term => haystack.includes(term) || (compact(term).length >= 2 && compact(haystack).includes(compact(term))));
   });
   const byNumber = (a, b) => Number(b.id.replace(/^[a-z]+-/, '')) - Number(a.id.replace(/^[a-z]+-/, '')) || a.id.localeCompare(b.id);
-  all.sort((a, b) => sort === 'title' ? a.title.localeCompare(b.title, 'zh-CN') : sort === 'new' ? byNumber(a,b) : (b.updatedAt || '').localeCompare(a.updatedAt || '') || byNumber(a,b));
+  all.sort((a, b) => sort === 'relevance' ? 0 : sort === 'title' ? a.title.localeCompare(b.title, 'zh-CN') : sort === 'new' ? byNumber(a,b) : (b.updatedAt || '').localeCompare(a.updatedAt || '') || byNumber(a,b));
   const total = all.length, pages = Math.max(1, Math.ceil(total / 24));
   const page = Math.min(pages, Math.max(1, Math.floor(Number(params.get('page')) || 1)));
   const tags = [...new Map(books.flatMap(x => x.tags).map(t => [t, 0])).keys()].filter(t => !['连载', '連載', '完结', '完結', '已完结'].includes(t));

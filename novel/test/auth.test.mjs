@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createNovelAuth } from '../server/auth.mjs';
 import { createAccessGuard } from '../../shared/content-access.mjs';
-const origin = 'https://novel.yukino.bond';
+const origin = 'https://ln.yukino.bond';
 const timestamp = Date.now();
 const token = `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ exp: Math.floor(timestamp / 1000) + 7 * 86400, userId: 12 })).toString('base64url')}.signature`;
 const user = { id: 12, name: 'Test reader', role: 'user' };

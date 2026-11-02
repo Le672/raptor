@@ -161,10 +161,11 @@ const linkGroups = [
         desc: "comic.yukino.bond · 动漫 / 番剧搜索、多源在线看番、追番收藏与观看进度",
       },
       {
-        label: "轻小说书房 · Yukino Novel",
-        url: "https://novel.yukino.bond",
-        desc: "novel.yukino.bond · 轻小说搜索、最近更新、分卷阅读与追更书架",
+        label: "轻小说书房 · Yukino LN",
+        url: "https://ln.yukino.bond",
+        desc: "ln.yukino.bond · 轻小说搜索、最近更新、分卷阅读与追更书架",
       },
+      { label: "小说书房 · Yukino Novel", url: "https://novel.yukino.bond", desc: "普通小说搜索、目录阅读、追更书架与进度保存" },
       {
         label: "Music For Programming",
         url: "https://musicforprogramming.net",

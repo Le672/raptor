@@ -25,9 +25,9 @@ if (root !== resolve(repository, '.wrangler', 'vps-content') || !root.startsWith
 // Clear only this reproducible bundle so removed files cannot reach a release.
 await rm(root, { recursive: true, force: true });
 await mkdir(root, { recursive: true });
-for (const name of ['cinema', 'comic', 'novel']) {
-  await build({ entryPoints: [`${name}/server/worker.mjs`], outfile: `${root}/${name}/worker.mjs`, bundle: true, platform: 'node', target: 'node22', format: 'esm' });
-  await cp(`${name}/dist`, `${root}/${name}/dist`, { recursive: true });
+for (const [name, source] of [['cinema','cinema'],['comic','comic'],['ln','novel'],['novel','fiction']]) {
+  await build({ entryPoints: [`${source}/server/worker.mjs`], outfile: `${root}/${name}/worker.mjs`, bundle: true, platform: 'node', target: 'node22', format: 'esm' });
+  await cp(`${name === 'ln' ? 'ln' : source}/dist`, `${root}/${name}/dist`, { recursive: true });
 }
 await build({ entryPoints: ['vps-content/speed-worker.mjs'], outfile: `${root}/speed/worker.mjs`, bundle: true, platform: 'node', target: 'node22', format: 'esm' });
 await cp('speed/dist', `${root}/speed/dist`, { recursive: true });
@@ -36,7 +36,7 @@ await cp('dist', `${root}/status/dist`, { recursive: true, filter: name => !name
   !['rail-network', 'f1', 'f1-player'].some(directory => resolve(name) === resolve('dist', directory) || resolve(name).startsWith(resolve('dist', directory) + '/')) });
 await cp('vps-content', `${root}/vps-content`, { recursive: true, filter: name => !name.endsWith('.test.mjs') && !name.endsWith('.pyc') && !name.includes('__pycache__') });
 await cp('node_modules/undici', `${root}/node_modules/undici`, { recursive: true });
-const version = { builtAt: new Date().toISOString(), storage: 'local-sqlite', sites: ['cinema', 'comic', 'novel', 'speed', 'status'],
+const version = { builtAt: new Date().toISOString(), storage: 'local-sqlite', sites: ['cinema', 'comic', 'ln', 'novel', 'speed', 'status'],
   node: '22.23.4', dependencies: { undici: JSON.parse(await readFile('node_modules/undici/package.json', 'utf8')).version } };
 await writeFile(`${root}/version.json`, JSON.stringify(version, null, 2));
 console.log(`VPS content bundle ready: ${root}`);
