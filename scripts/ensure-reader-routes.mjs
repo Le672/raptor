@@ -1,4 +1,5 @@
 import {mkdir,writeFile} from 'node:fs/promises';
+import {resolve4} from 'node:dns/promises';
 const token=process.env.CLOUDFLARE_API_TOKEN,account=process.env.CLOUDFLARE_ACCOUNT_ID;
 if(!token||!account)throw new Error('Cloudflare deployment credentials are missing');
 async function api(path,method='GET',body){
@@ -7,15 +8,13 @@ async function api(path,method='GET',body){
 }
 const zones=await api('/zones?name=yukino.bond'),zone=zones.find(z=>z.name==='yukino.bond');
 if(!zone)throw new Error('The existing Yukino zone is missing');
-const root=`/zones/${zone.id}`,routes=await api(root+'/workers/routes'),before={routes:routes.filter(r=>/^(?:ln|novel)\.yukino\.bond\//.test(r.pattern)),dns:[]};
+const root=`/zones/${zone.id}`,routes=await api(root+'/workers/routes'),before={routes:routes.filter(r=>/^(?:ln|novel)\.yukino\.bond\//.test(r.pattern))};
 await mkdir('.wrangler',{recursive:true});
+await writeFile('.wrangler/reader-routing-before.json',JSON.stringify(before,null,2));
 for(const [host,script]of [['ln.yukino.bond','yukino-ln'],['novel.yukino.bond','yukino-novel']]){
-  const records=await api(root+'/dns_records?name='+host);before.dns.push(...records);
-  await writeFile('.wrangler/reader-routing-before.json',JSON.stringify(before,null,2));
-  // Routes intercept the existing proxied hostname. Keep the old novel Tunnel
-  // CNAME intact so the origin can be restored without a destructive DNS change.
-  if(!records.length)await api(root+'/dns_records','POST',{type:'AAAA',name:host,content:'100::',proxied:true,ttl:1});
-  else if(records.some(r=>!r.proxied))throw new Error(`${host}: existing DNS must be proxied before the reader route can serve it`);
+  // Both hostnames already have proxied Tunnel CNAMEs. Route deployment needs
+  // only Workers Routes permissions, never additional DNS access in CI.
+  if(!(await resolve4(host)).length)throw new Error(`${host}: its existing proxied DNS record is not resolving`);
   const pattern=host+'/*',existing=routes.find(r=>r.pattern===pattern);
   if(existing?.script===script){console.log(`${host}: existing reader route kept`);continue;}
   await api(root+'/workers/routes'+(existing?'/'+existing.id:''),existing?'PUT':'POST',{pattern,script});

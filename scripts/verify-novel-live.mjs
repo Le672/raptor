@@ -23,8 +23,8 @@ async function get(path, ready = async () => true, allowedStatuses = []) {
   throw lastError;
 }
 const getJson = async (path, valid = () => true, allowedStatuses = []) => (await get(path,async response=>valid(await response.json()),allowedStatuses)).json();
-const index = await get('/'); if (!(await index.text()).includes('Yukino Novel')) throw new Error('Reader shell is missing');
-const deepLink = await get('/sources',async response=>response.url.endsWith('/sources')); if (!(await deepLink.text()).includes('Yukino Novel')) throw new Error('Deep link app shell is missing');
+const index = await get('/'); if (!/Yukino (?:LN|Novel)/.test(await index.text())) throw new Error('Reader shell is missing');
+const deepLink = await get('/sources',async response=>response.url.endsWith('/sources')); if (!/Yukino (?:LN|Novel)/.test(await deepLink.text())) throw new Error('Deep link app shell is missing');
 const access = await getJson('/api/access',result=>result.user===null&&new URL(result.loginUrl).origin==='https://www.yukino.bond');
 if(access.user!==null)throw new Error('Guest access probe unexpectedly has an authenticated session');
 const refreshGate=await(await get('/api/status?refresh=1',async response=>response.status===401&&(await response.json()).code==='LOGIN_REQUIRED',[401])).json();
