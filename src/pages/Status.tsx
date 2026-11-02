@@ -52,6 +52,6 @@ export default function Status() {
       const detail = `${service.name} · ${time}–下一小时：${label}`;
       return <button type="button" key={index} className={`status-hour status-hour-${state}`} title={detail} aria-label={detail} onClick={() => setSelectedHour(detail)} />;
     })}</div><div className="status-timeline-axis"><span>71 小时前</span><span>每格 1 小时 · 点击查看</span><span>当前小时</span></div></section>)}</div>
-    <p className="rounded-2xl border border-stone-200 p-5 text-xs leading-7 text-stone-500">每格表示一小时内实际检测的最严重结果：绿色可访问，红色返回错误，黄色暂未确认，灰色没有记录。检测不能覆盖每一分钟，也不代表完整的可用率。</p>
+    <p className="rounded-2xl border border-stone-200 p-5 text-xs leading-7 text-stone-500">每格表示一小时内实际检测的最严重结果：绿色可访问，红色返回错误，黄色暂未确认，灰色没有记录。业务检测通过公开样本检查搜索、详情和目录；正文、播放或原图等登录后操作及其他作品不能由单次样本保证，具体范围见各项说明。</p>
   </div>;
 }

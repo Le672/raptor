@@ -4,7 +4,7 @@ import type { StatusReport } from './status';
 // never needs account cookies or bearer tokens from the main site's API client.
 export async function readStatusReport(): Promise<StatusReport> {
   const response = await fetch('https://status.yukino.bond/api/status', {
-    headers: { Accept: 'application/json' }, credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(15000),
+    headers: { Accept: 'application/json' }, credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(40000),
   });
   if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) throw new Error('状态检测服务暂时不可用');
   const value = await response.json() as StatusReport;
