@@ -16,6 +16,11 @@ for(const [host,script]of [['ln.yukino.bond','yukino-ln'],['novel.yukino.bond','
   // only Workers Routes permissions, never additional DNS access in CI.
   if(!(await resolve4(host)).length)throw new Error(`${host}: its existing proxied DNS record is not resolving`);
   const pattern=host+'/*',existing=routes.find(r=>r.pattern===pattern);
+  if(process.argv.includes('--vps')){
+    if(existing&&existing.script!==script)throw new Error(`${host}: unexpected existing route; preserving it`);
+    if(existing)await api(root+'/workers/routes/'+existing.id,'DELETE');
+    console.log(`${host}: using the existing VPS Tunnel origin`);continue;
+  }
   if(existing?.script===script){console.log(`${host}: existing reader route kept`);continue;}
   await api(root+'/workers/routes'+(existing?'/'+existing.id:''),existing?'PUT':'POST',{pattern,script});
   console.log(`${host}: connected to ${script}`);

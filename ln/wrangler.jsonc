@@ -13,9 +13,7 @@
     "run_worker_first": true
   },
   "triggers": {
-    "crons": [
-      "40 * * * *"
-    ]
+    "crons": []
   },
   "observability": {
     "enabled": true
