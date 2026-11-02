@@ -15,6 +15,12 @@ type ChangelogEntry = {
 };
 
 const changelog: ChangelogEntry[] = [
+  {
+    date: "2026-11-02",
+    type: "improvement",
+    title: "服务状态记录与首页布局优化",
+    changes: ["状态页新增按小时查看的检测记录；主站在检测到服务错误时显示状态提示，并调整天气与网络信息区域的间距。"],
+  },
   { date: "2026-11-01", type: "improvement", title: "天气与网络信息移至首页顶部", changes: ["打开首页即可先看到天气、IP 和访问量信息。"] },
   {
     date: "2026-11-01",

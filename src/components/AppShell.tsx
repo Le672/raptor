@@ -11,6 +11,7 @@ import { api, ApiError } from "@/lib/api";
 import { SiteVisitsProvider } from "@/components/SiteVisits";
 import { LegacySpeedRecovery } from "@/components/LegacySpeedRecovery";
 import { SUBDOMAIN_ROUTES } from "@/lib/site-routing";
+import { StatusNotice } from "@/components/StatusNotice";
 
 export function AppShell() {
   const location = useLocation();
@@ -60,6 +61,7 @@ export function AppShell() {
         跳转到正文
       </a>
       <TopNav />
+      {!independentStatus && <StatusNotice />}
       {!independentStatus && <LegacySpeedRecovery />}
       <main
         id="main-content"

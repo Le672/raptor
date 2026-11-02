@@ -1,6 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+.status-hours { display:flex;gap:2px;margin-top:18px;height:22px; }
+.status-hour { flex:1;min-width:0;border-radius:2px;background:#dbe2e8; }
+.status-hour-reachable { background:#36b896; }
+.status-hour-error { background:#e66e70; }
+.status-hour-unknown { background:#e6b54f; }
+.status-notice { display:block;overflow:hidden;padding:9px 16px;background:#fff0e7;color:#934729;font-size:13px;white-space:nowrap; }
+.status-notice span { display:inline-block;min-width:100%;animation:status-scroll 24s linear infinite; }
+@keyframes status-scroll { from { transform:translateX(100%); } to { transform:translateX(-100%); } }
+@media (prefers-reduced-motion:reduce) { .status-notice { white-space:normal; } .status-notice span { animation:none; } }
 :root {
   font-family: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
   line-height: 1.5;

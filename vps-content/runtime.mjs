@@ -70,7 +70,7 @@ export function assets(directory) {
 
 export async function start({ root, data, port = 18780, schedule = true, network = true } = {}) {
   if (network) installPublicNetwork();
-  const configurations = [['cinema', 'CINEMA_CACHE', 0], ['comic', 'COMIC_CACHE', 20], ['novel', 'NOVEL_CACHE', 40], ['speed', 'DB', null], ['status', 'STATUS_STORAGE', null]];
+  const configurations = [['cinema', 'CINEMA_CACHE', 0], ['comic', 'COMIC_CACHE', 20], ['novel', 'NOVEL_CACHE', 40], ['speed', 'DB', null], ['status', 'STATUS_STORAGE', 5]];
   const sites = new Map(), waiting = new Set(), jobs = new Map();
   const ctx = { waitUntil(promise) {
     const work = Promise.resolve(promise).catch(error => console.error('Background task failed', error.name)).finally(() => waiting.delete(work));
@@ -134,6 +134,7 @@ export async function start({ root, data, port = 18780, schedule = true, network
   const timers = [];
   if (schedule) {
     for (const site of sites.values()) if (site.minute !== null) timers.push(setTimeout(() => void refresh(site), 1000 + site.minute * 500));
+    timers.push(setInterval(() => { const site = sites.get('status.yukino.bond'); if (site) void refresh(site); }, 180000));
     let lastMinute = -1;
     timers.push(setInterval(() => {
       const now = new Date(), minute = Math.floor(now.getTime() / 60000);

@@ -109,6 +109,9 @@
 .home-refresh .home-service-grid article>a:hover { transform:none;border-color:#b7cadc;background:#edf4fa; }
 .home-refresh .daily-heading-note { color:#8491a1;font-size:10px; }
 .home-refresh .home-daily-grid { display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start; }
+.home-refresh .home-daily { padding-top:0; margin-bottom:32px; }
+.home-refresh .home-daily-grid { align-items:stretch; }
+.home-refresh .daily-side { align-content:start; }
 .home-refresh .weather-card { min-width:0;margin:0;border:1px solid var(--home-line);border-radius:9px;background:#fff;color:var(--home-ink);box-shadow:none; }
 .home-refresh .weather-header h2 { color:var(--home-ink);font:500 22px/1.5 var(--home-serif); }
 .home-refresh .weather-kicker { color:#5b82a9; }
