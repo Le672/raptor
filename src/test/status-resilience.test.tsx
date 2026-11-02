@@ -13,7 +13,7 @@ it('keeps the status page and dated last checks visible when the API is unavaila
   ] }));
   vi.mocked(api.getStatus).mockRejectedValue(new Error('检测服务暂不可用'));
   render(<MemoryRouter><Status /></MemoryRouter>);
-  expect(await screen.findByRole('alert')).toHaveTextContent('以下保留上次检测结果');
+  expect((await screen.findAllByRole('alert')).some(item => item.textContent?.includes('以下保留上次检测结果'))).toBe(true);
   expect(screen.getByRole('heading', { name: '服务状态' })).toBeInTheDocument();
   expect(screen.getByText('额度用尽')).toBeInTheDocument();
   expect(screen.getByText(/检测结果已过期/)).toBeInTheDocument();

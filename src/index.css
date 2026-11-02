@@ -6,10 +6,6 @@
 .status-hour-reachable { background:#36b896; }
 .status-hour-error { background:#e66e70; }
 .status-hour-unknown { background:#e6b54f; }
-.status-notice { display:block;overflow:hidden;padding:9px 16px;background:#fff0e7;color:#934729;font-size:13px;white-space:nowrap; }
-.status-notice span { display:inline-block;min-width:100%;animation:status-scroll 24s linear infinite; }
-@keyframes status-scroll { from { transform:translateX(100%); } to { transform:translateX(-100%); } }
-@media (prefers-reduced-motion:reduce) { .status-notice { white-space:normal; } .status-notice span { animation:none; } }
 :root {
   font-family: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
   line-height: 1.5;
@@ -1061,3 +1057,17 @@ svg {
   .rail-attribution-copy strong { font-size: 14px; }
   .rail-attribution-caption, .rail-site-footer-caption { padding: 7px 18px; font-size: 10px; }
 }
+
+/* Explicitly requested ticker motion, with its own pause control. */
+.status-notice { display:flex; align-items:center; min-width:0; gap:12px; padding:9px 16px; background:#fff0e7; color:#934729; font-size:13px; overflow:hidden; }
+.status-notice-window { display:block; flex:1; min-width:0; overflow:hidden; }
+.status-notice .status-notice-track { display:flex; width:max-content; animation:yukino-status-ticker 22s linear infinite !important; will-change:transform; }
+.status-notice-track > span { display:block; flex:none; padding-right:100px; white-space:nowrap; }
+.status-notice .status-notice-track.is-paused { animation-play-state:paused !important; }
+.status-notice button { flex:none; padding:3px 9px; border:1px solid #dcb59f; border-radius:5px; font-size:11px; }
+@keyframes yukino-status-ticker { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+.status-timeline { display:grid; gap:20px; }
+.status-timeline .status-hours { height:30px; gap:3px; }
+.status-hour { position:relative; }
+.status-hour:focus-visible { outline:2px solid #34465c; outline-offset:3px; }
+.status-timeline-axis { display:flex; justify-content:space-between; margin-top:8px; color:#697b90; font-size:11px; }
