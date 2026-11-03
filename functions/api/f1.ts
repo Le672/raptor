@@ -3,6 +3,7 @@ import type { F1Session, TimingRow, TrackDriver, RaceControl, LiveData, F1Stint,
 import { parseFeed } from "../_utils/news-feed";
 import { cachedF1, retrySeconds } from "../_utils/f1-cache";
 import type { PortalDatabase } from "../_utils/db";
+import { loadDriverOfTheDay } from "../_utils/f1-driver-of-the-day";
 import snapshots from "../_data/f1-snapshots.json";
 
 type Context = { request: Request; env?: { OPENF1_TOKEN?: string; DB?: PortalDatabase; F1_CACHE_WARMUP?: boolean }; waitUntil?: (promise: Promise<unknown>) => void };
@@ -193,7 +194,7 @@ export async function onRequestGet(context: Context) {
   const round = url.searchParams.get("round") || "last", kind = url.searchParams.get("kind") || "results";
   const session = url.searchParams.get("session") || "latest", drivers = url.searchParams.get("drivers") || "";
   const headers = { "Content-Type": "application/json; charset=utf-8", "X-Content-Type-Options": "nosniff" };
-  if (!["season", "weekend", "results", "leclerc", "live", "dashboard", "laps", "drivers", "news"].includes(action) || !/^\d{4}$/.test(rawYear) || year < 1950 || year > maxYear || !/^(last|[1-9]\d?)$/.test(round) || !["results", "qualifying", "sprint"].includes(kind) || !/^(latest|[1-9]\d{0,7})$/.test(session) || !/^$|^\d{1,3}(,\d{1,3})?$/.test(drivers) || (action === "laps" && (session === "latest" || !drivers)) || (action === "dashboard" && session === "latest")) return new Response(JSON.stringify({ error: "查询参数无效" }), { status: 400, headers });
+  if (!["season", "weekend", "results", "leclerc", "live", "dashboard", "laps", "drivers", "news", "dotd"].includes(action) || !/^\d{4}$/.test(rawYear) || year < 1950 || year > maxYear || !/^(last|[1-9]\d?)$/.test(round) || !["results", "qualifying", "sprint"].includes(kind) || !/^(latest|[1-9]\d{0,7})$/.test(session) || !/^$|^\d{1,3}(,\d{1,3})?$/.test(drivers) || (action === "laps" && (session === "latest" || !drivers)) || (action === "dashboard" && session === "latest")) return new Response(JSON.stringify({ error: "查询参数无效" }), { status: 400, headers });
   if (["weekend", "dashboard", "laps", "drivers"].includes(action) && year < 2023) return new Response(JSON.stringify({ error: "OpenF1 详细数据从 2023 赛季开始提供" }), { status: 400, headers });
   const token = context.env?.OPENF1_TOKEN;
   const cache = typeof caches !== "undefined" ? (caches as CacheStorage & { default?: Cache }).default : undefined;
@@ -204,11 +205,11 @@ export async function onRequestGet(context: Context) {
   const load = async () => {
   if (!durable && !context.env?.F1_CACHE_WARMUP) { try { const cached = await cache?.match(cacheKey); if (cached) return cached; } catch { /* Edge caching is optional. */ } }
   try {
-    const value = action === "season" ? await loadSeason(year) : action === "weekend" ? await loadWeekend(year, token) : action === "results" ? await loadResults(year, round, kind) : action === "leclerc" ? await loadLeclerc(year) : action === "live" ? await loadLive(session, token, year) : action === "dashboard" ? await loadDashboard(session, token) : action === "laps" ? await loadLaps(session, drivers, token) : action === "drivers" ? { drivers: await openf1("drivers", { session_key: session }, token, 3600000), errors: [], source: "OpenF1" } : await loadNews();
+    const value = action === "dotd" ? await loadDriverOfTheDay(year) : action === "season" ? await loadSeason(year) : action === "weekend" ? await loadWeekend(year, token) : action === "results" ? await loadResults(year, round, kind) : action === "leclerc" ? await loadLeclerc(year) : action === "live" ? await loadLive(session, token, year) : action === "dashboard" ? await loadDashboard(session, token) : action === "laps" ? await loadLaps(session, drivers, token) : action === "drivers" ? { drivers: await openf1("drivers", { session_key: session }, token, 3600000), errors: [], source: "OpenF1" } : await loadNews();
     const errors = [...new Set(value.errors)];
     const payload = { ...value, errors, fetchedAt: new Date().toISOString() };
     const status = "unavailable" in value && value.unavailable ? 503 : 200;
-    const seconds = errors.length || action === "live" || action === "dashboard" ? 30 : action === "news" ? 300 : action === "weekend" || action === "laps" ? 3600 : 300;
+    const seconds = errors.length || action === "live" || action === "dashboard" ? 30 : action === "news" ? 300 : action === "weekend" || action === "laps" || action === "dotd" ? 3600 : 300;
     const retry = errors.length && jolpicaRetryAt > Date.now() ? { "Retry-After": String(Math.ceil((jolpicaRetryAt - Date.now()) / 1000)) } : {};
     const response = new Response(JSON.stringify(payload), { status, headers: { ...headers, ...retry, "Cache-Control": status === 200 ? `public, max-age=${seconds}` : "no-store" } });
     if (!durable && cache && status === 200 && !context.env?.F1_CACHE_WARMUP) { const save = cache.put(cacheKey, response.clone()).catch(() => {}); if (context.waitUntil) context.waitUntil(save); else await save; }
