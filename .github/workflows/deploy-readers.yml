@@ -1,4 +1,4 @@
-name: Publish reader bundles and verify VPS routes
+name: Publish readers to Cloudflare Workers
 on:
   push:
     branches: [master]
@@ -48,7 +48,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --config fiction/wrangler.jsonc
       - name: Connect the two reader domains
-        run: node scripts/ensure-reader-routes.mjs --vps
+        run: node scripts/ensure-reader-routes.mjs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
