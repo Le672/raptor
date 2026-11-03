@@ -1065,7 +1065,10 @@ svg {
 .status-notice-group { display:flex; flex:none; }
 .status-notice-group > span { display:block; flex:none; padding-right:48px; white-space:nowrap; }
 .status-notice .status-notice-track.is-paused { animation-play-state:paused !important; }
+.status-notice-actions { display:flex; flex:none; gap:6px; }
 .status-notice button { flex:none; padding:3px 9px; border:1px solid #dcb59f; border-radius:5px; font-size:11px; }
+.status-notice button:hover { background:#fce2d4; }
+.status-notice button:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
 @keyframes yukino-status-ticker { from { transform:translateX(0); } to { transform:translateX(-50%); } }
 .status-timeline { display:grid; gap:20px; }
 .status-timeline .status-hours { height:30px; gap:3px; }

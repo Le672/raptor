@@ -27,11 +27,12 @@ import { usePublicPosts } from "@/hooks/usePublicContent";
 import { ContentNotice } from "@/components/ContentNotice";
 import { contentDate, postHref } from "@/lib/content";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { siteHref } from "@/lib/site-routing";
 import { VisitorNetwork } from "@/components/VisitorNetwork";
 import { SiteVisits } from "@/components/SiteVisits";
 import { WeatherCard } from "@/components/WeatherCard";
 import { DomainCard } from "@/components/DomainCard";
-import { serviceDomainLinks } from "@/data/services";
+import { serviceDomainLinks, yukinoServices } from "@/data/services";
 import "@/styles/home-refresh.css";
 const corners = [
   {
@@ -68,6 +69,12 @@ const corners = [
   { icon: ShieldCheck, title: "IP 纯净度", en: "YUKINO IP", text: "查看网络归属，对照多个来源了解 IP 的公开记录。", to: "/ip" },
   { icon: FlaskConical, title: "实验室", en: "YUKINO LAB", text: "视觉实验、前端玩具，和一些正在慢慢成形的想法。", to: "/lab" },
 ];
+const dailyShortcuts = [
+  { icon: Newspaper, label: "今日新闻", to: "/news" },
+  { icon: NotebookPen, label: "小站笔记", to: "/notes" },
+  { icon: Palette, label: "随手画布", to: yukinoServices.draw.href },
+];
+
 export default function Home() {
   const published = usePublicPosts();
   useDocumentMeta(
@@ -78,7 +85,30 @@ export default function Home() {
     <div className="home-page home-refresh">
       <section className="home-daily" aria-labelledby="daily-title">
         <div className="section-top"><div><p className="eyebrow"><span className="section-index">01</span> A LITTLE EVERYDAY</p><h2 id="daily-title">日常，一角<span> / Everyday</span></h2></div><span className="daily-heading-note">看看天气，再开始今天。</span></div>
-        <div className="home-daily-grid"><WeatherCard /><div className="daily-side"><div className="daily-connection"><span className="eyebrow">YOUR CONNECTION</span><h3>从世界的某一处，来到这里。</h3><VisitorNetwork /><SiteVisits /></div><Link className="daily-focus" to="/focus"><span className="daily-focus-icon"><Timer size={23} strokeWidth={1.5} /></span><div><span className="eyebrow">A MOMENT OF FOCUS</span><h3>给自己一段专注的时间。</h3></div><ArrowUpRight size={20} /></Link></div></div>
+        <div className="home-daily-grid">
+          <WeatherCard />
+          <div className="daily-side">
+            <div className="daily-connection">
+              <span className="eyebrow">YOUR CONNECTION</span>
+              <h3>从世界的某一处，来到这里。</h3>
+              <VisitorNetwork />
+              <SiteVisits />
+            </div>
+            <Link className="daily-focus" to="/focus">
+              <span className="daily-focus-icon"><Timer size={23} strokeWidth={1.5} /></span>
+              <div><span className="eyebrow">A MOMENT OF FOCUS</span><h3>给自己一段专注的时间。</h3></div>
+              <ArrowUpRight size={20} />
+            </Link>
+            <nav className="daily-shortcuts" aria-labelledby="daily-shortcuts-title">
+              <header><span className="eyebrow">QUICK PICKS</span><h3 id="daily-shortcuts-title">随手打开</h3></header>
+              <ul>
+                {dailyShortcuts.map(({ icon: Icon, label, to }) => (
+                  <li key={to}><a href={siteHref(to)}><Icon size={15} aria-hidden="true" />{label}</a></li>
+                ))}
+              </ul>
+            </nav>
+          </div>
+        </div>
       </section>
       <section className="home-hero" aria-labelledby="hero-title">
         <div className="hero-copy">

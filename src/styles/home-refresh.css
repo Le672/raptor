@@ -108,10 +108,8 @@
 .home-refresh .home-service-grid article>a { padding:8px 11px;border:1px solid var(--home-line);border-radius:5px;background:#fff;color:#607e9d;font-size:10px; }
 .home-refresh .home-service-grid article>a:hover { transform:none;border-color:#b7cadc;background:#edf4fa; }
 .home-refresh .daily-heading-note { color:#8491a1;font-size:10px; }
-.home-refresh .home-daily-grid { display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start; }
+.home-refresh .home-daily-grid { display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:stretch; }
 .home-refresh .home-daily { padding-top:0; margin-bottom:32px; }
-.home-refresh .home-daily-grid { align-items:stretch; }
-.home-refresh .daily-side { align-content:start; }
 .home-refresh .weather-card { min-width:0;margin:0;border:1px solid var(--home-line);border-radius:9px;background:#fff;color:var(--home-ink);box-shadow:none; }
 .home-refresh .weather-header h2 { color:var(--home-ink);font:500 22px/1.5 var(--home-serif); }
 .home-refresh .weather-kicker { color:#5b82a9; }
@@ -129,7 +127,7 @@
 .home-refresh .weather-location-editor { border-color:var(--home-line);border-radius:6px;background:#f8fafc; }
 .home-refresh .weather-search-row input { border-color:var(--home-line);border-radius:5px;background:#fff;color:var(--home-ink); }
 .home-refresh .weather-search-row input::placeholder { color:#8491a1; }
-.home-refresh .daily-side { display:grid;gap:15px;min-width:0; }
+.home-refresh .daily-side { display:grid;grid-template-rows:auto auto minmax(min-content,1fr);gap:15px;min-width:0; }
 .home-refresh .daily-connection { min-width:0;padding:23px;border:1px solid var(--home-line);border-radius:9px;background:#fff; }
 .home-refresh .daily-connection>.eyebrow { color:#8496aa;font-size:8px;letter-spacing:.13em; }
 .home-refresh .daily-connection>h3 { margin:10px 0 19px;color:var(--home-ink);font:500 17px/1.7 var(--home-serif); }
@@ -148,6 +146,14 @@
 .home-refresh .daily-focus .eyebrow { color:#8496aa;font-size:8px;letter-spacing:.1em; }
 .home-refresh .daily-focus h3 { margin-top:6px;color:var(--home-ink);font:500 14px/1.6 var(--home-serif); }
 .home-refresh .daily-focus>svg { margin-left:auto;flex-shrink:0;color:#9bafc2; }
+.home-refresh .daily-shortcuts { display:flex;flex-direction:column;justify-content:center;gap:12px;min-width:0;padding:15px 22px;border:1px solid var(--home-line);border-radius:9px;background:#fff; }
+.home-refresh .daily-shortcuts header { display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px; }
+.home-refresh .daily-shortcuts .eyebrow { color:#8496aa;font-size:8px;letter-spacing:.1em; }
+.home-refresh .daily-shortcuts h3 { color:var(--home-ink);font:500 14px/1.6 var(--home-serif); }
+.home-refresh .daily-shortcuts ul { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none; }
+.home-refresh .daily-shortcuts a { display:flex;align-items:center;justify-content:center;gap:6px;height:100%;min-height:36px;padding:7px 5px;border:1px solid var(--home-line);border-radius:5px;background:#f8fafc;color:#526f8d;font-size:11px;text-align:center; }
+.home-refresh .daily-shortcuts a:hover { border-color:#b7cadc;background:#edf4fa; }
+.home-refresh .daily-shortcuts a>svg { flex:none; }
 .home-refresh .hello-strip { display:flex;align-items:center;justify-content:space-between;gap:24px;margin:38px 0 0;padding:26px 27px;border:1px solid var(--home-line);border-radius:9px;background:#edf4fa;color:var(--home-ink); }
 .home-refresh .hello-strip .eyebrow { display:flex;align-items:center;gap:8px;color:#7f94ab;font-size:8px;letter-spacing:.13em; }
 .home-refresh .hello-star { color:#c78198;font-size:18px;line-height:1; }
@@ -172,7 +178,8 @@
   .home-refresh .margin-note h3 { font-size:17px; }
   .home-refresh .corner-grid,.home-refresh .home-service-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .home-refresh .home-daily-grid { grid-template-columns:1fr; }
-  .home-refresh .daily-side { grid-template-columns:minmax(0,1fr) minmax(0,.8fr);align-items:start; }
+  .home-refresh .daily-side { grid-template-columns:minmax(0,1fr) minmax(0,.8fr);grid-template-rows:auto 1fr; }
+  .home-refresh .daily-connection { grid-row:span 2; }
   .home-refresh .daily-focus { flex-wrap:wrap; }
 }
 @media(max-width:900px) {
@@ -237,6 +244,8 @@
   .home-refresh .daily-focus { padding:20px; }
   .home-refresh .daily-focus h3 { font-size:14px; }
   .home-refresh .daily-focus .eyebrow { font-size:7px; }
+  .home-refresh .daily-shortcuts { padding:15px; }
+  .home-refresh .daily-shortcuts a { flex-wrap:wrap;gap:4px; }
   .home-refresh .hello-strip { align-items:flex-start;flex-direction:column;gap:18px;margin-top:30px;padding:22px; }
   .home-refresh .hello-strip h2 { font-size:22px; }
 }
