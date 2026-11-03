@@ -15,6 +15,7 @@ type ChangelogEntry = {
 };
 
 const changelog: ChangelogEntry[] = [
+  { date: "2026-11-03", type: "improvement", title: "工具站前端迁至 Cloudflare", changes: ["测速、状态页、工具箱与临时传送门使用原网址打开，公开网页和静态资源由 Cloudflare 提供；测速记录、状态历史、实验室数据和传送文件继续保存在原服务器。"] },
   { date: "2026-11-03", type: "improvement", title: "内容站与随手画布迁至 Cloudflare", changes: ["轻小说书房、小说书房、影视馆与番剧放映室继续使用原域名，页面、安装入口和内容接口由 Cloudflare Workers 提供；播放和章节正文继续要求登录。", "适配旧书架导出页在 Cloudflare 上的直达访问，保留轻小说书房迁移本机旧记录的入口。", "随手画布继续使用 draw.yukino.bond，由 Cloudflare 提供网页和绘图资源；已有画稿仍保存在原域名的浏览器存储中。"] },
   { date: "2026-11-02", type: "feature", title: "轻小说迁至 LN，小说书房独立开放", changes: ["轻小说书房改用 ln.yukino.bond，保留原有六个轻小说书源、分卷阅读和书架功能；原书籍与章节链接自动前往新域名。", "novel.yukino.bond 用于普通小说，接入纵横官方公开书目、免费章节与补充书源，支持搜索、目录、收藏、足迹、续读、夜读、备份及手机电脑安装；订阅章节提供源站入口。", "两个书房由独立服务器提供服务，可分别安装为应用，分别保存收藏与进度；新轻小说站尝试从原域名合并本机旧记录，并提供手动导出入口，继续使用原 Yukino 账户登录。主站同步提供两个独立入口。"] },
   {
