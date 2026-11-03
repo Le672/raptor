@@ -35,8 +35,8 @@ with tarfile.open(fileobj=io.BytesIO(body),mode='r:gz') as archive:
 link=base/'current.status-next'
 link.symlink_to(release,target_is_directory=True)
 link.replace(base/'current')
-subprocess.run(['systemctl','restart','yukino-content'],check=True,timeout=30)
 try:
+ subprocess.run(['systemctl','restart','yukino-content'],check=True,timeout=30)
  for attempt in range(20):
   try:
    request=urllib.request.Request('http://127.0.0.1:18780/api/history',headers={{'Host':'status.yukino.bond'}})
@@ -46,13 +46,18 @@ try:
   except Exception:
    time.sleep(1)
  else: raise RuntimeError('Status history health check failed')
+ request=urllib.request.Request('http://127.0.0.1:18780/api/status',headers={{'Host':'status.yukino.bond'}})
+ with urllib.request.urlopen(request,timeout=35) as response: report=json.load(response)
+ urls={{service['url'] for service in report['services']}}
+ assert 'https://ln.yukino.bond/api/books?source=bili&sort=updated' in urls
+ assert 'https://novel.yukino.bond/api/books?source=zongheng&sort=updated' in urls
 except Exception:
  rollback=base/'current.status-rollback'
  rollback.symlink_to(previous,target_is_directory=True)
  rollback.replace(base/'current')
  subprocess.run(['systemctl','restart','yukino-content'],check=True,timeout=30)
  raise
-result={{'phase':'ready','release':str(release),'previous':str(previous),'historyHours':len(history['hours'])}}
+result={{'phase':'ready','release':str(release),'previous':str(previous),'historyHours':len(history['hours']),'services':len(urls)}}
 (base/'status-release.json').write_text(json.dumps(result))
 print(json.dumps(result))
 '''

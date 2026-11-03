@@ -2,31 +2,48 @@ import { STATUS_TARGETS, httpState, type ServiceCheck, type StatusReport } from 
 class ProbeFailure extends Error { constructor(message: string, public code: number | null = null, public uncertain = false) { super(message); } }
 async function businessProbe(target: typeof STATUS_TARGETS[number], signal: AbortSignal): Promise<string> {
   const origin = new URL(target.url).origin;
-  async function read(url: string): Promise<any> {
+  async function read(url: string, allowStale = false): Promise<any> {
     if (new URL(url).origin !== origin) throw new ProbeFailure('检测地址不在预期服务内');
     const response = await fetch(url, { signal, redirect: 'error', headers: { Accept: 'application/json' } });
     if (!response.ok) { await response.body?.cancel(); throw new ProbeFailure(`业务请求返回 HTTP ${response.status}`, response.status, response.status === 403 || response.status === 429); }
     if (!response.headers.get('content-type')?.includes('application/json')) { await response.body?.cancel(); throw new ProbeFailure('业务接口返回了网页或其他无效内容', response.status); }
     let value: any; try { value = await response.json(); } catch { throw new ProbeFailure('业务接口返回无效 JSON', response.status); }
     if (!value || typeof value !== 'object' || value.error) throw new ProbeFailure('业务接口未返回有效内容', response.status);
-    if (value.meta?.stale || value.stale) throw new ProbeFailure('仅有旧缓存，无法确认当前服务', response.status, true);
+    if (!allowStale && (value.meta?.stale || value.stale)) throw new ProbeFailure('仅有旧缓存，无法确认当前服务', response.status, true);
     return value;
   }
-  const first = await read(target.url);
+  const reader = target.probe === 'reader-catalog' || target.probe === 'reader-source';
+  const first = await read(target.url, reader);
   if (target.probe === 'weather') {
     if (!Number.isFinite(first.current?.temperature) || !Number.isFinite(Date.parse(first.current?.time)) || !Array.isArray(first.daily) || !first.daily.length) throw new ProbeFailure('天气温度或预报不完整', 200);
     return `已读取当前温度及 ${first.daily.length} 日预报（${first.provider || '未知来源'}）${first.notice ? '，自动切换至备用来源' : ''}`;
   }
-  if (target.probe === 'novel-detail' || target.probe === 'novel-catalog') {
-    const sampleId = first.data?.items?.find((item: any) => /^[1-9]\d{0,8}$/.test(String(item.id)))?.id;
-    if (target.probe === 'novel-catalog' && !sampleId) throw new ProbeFailure('书目没有返回可检查的作品', 200);
-    const base = target.probe === 'novel-catalog' ? `${origin}/api/book/${sampleId}` : target.url;
-    const detail = target.probe === 'novel-catalog' ? await read(base) : first;
-    const book = detail.data, volume = book?.volumes?.[0];
-    if (!book?.title || !volume || !/^[\w-]{1,100}$/.test(String(volume.id))) throw new ProbeFailure('书籍详情或分卷目录为空', 200);
-    const result = await read(`${base}/volume/${encodeURIComponent(volume.id)}`);
-    if (!Array.isArray(result.data?.chapters) || !result.data.chapters.length) throw new ProbeFailure('分卷未返回章节目录', 200);
-    return `详情及章节目录可读取（${result.data.chapters.length} 章）；正文需登录，未检测`;
+  if (reader) {
+    if (!Array.isArray(first.data?.items)) throw new ProbeFailure('书目接口没有返回有效列表', 200);
+    const items = first.data.items;
+    const cached = first.meta?.stale || first.stale;
+    if (target.probe === 'reader-catalog') {
+      if (!items.length) throw new ProbeFailure('书目列表暂未返回作品', 200, Boolean(cached));
+      return `书目可浏览（本页 ${items.length} 本）${cached ? '，当前列表含缓存数据' : ''}`;
+    }
+    const ids = [...new Set<string>(items.map((item: any) => String(item?.id)).filter((id: string) => /^(?:[a-z]+-)?\d{1,12}$/.test(id)))].slice(0, 2);
+    if (!ids.length) throw new ProbeFailure('书源暂未提供可检查的书目', 200, true);
+    for (const id of ids) {
+      try {
+        const base = `${origin}/api/book/${id}`;
+        const { data: book } = await read(base);
+        const volume = Array.isArray(book?.volumes) && book.volumes.find((item: any) => /^[\w-]{1,100}$/.test(String(item?.id ?? '')));
+        if (!book?.title || !volume) continue;
+        const { data } = await read(`${base}/volume/${encodeURIComponent(volume.id)}`);
+        if (Array.isArray(data?.chapters) && data.chapters.length) {
+          return `详情及章节目录可读取（${data.chapters.length} 章）${cached ? '，样本来自缓存书目' : ''}；正文需登录，未检测`;
+        }
+      } catch (error) {
+        if (!(error instanceof ProbeFailure) || (!error.uncertain && ![404, 410].includes(error.code))) throw error;
+        if (ids.at(-1) === id) throw new ProbeFailure(`本次样本未能确认章节目录：${error.message}`, error.code, true);
+      }
+    }
+    throw new ProbeFailure('本次书目样本没有可确认的分卷或章节', 200, true);
   }
   if (target.probe === 'jm-detail') {
     const book = first.items?.find((item: any) => /^\d+$/.test(String(item.id)));
@@ -67,31 +84,44 @@ async function businessProbe(target: typeof STATUS_TARGETS[number], signal: Abor
 export async function checkService(target: typeof STATUS_TARGETS[number]): Promise<ServiceCheck> {
   const start = Date.now(), checkedAt = new Date(start).toISOString(), controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), target.timeoutMs ?? (target.probe ? 20000 : 4500));
+  const { name, url, statusOnly } = target;
+  const result = (state: ServiceCheck['state'], code: number | null, detail: string): ServiceCheck =>
+    ({ name, url, statusOnly, state, code, latency: Date.now() - start, checkedAt, detail });
   try {
     if (target.probe) {
       const detail = await businessProbe(target, controller.signal);
-      return { name: target.name, url: target.url, state: 'reachable', code: 200, latency: Date.now() - start, checkedAt, detail };
+      return result('reachable', 200, detail);
     }
-    let response = await fetch(target.url, { method: target.jsonKeys ? "GET" : "HEAD", redirect: "follow", signal: controller.signal });
-    if (response.status === 405) { response = await fetch(target.url, { signal: controller.signal, redirect: "follow" }); await response.body?.cancel(); }
+    const method = target.jsonKeys || target.contentType ? "GET" : "HEAD";
+    const options = { redirect: "follow" as const, signal: controller.signal };
+    let response = await fetch(url, { ...options, method });
+    if (method === "HEAD" && [404, 405, 501].includes(response.status)) {
+      await response.body?.cancel();
+      response = await fetch(url, options);
+    }
     if (target.jsonKeys) {
       if (response.status !== (target.expectedStatus ?? 200)) {
         await response.body?.cancel();
-        return { name: target.name, url: target.url, state: response.status === 403 || response.status === 429 ? 'unknown' : 'error',
-          code: response.status, latency: Date.now() - start, checkedAt, detail: `接口响应异常（HTTP ${response.status}），业务未正常执行` };
+        return result(httpState(response.status) === 'unknown' ? 'unknown' : 'error', response.status, `接口响应异常（HTTP ${response.status}），业务未正常执行`);
       }
       let value: Record<string, unknown> | null = null;
       if (response.headers.get('Content-Type')?.includes('application/json')) {
         try { value = await response.json(); } catch { /* Invalid JSON is a failed API, including HTTP 200 fallbacks. */ }
       } else await response.body?.cancel();
       const valid = value && target.jsonKeys.every(key => Object.prototype.hasOwnProperty.call(value, key));
-      return { name: target.name, url: target.url, state: valid ? 'reachable' : 'error', code: response.status,
-        latency: Date.now() - start, checkedAt, detail: valid ? '接口返回了有效数据' : '接口返回了网页或无效数据，业务未正常执行' };
+      return result(valid ? 'reachable' : 'error', response.status, valid ? '接口返回了有效数据' : '接口返回了网页或无效数据，业务未正常执行');
     }
     await response.body?.cancel();
     const state = httpState(response.status);
-    return { ...target, state, code: response.status, latency: Date.now() - start, checkedAt, detail: state === "reachable" ? "HTTPS 页面可访问" : state === "unknown" ? "服务限制了本次检测" : `返回 HTTP ${response.status}` };
-  } catch (error) { return { ...target, state: error instanceof ProbeFailure && !error.uncertain ? 'error' : 'unknown', code: error instanceof ProbeFailure ? error.code : null, latency: Date.now() - start, checkedAt, detail: error instanceof ProbeFailure ? error.message : controller.signal.aborted ? "检测超时，尚不能确认服务状态" : "本次连接失败，尚不能确认服务状态" }; }
+    if (state === "reachable" && target.contentType && !response.headers.get('content-type')?.includes(target.contentType)) {
+      return result('error', response.status, '返回的内容类型与预期不符');
+    }
+    return result(state, response.status, state === "reachable" ? "HTTPS 内容可访问" : state === "unknown" ? "服务限制了本次检测" : `返回 HTTP ${response.status}`);
+  } catch (error) {
+    return result(error instanceof ProbeFailure && !error.uncertain ? 'error' : 'unknown',
+      error instanceof ProbeFailure ? error.code : null,
+      error instanceof ProbeFailure ? error.message : controller.signal.aborted ? "检测超时，尚不能确认服务状态" : "本次连接失败，尚不能确认服务状态");
+  }
   finally { clearTimeout(timer); }
 }
 let recent: { expires: number; report: StatusReport } | null = null;

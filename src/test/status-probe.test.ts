@@ -35,16 +35,31 @@ describe('status checks stay meaningful during quota failures', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ current: { temperature: 22, time: new Date().toISOString() }, daily: [{}], provider: 'open-meteo' })));
     expect((await checkService({ name: '天气', url: 'https://www.yukino.bond/api/weather', probe: 'weather' })).state).toBe('reachable');
   });
-  it('checks novel details and actual volume contents, preserving stale and restricted distinctions', async () => {
-    const target = { name: '小说', url: 'https://novel.yukino.bond/api/book/rezero-1', probe: 'novel-detail' as const };
-    vi.stubGlobal('fetch', vi.fn(async (input: string) => Response.json(input.endsWith('/volume/1') ? { data: { chapters: [] } } : { data: { title: '示例', volumes: [{ id: '1' }] } })));
-    expect((await checkService(target)).state).toBe('error');
-    vi.stubGlobal('fetch', vi.fn(async (input: string) => Response.json(input.endsWith('/volume/1') ? { data: { chapters: [{ id: '1' }] } } : { data: { title: '示例', volumes: [{ id: '1' }] } })));
-    expect((await checkService(target)).detail).toContain('正文需登录');
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: {}, meta: { stale: true } })));
-    expect((await checkService(target)).state).toBe('unknown');
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ error: 'restricted' }, { status: 403 })));
-    expect((await checkService(target)).state).toBe('unknown');
+  it('checks current reader samples on their own origin, retrying a missing book', async () => {
+    const target = { name: '小说', url: 'https://novel.yukino.bond/api/books?source=biqu', probe: 'reader-source' as const, statusOnly: true };
+    const fetch = vi.fn(async (input: string) => {
+      if (input === target.url) return Response.json({ data: { items: [{ id: 'biqu-123' }, { id: 'biqu-456' }] }, meta: { stale: true } });
+      if (input.endsWith('/biqu-123')) return Response.json({ error: '作品不存在' }, { status: 404 });
+      if (input.endsWith('/volume/v12345678')) return Response.json({ data: { chapters: [{ id: '1' }] } });
+      return Response.json({ data: { title: '示例', volumes: [{ id: 'v12345678' }] } });
+    });
+    vi.stubGlobal('fetch', fetch);
+    expect(await checkService(target)).toMatchObject({ state: 'reachable', statusOnly: true, detail: expect.stringContaining('正文需登录') });
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+      target.url, 'https://novel.yukino.bond/api/book/biqu-123',
+      'https://novel.yukino.bond/api/book/biqu-456', 'https://novel.yukino.bond/api/book/biqu-456/volume/v12345678',
+    ]);
+    fetch.mockImplementation(async input => input === target.url
+      ? Response.json({ data: { items: [{ id: 'biqu-123' }] } })
+      : Response.json({ error: '作品不存在' }, { status: 404 }));
+    expect(await checkService(target)).toMatchObject({ state: 'unknown', code: 404, statusOnly: true });
+    fetch.mockImplementation(async () => Response.json({ error: '服务故障' }, { status: 503 }));
+    expect(await checkService({ ...target, probe: 'reader-catalog', statusOnly: false })).toMatchObject({ state: 'error', code: 503 });
+  });
+  it('confirms a page that returns 404 to HEAD by requesting it with GET', async () => {
+    const fetch = vi.fn(async (_url: string, options: RequestInit) => new Response(null, { status: options.method === 'HEAD' ? 404 : 200 }));
+    vi.stubGlobal('fetch', fetch);
+    expect(await checkService({ name: '小说书房', url: 'https://novel.yukino.bond/' })).toMatchObject({ state: 'reachable', code: 200 });
   });
   it('follows JM search to book and chapter and rejects empty image lists', async () => {
     const target = { name: '姬漫', url: 'https://jm-api-yukino.3584643854.workers.dev/v1/search?q=love', probe: 'jm-detail' as const };

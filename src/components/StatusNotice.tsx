@@ -29,7 +29,7 @@ export function StatusNotice() {
       void readStatusReport().then(report => {
         if (!active) return;
         if (Date.now() - Date.parse(report.checkedAt) > 300000) { setMessage(''); return; }
-        const errors = report.services.filter(service => service.state === 'error');
+        const errors = report.services.filter(service => service.state === 'error' && !service.statusOnly);
         setMessage(errors.length ? `服务异常：${errors.map(service => service.name).join('、')}。点击查看状态详情。` : '');
       }).catch(() => { if (active) setMessage(''); });
     };
