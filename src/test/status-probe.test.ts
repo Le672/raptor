@@ -36,6 +36,13 @@ describe('status checks stay meaningful during quota failures', () => {
     expect(result.state).toBe('error'); expect(result.detail).toContain('未正常执行'); expect(result.code).toBe(200);
     expect((await checkService({ name: 'identity', url: 'https://www.yukino.bond/api/auth/access', jsonKeys: ['error'], expectedStatus: 401 })).state).toBe('error');
   });
+  it('treats interrupted response bodies as unconfirmed instead of declaring an outage', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(new ReadableStream({
+      start(controller) { controller.error(new TypeError('Connection closed mid-response')); },
+    }), { headers: { 'Content-Type': 'application/json' } })));
+    expect((await checkService({ name: 'API', url: 'https://www.yukino.bond/api/posts', jsonKeys: ['posts'] })).state).toBe('unknown');
+    expect((await checkService({ name: 'News', url: 'https://news.yukino.bond/api/news', probe: 'news' })).state).toBe('unknown');
+  });
   it('recognizes an intentional anonymous 401 JSON response as a running identity API', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ error: '未登录' }, { status: 401 })));
     const result = await checkService({ name: 'identity', url: 'https://www.yukino.bond/api/auth/access', jsonKeys: ['error'], expectedStatus: 401 });

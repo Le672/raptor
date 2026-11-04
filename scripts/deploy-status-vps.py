@@ -16,8 +16,11 @@ bundle = repo / '.wrangler/status-release'
 assert (bundle / 'status/worker.mjs').is_file()
 archive = io.BytesIO()
 with tarfile.open(fileobj=archive, mode='w:gz') as target:
-    target.add(bundle / 'status', arcname='status')
-    target.add(repo / 'vps-content/runtime.mjs', arcname='vps-content/runtime.mjs')
+    if '--worker-only' in sys.argv:
+        target.add(bundle / 'status/worker.mjs', arcname='status/worker.mjs')
+    else:
+        target.add(bundle / 'status', arcname='status')
+        target.add(repo / 'vps-content/runtime.mjs', arcname='vps-content/runtime.mjs')
 body = archive.getvalue()
 name = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ-status')
 code = f'''

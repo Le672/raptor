@@ -7,7 +7,12 @@ async function businessProbe(target: typeof STATUS_TARGETS[number], signal: Abor
     const response = await fetch(url, { signal, redirect: 'error', headers: { Accept: 'application/json' } });
     if (!response.ok) { await response.body?.cancel(); throw new ProbeFailure(`业务请求返回 HTTP ${response.status}`, response.status, response.status === 403 || response.status === 429); }
     if (!response.headers.get('content-type')?.includes('application/json')) { await response.body?.cancel(); throw new ProbeFailure('业务接口返回了网页或其他无效内容', response.status); }
-    let value: any; try { value = await response.json(); } catch { throw new ProbeFailure('业务接口返回无效 JSON', response.status); }
+    let value: any;
+    try { value = await response.json(); }
+    catch (error) {
+      if (!signal.aborted && error instanceof SyntaxError) throw new ProbeFailure('业务接口返回无效 JSON', response.status);
+      throw error;
+    }
     if (!value || typeof value !== 'object' || value.error) throw new ProbeFailure('业务接口未返回有效内容', response.status);
     if (!allowStale && (value.meta?.stale || value.stale)) throw new ProbeFailure('仅有旧缓存，无法确认当前服务', response.status, true);
     return value;
@@ -106,7 +111,12 @@ export async function checkService(target: typeof STATUS_TARGETS[number]): Promi
       }
       let value: Record<string, unknown> | null = null;
       if (response.headers.get('Content-Type')?.includes('application/json')) {
-        try { value = await response.json(); } catch { /* Invalid JSON is a failed API, including HTTP 200 fallbacks. */ }
+        try { value = await response.json(); }
+        catch (error) {
+          if (controller.signal.aborted || !(error instanceof SyntaxError)) throw error;
+          // A complete but invalid response is an API failure. An interrupted
+          // response cannot tell us whether the service is returning bad data.
+        }
       } else await response.body?.cancel();
       const valid = value && target.jsonKeys.every(key => Object.prototype.hasOwnProperty.call(value, key));
       return result(valid ? 'reachable' : 'error', response.status, valid ? '接口返回了有效数据' : '接口返回了网页或无效数据，业务未正常执行');
