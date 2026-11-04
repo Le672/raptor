@@ -53,6 +53,11 @@ function Discover() {
   const recent = history()[0];
   return <>
     {!filtered && <section className="hero"><div className="hero-copy"><span className="eyebrow"><span className="tiny-rule" />{readerSite.upperBrand} / {readerSite.title}</span><h1>故事很长，<br />慢慢<span>读下去。</span></h1><p>追一部连载，遇见另一个世界。<br className="desktop-break" />把喜欢的故事放进书架，下次从这里继续。</p><SearchForm /><div className="search-hints"><span>试试</span>{readerSite.hints.map(text => <Link key={text} to={`/?q=${encodeURIComponent(text)}`}>{text}<ArrowRight size={11} /></Link>)}</div></div><div className="hero-books" aria-hidden="true"><div className="book-halo" />{featured.length ? featured.map((item, index) => <div className={`hero-book book-${index}`} key={item.id}><Cover book={item} eager /></div>) : <BookOpen size={120} strokeWidth={.7} />}<span className="hero-caption">A LITTLE ESCAPE, ONE PAGE AT A TIME.</span><span className="art-spark one">✦</span><span className="art-spark two">＋</span></div></section>}
+    {!filtered && <aside className="library-note">
+      <BookOpen size={19} aria-hidden="true" />
+      <div><strong>免登录选读</strong><p>直接阅读《狼》和《山市》两篇完整短篇。</p></div>
+      <a className="button secondary" href="/preview/">开始阅读<ArrowRight size={15} /></a>
+    </aside>}
     {filtered && <section className="search-heading"><span className="eyebrow">FIND YOUR NEXT STORY</span><h1>{query ? <>寻找「{query}」</> : `发现喜欢的${readerSite.genre}`}</h1><SearchForm initial={query} compact /></section>}
     {recent && !filtered && <Link className="resume-strip" to={`/read/${recent.book.id}/${recent.volumeId}/${recent.chapterId}`}><span className="resume-icon"><Bookmark size={20} /></span><div><small>上次读到这里</small><strong>{recent.book.title}</strong><span>{recent.chapterTitle} · {Math.round(recent.percent)}%</span></div><span className="resume-action">继续阅读<ArrowRight size={17} /></span></Link>}
     <section className="catalog-section"><div className="section-heading"><div><span className="eyebrow">{filtered ? 'SEARCH RESULTS' : 'FRESH FROM THE SHELF'}</span><h2>{filtered ? '搜索结果' : '最近更新'}<span className="count-pill">{data ? filtered ? data.total : data.indexed : '…'}</span></h2></div><button className="text-button" onClick={reload} disabled={loading}><RefreshCw size={14} className={loading ? 'spin' : ''} />同步书目</button></div>

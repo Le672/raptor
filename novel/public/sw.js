@@ -17,7 +17,7 @@ self.addEventListener('activate', event => { event.waitUntil(Promise.all([
 ]).then(() => self.clients.claim())); });
 self.addEventListener('fetch', event => {
   const request = event.request, url = new URL(request.url);
-  if (url.pathname.startsWith('/migration')) return;
+  if (url.pathname.startsWith('/migration') || url.pathname === '/preview' || url.pathname.startsWith('/preview/')) return;
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
   if (request.mode === 'navigate') event.respondWith((async () => {
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 6000);

@@ -43,7 +43,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   return <SessionContext.Provider value={{ user, loading, unavailable, check, changed }}>{children}</SessionContext.Provider>;
 }
 export function LoginRequiredPanel() {
-  return <section className="state-panel login-required" role="status"><LogIn size={29} /><h3>登录后，继续这个故事</h3><p>章节阅读需要使用 Yukino 账户登录。登录后会回到当前章节，书架与阅读进度会保留。</p><Link className="button" to={appLoginUrlForPage()}><LogIn size={15} />登录后阅读</Link><small>目录、搜索和书籍介绍可以直接浏览。</small></section>;
+  return <section className="state-panel login-required" role="status">
+    <LogIn size={29} />
+    <h3>登录后，继续这个故事</h3>
+    <p>登录后会回到当前章节，书架与阅读进度会保留。</p>
+    <Link className="button" to={appLoginUrlForPage()}><LogIn size={15} />登录后阅读</Link>
+    <small><a className="text-button" href="/preview/">先读免登录选读<ArrowRight size={14} /></a></small>
+  </section>;
 }
 export function AccountControl() {
   const session = useSession();

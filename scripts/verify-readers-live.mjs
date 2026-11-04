@@ -9,6 +9,19 @@ for(const [kind,origin,name]of [['light','https://ln.yukino.bond','轻小说书�
   const manifest=await(await get(origin,'/manifest.webmanifest')).json();assert.equal(manifest.short_name,name);assert.equal(manifest.display,'standalone');
   const png=Buffer.from(await(await get(origin,'/icons/icon-512.png')).arrayBuffer());assert.equal(png.readUInt32BE(16),512);
   const sw=await get(origin,'/sw.js');assert.match(sw.headers.get('Cache-Control'),/no-store/);
+  for (const [path, type] of [['/preview/', 'text/html'], ['/preview/reading.css', 'text/css'], ['/preview/book.svg', 'image/svg+xml']]) {
+    const preview = await get(origin, path);
+    assert.match(preview.headers.get('Content-Type'), new RegExp(type));
+    assert.equal(preview.headers.get('X-Yukino-Delivery'), 'static-reader');
+    assert.equal(preview.headers.has('Permissions-Policy'), false, `${path} must bypass the reader Worker`);
+    if (type === 'text/html') {
+      const html = await preview.text();
+      assert.match(html, /免登录选读/);
+      assert.match(html, /一屠晚归/);
+      assert.match(html, /奂山山市/);
+      assert.doesNotMatch(html, /<script\b|\/api\//i);
+    } else await preview.body?.cancel();
+  }
   const access=await(await get(origin,'/api/access')).json();assert.equal(access.user,null);assert.equal(new URL(new URL(access.loginUrl).searchParams.get('returnTo')).origin,origin);
   const id=kind==='light'?'wenku-1973':'zongheng-672340';
   const detail=await(await get(origin,'/api/book/'+id)).json();assert.ok(detail.data?.title&&detail.data.volumes?.length);
