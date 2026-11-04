@@ -15,6 +15,7 @@ type ChangelogEntry = {
 };
 
 const changelog: ChangelogEntry[] = [
+  { date: "2026-11-04", type: "fix", title: "统一子站首页地址", changes: ["状态页、实验室、博客等子站直接使用各自域名首页；旧地址仍能跳转，并保留查询条件与页面片段。铁路的余票、中转、列车位置和到发大屏保留各自的直达路径。", "修正服务目录中状态页和铁路余票的说明。"] },
   { date: "2026-11-04", type: "improvement", title: "实验室页面整理与文字统计", changes: ["重新整理实验室的工具入口和互动实验，新增页面内快捷导航与文字统计，可查看字符、词组和行数并复制内容。", "移除实验室工具页脚的新加坡时区提示。"] },
   { date: "2026-11-03", type: "feature", title: "F1 今日最佳车手统计", changes: ["新增官方 Driver of the Day 榜单，可按赛季查看每站获奖者和车手获奖次数，收录 2016 年起的官方记录。正赛成绩页同步显示获奖者。"] },
   { date: "2026-11-03", type: "improvement", title: "首页日常快捷入口与故障提示关闭按钮", changes: ["首页天气旁新增今日新闻、小站笔记和随手画布快捷入口，展开逐小时预报后桌面两栏底部仍对齐。", "故障滚动提示可暂停、播放或关闭，关闭后自动刷新同一故障时不会重新弹出。"] },
@@ -838,7 +839,7 @@ export default function Changelog() {
                   <span className="text-xs text-stone-500">{entry.date}</span>
                 </div>
                 <h3 className="mt-2 text-lg text-stone-900">{entry.title}</h3>
-                <div className="mt-3"><CopyButton text={`https://www.yukino.bond/changelog#${encodeURIComponent(entryAnchor(entry))}`} label="复制这条更新链接" /></div>
+                <div className="mt-3"><CopyButton text={`https://changelog.yukino.bond/#${encodeURIComponent(entryAnchor(entry))}`} label="复制这条更新链接" /></div>
                 <ul className="mt-3 space-y-1.5">
                   {entry.changes.map((change) => (
                     <li

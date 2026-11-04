@@ -1,5 +1,3 @@
-/status https://status.yukino.bond/status 308
-/status/* https://status.yukino.bond/status/:splat 308
 /api/speed/* https://speed.yukino.bond/api/speed/:splat 307
 /api/speed https://speed.yukino.bond/api/speed 307
 /api/* /api/:splat 200

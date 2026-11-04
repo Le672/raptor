@@ -2,14 +2,32 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { checkService } from '../../functions/api/status';
 import statusWorker from '../../vps-content/status-worker.mjs';
+import edgeFrontend from '../../vps-content/edge-frontend.mjs';
 
 afterEach(() => vi.unstubAllGlobals());
 describe('status checks stay meaningful during quota failures', () => {
-  it('serves the status deep link to GET and HEAD without turning API failures into pages', async () => {
+  it('redirects legacy status pages at the public edge and forwards API requests to the origin', async () => {
+    const env = { ASSETS: { fetch: vi.fn(async () => new Response('status shell')) } };
+    const origin = vi.fn(async () => Response.json({ hours: [] }));
+    vi.stubGlobal('fetch', origin);
+    const legacy = await edgeFrontend.fetch(new Request('https://status.yukino.bond/status?view=history'), env);
+    expect(legacy.status).toBe(308);
+    expect(legacy.headers.get('Location')).toBe('https://status.yukino.bond/?view=history');
+    expect(await (await edgeFrontend.fetch(new Request('https://status.yukino.bond/'), env)).text()).toBe('status shell');
+    const request = new Request('https://status.yukino.bond/api/history');
+    await edgeFrontend.fetch(request, env);
+    expect(origin).toHaveBeenCalledExactlyOnceWith(request);
+  });
+  it('serves the status root and redirects the old address for GET and HEAD without turning API failures into pages', async () => {
     const env = { ASSETS: { fetch: vi.fn(async (request: Request) => new URL(request.url).pathname === '/'
       ? new Response(request.method === 'HEAD' ? null : '<html>status</html>', { headers: { 'Content-Type': 'text/html' } })
       : new Response(null, { status: 404 })) } };
-    for (const method of ['GET', 'HEAD']) expect((await statusWorker.fetch(new Request('https://status.yukino.bond/status', { method }), env)).status).toBe(200);
+    for (const method of ['GET', 'HEAD']) {
+      expect((await statusWorker.fetch(new Request('https://status.yukino.bond/', { method }), env)).status).toBe(200);
+      const old = await statusWorker.fetch(new Request('https://status.yukino.bond/status?from=nav', { method }), env);
+      expect(old.status).toBe(308);
+      expect(old.headers.get('Location')).toBe('https://status.yukino.bond/?from=nav');
+    }
     expect((await statusWorker.fetch(new Request('https://status.yukino.bond/api/auth/me'), env)).status).toBe(503);
   });
   it('does not report an HTML fallback with HTTP 200 as a healthy API', async () => {

@@ -1,3 +1,4 @@
+import { canonicalPageUrl } from '../speed/src/site-routing.mjs';
 import { onRequestGet } from '../functions/api/status.ts';
 async function sample(env) {
   const response = await onRequestGet();
@@ -23,6 +24,10 @@ export default { async fetch(request, env) {
     return Response.json({ end, hours }, { headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=60' } });
   }
   if (url.pathname.startsWith('/api/')) return Response.json({ error: '此状态站独立提供检测，不依赖主站账户服务。' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+  const target = ['GET', 'HEAD'].includes(request.method) && canonicalPageUrl(url.href);
+  if (target && target !== url.href && new URL(target).hostname !== 'speed.yukino.bond') {
+    return new Response(null, { status: 308, headers: { Location: target, 'Cache-Control': 'public, max-age=300' } });
+  }
   let result = await env.ASSETS.fetch(request);
   if (result.status === 404 && ['GET', 'HEAD'].includes(request.method) && !/\.[\w]+$/.test(url.pathname)) result = await env.ASSETS.fetch(new Request(new URL('/', url), request));
   const headers = new Headers(result.headers);

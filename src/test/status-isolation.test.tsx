@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// @vitest-environment-options {"url":"https://status.yukino.bond/status"}
+// @vitest-environment-options {"url":"https://status.yukino.bond/"}
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';

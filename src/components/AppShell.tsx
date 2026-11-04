@@ -17,8 +17,8 @@ export function AppShell() {
   const location = useLocation();
   const independentStatus = window.location.hostname === 'status.yukino.bond';
   const isRailPage = isRailPath(location.pathname);
-  const isF1Page = location.pathname.replace(/\/+$/, "").toLowerCase() === "/f1";
   const visualPath = location.pathname === "/" ? SUBDOMAIN_ROUTES[window.location.hostname.split(".")[0]] || "/" : location.pathname;
+  const isF1Page = visualPath === "/f1";
   const visualPage = isRailPage || isRailHost() ? "rail" : visualPath.split("/").filter(Boolean)[0] || "home";
   const closeMobileMenu = useSiteStore((state) => state.closeMobileMenu);
   const token = useAuthStore(state => state.token);

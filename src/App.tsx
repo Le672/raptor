@@ -1,5 +1,5 @@
-import { lazy, useEffect } from "react";
-import { BrowserRouter, HashRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { lazy } from "react";
+import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/components/AppShell";
 import Home from "@/pages/Home";
 const AboutMe = lazy(() => import("@/pages/AboutMe"));
@@ -32,55 +32,29 @@ import { isRailHost, RAIL_FEATURE_PATHS } from "@/lib/rail-navigation";
 import { CanonicalSite } from "@/components/CanonicalSite";
 import { SUBDOMAIN_ROUTES, isPortalHost } from "@/lib/site-routing";
 
-function SubdomainRouter() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const hostname = window.location.hostname;
-    const parts = hostname.split(".");
-    if (isPortalHost(hostname) && parts.length >= 3) {
-      const subdomain = parts[0];
-      const targetPath = SUBDOMAIN_ROUTES[subdomain];
-      if (targetPath && window.location.pathname === "/") {
-        navigate({ pathname: targetPath, search: window.location.search, hash: window.location.hash }, { replace: true });
-      }
-    }
-  }, [navigate]);
-
-  return null;
-}
+const rootPages: Record<string, React.ComponentType> = {
+  "/about-me": AboutMe, "/blog": Blog, "/box": Box, "/changelog": Changelog,
+  "/dev": Dev, "/friends": Friends, "/lab": Lab, "/links": Links, "/rss": RSS,
+  "/status": Status, "/games": Games, "/focus": Focus, "/news": News,
+  "/cr": Rail, "/f1": F1, "/ip": Ip, "/speed": Speed, "/uses": Uses,
+};
 
 // Electron 以 file:// 加载，BrowserRouter 无法处理刷新/深链，改用 HashRouter
 const Router = isElectronApp() ? HashRouter : BrowserRouter;
 
 export default function App() {
+  const host = window.location.hostname;
+  const rootPath = isPortalHost(host) ? SUBDOMAIN_ROUTES[host.split(".")[0]] : undefined;
+  const RootPage = rootPages[rootPath] || (host === "speed.yukino.bond" ? Speed : Home);
   return (
     <Router>
       <CanonicalSite>
-      <SubdomainRouter />
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={isRailHost() ? <Rail /> : window.location.hostname === "status.yukino.bond" ? <Status /> : window.location.hostname === "speed.yukino.bond" ? <Speed /> : window.location.hostname === "ip.yukino.bond" ? <Ip /> : <Home />} />
+          <Route path="/" element={<RootPage />} />
+          {Object.entries(rootPages).map(([path, Page]) => <Route key={path} path={path} element={<Page />} />)}
           {isRailHost() && Object.values(RAIL_FEATURE_PATHS).map(path => <Route key={path} path={path} element={<Rail />} />)}
           <Route path="/notes" element={<Notes />} />
-          <Route path="/about-me" element={<AboutMe />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/box" element={<Box />} />
-          <Route path="/changelog" element={<Changelog />} />
-          <Route path="/dev" element={<Dev />} />
-          <Route path="/friends" element={<Friends />} />
-          <Route path="/lab" element={<Lab />} />
-          <Route path="/links" element={<Links />} />
-          <Route path="/rss" element={<RSS />} />
-          <Route path="/status" element={<Status />} />
-          <Route path="/games" element={<Games />} />
-          <Route path="/focus" element={<Focus />} />
-          <Route path="/news" element={<News />} />
-          <Route path="/cr" element={<Rail />} />
-          <Route path="/f1" element={<F1 />} />
-          <Route path="/speed" element={<Speed />} />
-          <Route path="/ip" element={<Ip />} />
-          <Route path="/uses" element={<Uses />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<AdminDashboard />} />

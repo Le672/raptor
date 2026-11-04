@@ -119,7 +119,7 @@ export const domainLinks: DomainLink[] = [
     hostname: "cr.yukino.bond",
     href: "https://cr.yukino.bond",
     description: "查询 12306 余票，按自定间隔关注车次与席别。",
-    status: "planned",
+    status: "online",
     category: "content",
   },
   {
@@ -190,7 +190,7 @@ export const domainLinks: DomainLink[] = [
     title: "状态页",
     hostname: "status.yukino.bond",
     href: "https://status.yukino.bond",
-    description: "静态展示各个服务状态，便于将来持续扩展。",
+    description: "查看公开服务的当前检测结果、主要功能状态和最近 72 小时记录。",
     status: "online",
     category: "experimental",
   },

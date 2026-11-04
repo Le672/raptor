@@ -1,7 +1,11 @@
 import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 
-for (const [site, source] of [['speed', 'speed/dist'], ['status', 'dist'], ['tools'], ['drop']]) {
+const sites = [['speed', 'speed/dist'], ['status', 'dist'], ['tools'], ['drop']];
+const selected = process.argv.find(arg => arg.startsWith('--site='))?.slice(7);
+if (selected && !sites.some(([name]) => name === selected)) throw new Error(`Unknown frontend: ${selected}`);
+for (const [site, source] of sites) {
+  if (selected && selected !== site) continue;
   const root = resolve('.wrangler/edge-frontend', site);
   await mkdir(root, { recursive: true });
   if (source) await cp(source, resolve(root, 'assets'), {
@@ -18,7 +22,8 @@ for (const [site, source] of [['speed', 'speed/dist'], ['status', 'dist'], ['too
       directory: './assets',
       binding: 'ASSETS',
       not_found_handling: site === 'drop' ? 'none' : 'single-page-application',
-      run_worker_first: source ? ['/api', '/api/*'] : true,
+      run_worker_first: site === 'status' ? ['/api', '/api/*', '/status', '/status/*']
+        : site === 'speed' ? ['/api', '/api/*'] : true,
     },
   }, null, 2));
 }

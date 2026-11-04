@@ -48,6 +48,26 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      - name: Package the independent status frontend
+        run: node scripts/build-edge-frontends.mjs --site=status
+
+      - name: Deploy the status frontend on its existing Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/edge-frontend/status/wrangler.json --keep-vars
+
+      - name: Verify the legacy status URL and independent history API
+        run: |
+          node --input-type=module <<'JS'
+          const origin = 'https://status.yukino.bond';
+          const old = await fetch(origin + '/status?from=legacy', { redirect: 'manual', signal: AbortSignal.timeout(20000) });
+          if (old.status !== 308 || old.headers.get('location') !== origin + '/?from=legacy') throw new Error('Status legacy URL did not redirect');
+          const history = await fetch(origin + '/api/history', { signal: AbortSignal.timeout(20000) });
+          if (!history.ok || (await history.json()).hours?.length !== 72) throw new Error('Independent status history unavailable');
+          JS
+
       - name: Verify portal API and VPS session validation
         run: node scripts/verify-portal-auth.mjs
 

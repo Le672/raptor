@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { canonicalPageUrl, isPortalHost } from '@/lib/site-routing';
 import { recoverLegacySpeed } from '@/lib/legacy-speed';
 import '../site-routing.css';
@@ -24,5 +24,9 @@ export function CanonicalSite({ children }: { children: ReactNode }) {
   useEffect(() => { if (crossOrigin && !legacySpeed) window.location.replace(target); }, [target, crossOrigin, legacySpeed]);
   if (legacySpeed) return <SpeedHandoff target={target} />;
   if (crossOrigin) return <section className="site-handoff"><p role="status">正在打开正确的站点…</p><a href={target}>继续访问 ↗</a></section>;
+  if (target && address && target !== address.href) {
+    const url = new URL(target);
+    return <Navigate to={url.pathname + url.search + url.hash} replace />;
+  }
   return <>{children}</>;
 }

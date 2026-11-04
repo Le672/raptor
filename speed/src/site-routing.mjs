@@ -8,8 +8,10 @@ export const SITE_SECTIONS = [
   ['/f1', 'f1'], ['/speed', 'speed'], ['/ip', 'ip'], ['/jm', 'jm'], ['/pixiv', 'pixiv'], ['/ln', 'ln'], ['/novel', 'novel'], ['/comic', 'comic'], ['/cinema', 'cinema'], ['/mail', 'mail'],
 ];
 export const PORTAL_HOSTS = ['yukino.bond', 'www.yukino.bond', ...SITE_SECTIONS.filter(([, name]) => !['jm', 'pixiv', 'ln', 'novel', 'comic', 'cinema', 'mail'].includes(name)).map(([, name]) => name + '.yukino.bond')];
-export const SUBDOMAIN_ROUTES = Object.fromEntries(SITE_SECTIONS.filter(([, name]) => !['cr', 'speed', 'jm', 'pixiv', 'ln', 'novel', 'comic', 'cinema', 'mail'].includes(name)).map(([path, name]) => [name, path]));
+export const SUBDOMAIN_ROUTES = Object.fromEntries(SITE_SECTIONS.filter(([, name]) => !['speed', 'jm', 'pixiv', 'ln', 'novel', 'comic', 'cinema', 'mail'].includes(name)).map(([path, name]) => [name, path]));
 const RAIL_PATHS = ['/ticket', '/transfer', '/live', '/arrivalinfo'];
+const independent = ['speed', 'jm', 'pixiv', 'ln', 'novel', 'comic', 'cinema', 'mail'];
+const MAIN_PAGES = /^\/(?:notes|login|register|admin)(?:\/|$)/;
 const reserved = path => /^\/(?:api|assets|rail-network|\.well-known)(?:\/|$)/.test(path) || /\.[a-z0-9]+$/i.test(path);
 export function isPortalHost(hostname) { return PORTAL_HOSTS.includes(hostname.toLowerCase()); }
 export function isMainHost(hostname) { return ['www.yukino.bond', 'yukino.bond'].includes(hostname.toLowerCase()); }
@@ -19,11 +21,12 @@ export function canonicalPageUrl(input) {
   if (!isPortalHost(url.hostname) || !['http:', 'https:'].includes(url.protocol) || reserved(url.pathname)) return null;
   const path = url.pathname.replace(/\/+$/, '') || '/';
   // A subsite's own root is its landing page; an explicit link to '/' means the main homepage.
-  if (path === '/' && !isMainHost(url.hostname)) { url.protocol = 'https:'; return url.href; }
   const section = SITE_SECTIONS.find(([prefix]) => path === prefix || path.startsWith(prefix + '/'));
   const name = RAIL_PATHS.includes(path) ? 'cr' : section?.[1];
-  url.protocol = 'https:'; url.port = ''; url.hostname = name ? name + '.yukino.bond' : 'www.yukino.bond';
-  if (section && ['speed', 'jm', 'pixiv', 'ln', 'novel', 'comic', 'cinema', 'mail'].includes(name)) url.pathname = url.pathname.slice(section[0].length) || '/';
+  url.protocol = 'https:'; url.port = '';
+  if (name) url.hostname = name + '.yukino.bond';
+  else if (isMainHost(url.hostname) || MAIN_PAGES.test(path)) url.hostname = 'www.yukino.bond';
+  url.pathname = section && (path === section[0] || independent.includes(name)) ? path.slice(section[0].length) || '/' : path;
   return url.href;
 }
 export function siteHref(path, hostname = typeof window === 'undefined' ? 'localhost' : window.location.hostname) {
