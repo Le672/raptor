@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, FlaskConical, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { ServiceEntry } from "@/components/ServiceEntry";
 import { yukinoServices } from "@/data/services";
@@ -164,80 +164,37 @@ function RandomGradient() {
   );
 }
 
+function TextWorkbench() {
+  const [value, setValue] = useState("");
+  const characters = Array.from(value).length;
+  const words = value.trim() ? value.trim().split(/\s+/u).length : 0;
+  const lines = value ? value.split(/\r\n|\r|\n/).length : 0;
+  return <div className="space-y-4">
+    <textarea aria-label="待统计文字" value={value} onChange={event => setValue(event.target.value)} placeholder="在这里输入或粘贴文字…" className="min-h-36 w-full resize-y rounded-2xl border border-stone-200 bg-white/60 p-4 text-sm text-stone-800 outline-none focus:ring-2 focus:ring-blue-200" />
+    <div className="grid grid-cols-3 gap-2 text-center">{[["字符", characters], ["词组", words], ["行数", lines]].map(([label, count]) => <div key={label} className="rounded-2xl bg-white/50 p-3"><strong className="block text-xl text-stone-900">{count}</strong><span className="text-xs text-stone-500">{label}</span></div>)}</div>
+    <div className="flex flex-wrap gap-2"><CopyButton text={value} label="复制文字" /><button type="button" className="pill-button" onClick={() => setValue("")} disabled={!value}>清空</button></div>
+    <p className="text-xs leading-5 text-stone-500">字符包含空格和换行；词组按空白分隔。文字只在当前页面处理。</p>
+  </div>;
+}
+
+function Experiment({ number, title, description, children }: { number: string; title: string; description: string; children: React.ReactNode }) {
+  return <section className="glass-panel min-w-0 rounded-[28px] p-6 sm:p-7"><div className="mb-5 flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/60 text-xs font-semibold text-stone-500">{number}</span><div><h3 className="font-display text-xl text-stone-900">{title}</h3><p className="mt-1 text-sm leading-6 text-stone-600">{description}</p></div></div>{children}</section>;
+}
+
 export default function Lab() {
   useDocumentMeta("实验室", "网页变化雷达、Webhook 回调信箱、短链工坊与视觉实验。");
-
-  return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10 lg:px-8">
-      <div>
-        <div className="flex items-center gap-3">
-          <HomeLink
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white/30 px-3 py-1.5 text-xs text-stone-600 backdrop-blur-xl transition hover:border-white/60 hover:text-stone-900"
-          >
-            <ArrowLeft className="size-3.5" />
-            返回主页
-          </HomeLink>
-          <span className="rounded-full border border-white/30 bg-white/20 px-3 py-1 text-xs uppercase tracking-[0.24em] text-stone-600 backdrop-blur-xl">
-            lab.yukino.bond
-          </span>
-        </div>
-        <h1 className="mt-4 font-display text-4xl text-stone-900 sm:text-5xl">
-          实验室
-        </h1>
-        <p className="mt-3 max-w-xl text-sm leading-7 text-stone-600">
-          让好奇有个落点。关注网页变化、接住服务回调，或把常用链接收好；也保留一些轻巧的前端实验。
-        </p>
-      </div>
-
-      <ServiceEntry service={yukinoServices.draw} />
-
-      <section className="grid gap-4" aria-label="日常实验项目">
-        <div><p className="eyebrow text-xs tracking-[0.22em] text-stone-500">MADE FOR EVERYDAY</p><h2 className="mt-2 font-display text-2xl text-stone-900">可以反复用到的新项目</h2><p className="mt-2 text-sm leading-7 text-stone-600">使用实验室专用管理口令跨设备访问，数据保存在自己的服务器。</p></div>
-        <ServiceEntry service={yukinoServices.radar} />
-        <ServiceEntry service={yukinoServices.hooks} />
-        <ServiceEntry service={yukinoServices.shortlinks} />
-      </section>
-
-      <div className="grid gap-6">
-        <div className="glass-panel rounded-[32px] p-6 sm:p-8">
-          <div className="mb-4 flex items-center gap-2">
-            <FlaskConical className="size-4 text-stone-500" />
-            <h2 className="text-sm uppercase tracking-[0.24em] text-stone-500">
-              实验 #1: 粒子文字
-            </h2>
-          </div>
-          <p className="mb-5 text-sm text-stone-600">
-            移动鼠标或轻触文字区域，留下短暂的彩色粒子。
-          </p>
-          <ParticleText />
-        </div>
-
-        <div className="glass-panel rounded-[32px] p-6 sm:p-8">
-          <div className="mb-4 flex items-center gap-2">
-            <FlaskConical className="size-4 text-stone-500" />
-            <h2 className="text-sm uppercase tracking-[0.24em] text-stone-500">
-              实验 #2: 点击计数器
-            </h2>
-          </div>
-          <p className="mb-5 text-sm text-stone-600">
-            一个会实时计算点击速度的计数器，看看你能点多快。
-          </p>
-          <Counter />
-        </div>
-
-        <div className="glass-panel rounded-[32px] p-6 sm:p-8">
-          <div className="mb-4 flex items-center gap-2">
-            <FlaskConical className="size-4 text-stone-500" />
-            <h2 className="text-sm uppercase tracking-[0.24em] text-stone-500">
-              实验 #3: 随机渐变生成器
-            </h2>
-          </div>
-          <p className="mb-5 text-sm text-stone-600">
-            每次点击随机生成一个 CSS 渐变背景，可以直接复制代码使用。
-          </p>
-          <RandomGradient />
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-5 py-10 sm:px-8">
+    <header className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-blue-100/80 via-white/70 to-pink-100/80 p-7 sm:p-10">
+      <div className="flex flex-wrap items-center gap-3"><HomeLink className="inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/50 px-3 py-1.5 text-xs text-stone-600"><ArrowLeft className="size-3.5" />返回主页</HomeLink><span className="text-xs tracking-[0.2em] text-stone-500">YUKINO LAB / 实验室</span></div>
+      <div className="mt-10 max-w-2xl"><p className="text-xs font-medium tracking-[0.22em] text-blue-700">A LITTLE SPACE FOR IDEAS</p><h1 className="mt-3 font-display text-4xl text-stone-900 sm:text-5xl">让好奇有个落点。</h1><p className="mt-4 text-sm leading-7 text-stone-600">实用工具、随手实验和一点点灵感，都放在这里。挑一个感兴趣的开始吧。</p></div>
+      <nav aria-label="实验室页面导航" className="mt-7 flex flex-wrap gap-2"><a className="pill-button" href="#tools">探索工具</a><a className="pill-button" href="#experiments">试玩实验</a></nav>
+    </header>
+    <section id="tools" className="scroll-mt-24 space-y-5"><div><p className="text-xs tracking-[0.2em] text-stone-500">THE TOOLBOX</p><h2 className="mt-2 font-display text-3xl text-stone-900">日常工具</h2><p className="mt-2 text-sm leading-7 text-stone-600">记录变化、接收回调、管理短链，或打开画布随手画画。前三项使用实验室专用管理口令，数据保存在服务器。</p></div><div className="grid gap-4 md:grid-cols-2"><ServiceEntry service={yukinoServices.radar}/><ServiceEntry service={yukinoServices.hooks}/><ServiceEntry service={yukinoServices.shortlinks}/><ServiceEntry service={yukinoServices.draw}/></div></section>
+    <section id="experiments" className="scroll-mt-24 space-y-5"><div><p className="text-xs tracking-[0.2em] text-stone-500">PLAY & CREATE</p><h2 className="mt-2 font-display text-3xl text-stone-900">动手试试看</h2><p className="mt-2 text-sm leading-7 text-stone-600">无需登录，在页面里直接玩、直接用。</p></div><div className="grid items-start gap-4 lg:grid-cols-2">
+      <Experiment number="01" title="粒子文字" description="输入文字，移动鼠标或轻触画面留下彩色粒子。"><ParticleText/></Experiment>
+      <Experiment number="02" title="随机渐变" description="发现一组新配色，并复制 CSS 到自己的项目。"><RandomGradient/></Experiment>
+      <Experiment number="03" title="文字统计" description="快速查看文字长度、词组和行数。"><TextWorkbench/></Experiment>
+      <Experiment number="04" title="点击计数器" description="看看你一秒钟能点击多少次。"><Counter/></Experiment>
+    </div></section>
+  </div>;
 }
