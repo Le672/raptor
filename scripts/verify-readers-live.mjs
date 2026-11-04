@@ -11,7 +11,7 @@ for(const [kind,origin,name]of [['light','https://ln.yukino.bond','轻小说书�
   const sw=await get(origin,'/sw.js');assert.match(sw.headers.get('Cache-Control'),/no-store/);
   for (const [path, type] of [['/preview/', 'text/html'], ['/preview/reading.css', 'text/css'], ['/preview/book.svg', 'image/svg+xml']]) {
     const preview = await get(origin, path);
-    assert.match(preview.headers.get('Content-Type'), new RegExp(type));
+    assert.equal(preview.headers.get('Content-Type')?.split(';')[0].trim(), type);
     assert.equal(preview.headers.get('X-Yukino-Delivery'), 'static-reader');
     assert.equal(preview.headers.has('Permissions-Policy'), false, `${path} must bypass the reader Worker`);
     if (type === 'text/html') {
