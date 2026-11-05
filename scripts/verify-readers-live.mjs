@@ -26,9 +26,19 @@ for(const [kind,origin,name]of [['light','https://ln.yukino.bond','轻小说书�
   const id=kind==='light'?'wenku-1973':'zongheng-672340';
   const detail=await(await get(origin,'/api/book/'+id)).json();assert.ok(detail.data?.title&&detail.data.volumes?.length);
   const volume=await(await get(origin,`/api/book/${id}/volume/${detail.data.volumes[0].id}`)).json();assert.ok(volume.data.chapters.length);
+  const previewResponse=await get(origin,`/api/preview/${id}`);
+  assert.equal(previewResponse.headers.get('X-Yukino-Origin'),'vps-content');
+  assert.equal(previewResponse.headers.get('X-Yukino-Delivery'),'vps-reader-preview');
+  const {data: excerpt}=await previewResponse.json();
+  assert.equal(excerpt.bookTitle,detail.data.title);
+  assert.ok(excerpt.chapterId&&excerpt.volumeId&&excerpt.paragraphs.length);
+  assert.ok(Array.from(excerpt.paragraphs.join('')).length<=1800);
+  const rejected=await fetch(`${origin}/api/preview/${id}?refresh=1`,{signal:AbortSignal.timeout(10000)});
+  assert.equal(rejected.status,404);
+  assert.equal(rejected.headers.get('X-Yukino-Origin'),'vps-content');
   const chapter=await fetch(`${origin}/api/book/${id}/chapter/${volume.data.chapters[0].id}`,{signal:AbortSignal.timeout(30000)});assert.equal(chapter.status,401);assert.equal((await chapter.json()).code,'LOGIN_REQUIRED');
   const search=await(await get(origin,'/api/books?'+new URLSearchParams(kind==='light'?{source:'wenku',q:'实力'}:{source:'zongheng',q:'剑来'}))).json();assert.ok(search.data.items.some(b=>kind==='light'?b.title.includes('实力'):b.id==='zongheng-672340'),'Native search must return the real expected work');
-  console.log(JSON.stringify({origin,name,search:search.data.total,title:detail.data.title,volumes:detail.data.volumes.length,pwa:true,chapterGate:401}));
+  console.log(JSON.stringify({origin,name,search:search.data.total,title:detail.data.title,volumes:detail.data.volumes.length,pwa:true,preview:true,chapterGate:401}));
 }
 const redirect=await fetch('https://novel.yukino.bond/book/wenku-1973',{redirect:'manual',signal:AbortSignal.timeout(20000)});assert.equal(redirect.status,307);assert.equal(redirect.headers.get('Location'),'https://ln.yukino.bond/book/wenku-1973');
 const transfer=await get('https://novel.yukino.bond','/migration/export');assert.match(transfer.headers.get('Content-Security-Policy'),/frame-ancestors https:\/\/ln\.yukino\.bond/);assert.equal(transfer.headers.get('X-Frame-Options'),null);assert.match(transfer.headers.get('Cache-Control'),/no-store/);

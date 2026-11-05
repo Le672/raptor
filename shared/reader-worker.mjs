@@ -1,3 +1,4 @@
+import { buildReaderPreview } from './reader-preview.mjs';
 import { createAccessGuard } from './content-access.mjs';
 import { createContentSignIn } from './content-signin.mjs';
 export function createReaderWorker({site,origin,SOURCE,imageSource,bookIdValid,sourceBookUrl,allCatalog,findBooks,getBook,getVolume,getChapter,validPartId,synchronizeSnapshot,snapshotStatus,beforeFetch}) {
@@ -53,6 +54,14 @@ return {
         headers.set('Service-Worker-Allowed', '/');
       }
       return new Response(response.body, { status: response.status, headers });
+    }
+    if (url.pathname.startsWith('/api/preview/')) {
+      const match = url.pathname.match(/^\/api\/preview\/([^/]+)$/);
+      if (request.method !== 'GET') return json({ error: '仅支持 GET 请求' }, 405);
+      if (!match || !bookIdValid(match[1]) || url.search) return json({ error: '试读书籍编号不正确' }, 404);
+      if (!env.READER_PREVIEW) return json({ error: '试读服务暂不可用' }, 503);
+      const { serve, readEnv } = env.READER_PREVIEW;
+      return serve(request, () => buildReaderPreview(readEnv, ctx, match[1], { getBook, getVolume, getChapter, validPartId }));
     }
     const auth = await authenticate(request);
     if (auth) { const headers = new Headers(auth.headers); for (const [key, value] of Object.entries(policy)) headers.set(key, value); return new Response(auth.body, { status: auth.status, headers }); }

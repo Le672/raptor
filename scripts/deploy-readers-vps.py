@@ -10,12 +10,16 @@ import tarfile
 from datetime import datetime, timezone
 
 repo=Path(__file__).resolve().parents[1]
-sys.path.insert(0,str(repo.parent/'vps-playground'))
+helper=next(p for p in (repo.parent/'vps-playground',repo.parent.parent/'Archives'/'vps-playground') if (p/'remote_paramiko.py').is_file())
+sys.path.insert(0,str(helper))
 from remote_paramiko import remote
 bundle=repo/'.wrangler/reader-release'
 assert all((bundle/site/'worker.mjs').is_file() for site in ['ln','novel'])
-expected=subprocess.check_output(['git','-c','safe.directory='+str(repo).replace('\\','/'),'show','3849921:vps-content/runtime.mjs'],cwd=repo)
-expected_hashes=[hashlib.sha256(expected).hexdigest(),hashlib.sha256((repo/'vps-content/runtime.mjs').read_bytes().replace(b'\r\n',b'\n')).hexdigest()]
+expected_hashes=[]
+for ref in ['3849921','28c58b4']:
+ expected=subprocess.check_output(['git','-c','safe.directory='+str(repo).replace('\\','/'),'show',ref+':vps-content/runtime.mjs'],cwd=repo)
+ expected_hashes.extend(hashlib.sha256(data).hexdigest() for data in (expected, expected.replace(b'\n',b'\r\n')))
+expected_hashes.append(hashlib.sha256((repo/'vps-content/runtime.mjs').read_bytes().replace(b'\r\n',b'\n')).hexdigest())
 name=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ-readers')
 install=r'''
 import json,os,subprocess,time,urllib.request
@@ -48,7 +52,7 @@ except Exception as error:
 archive=io.BytesIO()
 with tarfile.open(fileobj=archive,mode='w:gz') as target:
  for site in ['ln','novel']:target.add(bundle/site,arcname=site)
- for file in ['runtime.mjs','backup.py']:target.add(repo/'vps-content'/file,arcname='vps-content/'+file)
+ for file in ['runtime.mjs','reader-preview.mjs','backup.py']:target.add(repo/'vps-content'/file,arcname='vps-content/'+file)
  info=tarfile.TarInfo('install_readers.py');body=install.encode();info.size=len(body);target.addfile(info,io.BytesIO(body))
 body=archive.getvalue()
 code=f'''

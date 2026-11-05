@@ -21,6 +21,10 @@ for(const [host,script]of [['ln.yukino.bond','yukino-ln'],['novel.yukino.bond','
     if(existing)await api(root+'/workers/routes/'+existing.id,'DELETE');
     console.log(`${host}: using the existing VPS Tunnel origin`);continue;
   }
+  // The more specific no-script route goes straight to the existing Tunnel.
+  const previewPattern=host+'/api/preview/*',previewRoute=routes.find(r=>r.pattern===previewPattern);
+  if(previewRoute?.script)throw new Error(`${host}: unexpected preview Worker; preserving it`);
+  if(!previewRoute)await api(root+'/workers/routes','POST',{pattern:previewPattern});
   if(existing?.script===script){console.log(`${host}: existing reader route kept`);continue;}
   await api(root+'/workers/routes'+(existing?'/'+existing.id:''),existing?'PUT':'POST',{pattern,script});
   console.log(`${host}: connected to ${script}`);

@@ -19,7 +19,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Access['user']>(null), [loading, setLoading] = useState(true), [unavailable, setUnavailable] = useState(false);
   const revision = useRef(0), controller = useRef<AbortController | null>(null);
   const check = useCallback(async () => {
-    if (document.hidden) return;
+    if (document.hidden || /^\/book\/[^/]+\/preview\/?$/.test(location.pathname)) return;
     controller.current?.abort(); const request = new AbortController(); controller.current = request; const current = ++revision.current;
     const timeout = window.setTimeout(() => request.abort(), 12000);
     try { const result = await access(request.signal); if (current === revision.current) { setUser(result.user); setUnavailable(false); if (!result.user) window.dispatchEvent(new Event('novel-session-cleared')); } }
@@ -42,13 +42,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => { void check(); }, [route.pathname, check]);
   return <SessionContext.Provider value={{ user, loading, unavailable, check, changed }}>{children}</SessionContext.Provider>;
 }
-export function LoginRequiredPanel() {
+export function LoginRequiredPanel({ bookId }: { bookId: string }) {
   return <section className="state-panel login-required" role="status">
     <LogIn size={29} />
     <h3>登录后，继续这个故事</h3>
     <p>登录后会回到当前章节，书架与阅读进度会保留。</p>
     <Link className="button" to={appLoginUrlForPage()}><LogIn size={15} />登录后阅读</Link>
-    <small><a className="text-button" href="/preview/">先读免登录选读<ArrowRight size={14} /></a></small>
+    <small><Link className="text-button" to={`/book/${bookId}/preview`}>免登录试读这本书<ArrowRight size={14} /></Link></small>
   </section>;
 }
 export function AccountControl() {
@@ -60,7 +60,7 @@ export function LoginNotice() {
   useEffect(() => { const show = () => setVisible(true); window.addEventListener('novel-login-required', show); return () => window.removeEventListener('novel-login-required', show); }, []);
   useEffect(() => setVisible(false), [route.pathname, route.search]);
   if (!visible || route.pathname.startsWith('/read/')) return null;
-  return <div className="novel-login-notice" role="status"><LogIn size={18} /><p>登录后可以手动同步书源并阅读章节。<Link to={appLoginUrlForPage()}>登录并返回此页<LogIn size={13} /></Link></p><button className="icon-button" onClick={() => setVisible(false)} aria-label="关闭登录提示"><X size={15} /></button></div>;
+  return <div className="novel-login-notice" role="status"><LogIn size={18} /><p>登录后可以继续阅读完整章节和手动同步书源。<Link to={appLoginUrlForPage()}>登录并返回此页<LogIn size={13} /></Link></p><button className="icon-button" onClick={() => setVisible(false)} aria-label="关闭登录提示"><X size={15} /></button></div>;
 }
 export function LoginPage() {
   const session = useSession(), navigate = useNavigate(), [params] = useSearchParams();

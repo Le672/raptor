@@ -106,9 +106,9 @@ export async function getBook(env,ctx,id,force=false,rememberEntry=true) {
   let result;
   try{
     result=await cached(env,ctx,`detail:v2:${id}`,()=>adapters[source].book(nativeBookId(id)),5*60000,{force,background:true,provider:sourceInfo(source).name});
-    if(source==='wenku'&&!result.meta.stale)await wenkuHealth(env,'ok').catch(()=>{});
-  }catch(error){if(source==='wenku')await wenkuHealth(env,error.state||'error',error.message).catch(()=>{});throw error;}
-  if(rememberEntry&&!result.meta.stale)ctx.waitUntil(remember(env,result.data,result.meta.checkedAt).catch(()=>{}));return result;
+    if(!env.READER_PREVIEW_MODE&&source==='wenku'&&!result.meta.stale)await wenkuHealth(env,'ok').catch(()=>{});
+  }catch(error){if(!env.READER_PREVIEW_MODE&&source==='wenku')await wenkuHealth(env,error.state||'error',error.message).catch(()=>{});throw error;}
+  if(!env.READER_PREVIEW_MODE&&rememberEntry&&!result.meta.stale)ctx.waitUntil(remember(env,result.data,result.meta.checkedAt).catch(()=>{}));return result;
 }
 export async function getVolume(env,ctx,id,vid,force=false) {
   if(bookSource(id)==='bili')return volume(env,ctx,id,vid,force);

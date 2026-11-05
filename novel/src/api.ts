@@ -7,6 +7,7 @@ export type Book = { id: string; title: string; author: string; illustrator: str
 export type VolumeInfo = { id: string; title: string; cover: string };
 export type BookDetail = Book & { volumes: VolumeInfo[] };
 export type Volume = { id: string; bookId: string; title: string; chapters: { id: string; title: string; restricted?: boolean; sourceUrl?: string }[] };
+export type ReaderPreview = { bookTitle: string; chapterTitle: string; volumeId: string; chapterId: string; paragraphs: string[]; sourceUrl: string };
 export type Chapter = { id: string; bookId: string; volumeId: string; title: string; sourceUrl: string; blocks: ({ type: 'text'; text: string } | { type: 'image'; src: string; alt: string })[] };
 export type Meta = { checkedAt: string | null; stale: boolean; reason: string; provider: string; refreshMinutes: number; offline?: boolean };
 export type Envelope<T> = { data: T; meta: Meta };
@@ -29,12 +30,13 @@ export async function request<T>(path: string, signal?: AbortSignal): Promise<En
   const key = new URL(path, location.origin); key.searchParams.delete('refresh');
   if (/^\/api\/book\/sf-/.test(key.pathname) || key.searchParams.get('source') === 'sf') throw Object.assign(new Error('该书源已移除，请选择其他书源'), { status: 410 });
   const protectedChapter = /^\/api\/book\/[^/]+\/chapter\/[^/]+\/?$/.test(key.pathname);
+  const preview = key.pathname.startsWith('/api/preview/');
   const explicitRefresh = new URL(path, location.origin).searchParams.get('refresh') === '1';
   let cache: Cache | undefined;
   // Reading requires a current server session; old offline bodies cannot bypass it.
-  if (!protectedChapter) try { cache = await caches.open(READING_CACHE); } catch { /* Private modes may disable cache storage. */ }
+  if (!protectedChapter && !preview) try { cache = await caches.open(READING_CACHE); } catch { /* Private modes may disable cache storage. */ }
   try {
-    const response = await fetch(path, { signal, cache: 'no-store', credentials: 'same-origin' });
+    const response = await fetch(path, { signal, cache: 'no-store', credentials: preview ? 'omit' : 'same-origin' });
     if (!response.ok) {
       const error = await response.json().catch(() => ({})), loginUrl = response.status === 401 ? loginUrlForPage() : '';
       if (response.status === 401) window.dispatchEvent(new CustomEvent('novel-login-required', { detail: { loginUrl } }));
@@ -52,7 +54,7 @@ export async function request<T>(path: string, signal?: AbortSignal): Promise<En
     return data;
   } catch (error) {
     if (signal?.aborted) throw error;
-    if (protectedChapter || explicitRefresh) throw error;
+    if (protectedChapter || preview || explicitRefresh) throw error;
     if ([400, 401, 403, 404, 410].includes((error as { status?: number })?.status || 0)) throw error;
     const old = await cache?.match(key.href).catch(() => undefined);
     if (old) { const result = await old.json(); if (result.data?.sources?.some((source: { id: string }) => source.id === 'sf') || result.data?.items?.some((book: { id: string }) => /^sf-/.test(book.id))) throw error; return { ...result, meta: { ...result.meta, stale: true, offline: true, reason: `正在使用此浏览器的阅读缓存：${error instanceof Error ? error.message : '网络不可用'}` } }; }

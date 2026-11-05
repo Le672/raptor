@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { readFile, stat, realpath } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
+import { createPreviewGateway, previewFetch, previewReservations } from './reader-preview.mjs';
 import { ContentStorage } from './storage.mjs';
 import { Agent, setGlobalDispatcher } from 'undici';
 
@@ -36,7 +37,7 @@ export function installPublicNetwork() {
     const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
     const host = url.hostname.replace(/^\[|\]$/g, '');
     if (!['https:', 'http:'].includes(url.protocol) || (isIP(host) && !publicAddress(host))) return Promise.reject(new Error('Private upstream address rejected'));
-    return nativeFetch(input, options);
+    return previewFetch(nativeFetch, input, options);
   };
 }
 
@@ -76,10 +77,13 @@ export async function start({ root, data, port = 18780, schedule = true, network
     const work = Promise.resolve(promise).catch(error => console.error('Background task failed', error.name)).finally(() => waiting.delete(work));
     waiting.add(work);
   } };
+  let servePreview;
   for (const [name, binding, minute] of configurations) {
     const storage = new ContentStorage(resolve(data, name === 'ln' ? 'novel' : name === 'novel' ? 'fiction' : name));
     const worker = (await import(pathToFileURL(resolve(root, name, 'worker.mjs')))).default;
     const env = { [binding]: name === 'speed' ? storage.databaseBinding() : storage, ASSETS: assets(resolve(root, name, 'dist')), READER_CACHE_ORIGIN: `https://${name}.yukino.bond` };
+    if (name === 'ln') servePreview = createPreviewGateway(previewReservations(storage.db));
+    if (['ln', 'novel'].includes(name)) env.READER_PREVIEW = { serve: servePreview, readEnv: { READER_CACHE_ORIGIN: env.READER_CACHE_ORIGIN, READER_PREVIEW_MODE: true } };
     if (['cinema','comic'].includes(name) && !await storage.get('private:media-key')) await storage.put('private:media-key', crypto.randomUUID() + crypto.randomUUID());
     sites.set(`${name}.yukino.bond`, { name, storage, worker, env, minute });
   }

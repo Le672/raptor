@@ -110,6 +110,7 @@ export async function cached(env, ctx, key, producer, ttl, { force = false, back
   const age = old ? Date.now() - Date.parse(old.checkedAt) : Infinity;
   const meta = (record, stale, reason = '') => ({ ...record, meta: { checkedAt: record.checkedAt, stale, reason, provider, refreshMinutes: Math.round(ttl / 60000) } });
   if (old && age < (force ? 60000 : ttl)) return meta(old, false);
+  if (old && env.READER_PREVIEW_MODE) return meta(old, true, '使用试读缓存');
   const task = () => refresh(env, key, producer, retention);
   if (old && background && !force) {
     ctx.waitUntil(task().catch(() => {}));
