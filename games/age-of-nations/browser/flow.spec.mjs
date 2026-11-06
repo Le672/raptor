@@ -1,0 +1,20 @@
+import {test,expect} from '@playwright/test';
+test('new world → capital → production → science → turn → persistent reload',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('/age-of-nations/');await expect(page).toHaveTitle(/列国纪元/);
+  await page.getByRole('button',{name:'开启新纪元'}).click();
+  await page.getByRole('button',{name:'建立国家'}).click();
+  const map=page.locator('.atlas-canvas');await expect(map).toBeVisible();const box=await map.boundingBox();await map.click({position:{x:box.width/2,y:box.height/2}});
+  await page.getByRole('button',{name:'建立城市'}).click();
+  let dialog=page.getByRole('dialog',{name:'城市'});await expect(dialog.getByRole('heading',{name:'晨京'})).toBeVisible();
+  await dialog.getByRole('button',{name:/粮仓/}).click();await expect(dialog.locator('.current-production')).toContainText('粮仓');
+  await dialog.getByRole('button',{name:'关闭'}).click();
+  await page.getByRole('button',{name:'科技',exact:true}).click();dialog=page.getByRole('dialog',{name:'科技与时代'});
+  await dialog.locator('.tech-card').filter({has:page.locator('b',{hasText:/^教育$/})}).getByRole('button',{name:'科技',exact:true}).click();
+  await dialog.getByRole('button',{name:'关闭'}).click();await page.getByRole('button',{name:/下一回合/}).click();
+  await page.getByRole('dialog',{name:'确认'}).getByRole('button',{name:'确认',exact:true}).click();
+  await expect(page.locator('.date')).toContainText('回合 2 / 150');
+  await expect.poll(()=>page.evaluate(()=>new Promise(resolve=>{const request=indexedDB.open('yukino-age-of-nations-v1');request.onsuccess=()=>{const db=request.result,get=db.transaction('saves').objectStore('saves').get('checkpoint');get.onsuccess=()=>{resolve(get.result?.turn||0);db.close();};};}))).toBe(2);
+  await page.reload();await page.getByRole('button',{name:'继续上次旅程'}).click();await expect(page.locator('.date')).toContainText('回合 2 / 150');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
+});

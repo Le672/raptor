@@ -1,3 +1,13 @@
+/age-of-nations/
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+/age-of-nations/index.html
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+/age-of-nations/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
 /rail-network/*
   Access-Control-Allow-Origin: *
   X-Content-Type-Options: nosniff

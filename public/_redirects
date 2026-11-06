@@ -1,4 +1,6 @@
 /api/speed/* https://speed.yukino.bond/api/speed/:splat 307
 /api/speed https://speed.yukino.bond/api/speed 307
 /api/* /api/:splat 200
+/age-of-nations /age-of-nations/ 308
+/age-of-nations/ /age-of-nations/index.html 200
 /* /index.html 200

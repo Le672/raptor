@@ -24,6 +24,18 @@ jobs:
       - name: Check website behavior
         run: npm run test -- src/test
 
+      - name: Check Age of Nations rules, saves and AI
+        run: npm run nations:test
+
+      - name: Install the isolated game browser checks
+        run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+
+      - name: Prepare the game test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Check desktop and mobile gameplay with real persistent storage
+        run: npx playwright test --config games/age-of-nations/playwright.config.mjs
+
       - run: npm run build
 
       - name: Preserve verified F1 schedules and results for edge cold starts
@@ -41,6 +53,9 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=raptor --branch=master
+
+      - name: Verify the published strategy game and its Worker assets
+        run: node scripts/verify-nations-live.mjs
 
       - name: Detach independent VPS status page from Pages
         run: node scripts/ensure-vps-status-domain.mjs
