@@ -20,9 +20,9 @@ export function canonicalPageUrl(input) {
   const url = new URL(input);
   if (!isPortalHost(url.hostname) || !['http:', 'https:'].includes(url.protocol) || reserved(url.pathname)) return null;
   const path = url.pathname.replace(/\/+$/, '') || '/';
-  if (/^\/(?:games\/)?age-of-nations(?:\/|$)/.test(path)) {
+  if (/^\/(?:games\/)?(?:age-of-nations|fog-harbor-files)(?:\/|$)/.test(path)) {
     url.protocol = 'https:'; url.port = ''; url.hostname = 'games.yukino.bond';
-    url.pathname = path.replace(/^\/games\//, '/') + (path.endsWith('age-of-nations') ? '/' : '');
+    url.pathname = path.replace(/^\/games\//, '/') + (/\/(?:age-of-nations|fog-harbor-files)$/.test(path) ? '/' : '');
     return url.href;
   }
   // A subsite's own root is its landing page; an explicit link to '/' means the main homepage.

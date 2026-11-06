@@ -31,6 +31,9 @@ jobs:
       - name: Check Age of Nations rules, saves and AI
         run: npm run nations:test
 
+      - name: Check Fog Harbor Files narrative, deductions and saves
+        run: npm run mystery:test
+
       - name: Install the isolated game browser checks
         run: npm install --prefix .wrangler/nations-browser-tools --no-save --package-lock=false @playwright/test@1.56.1
 
@@ -72,6 +75,13 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      - name: Migrate Fog Harbor Files save metadata
+        if: steps.game-storage.outputs.ready == 'true'
+        run: npx wrangler d1 execute yukino-portal --remote --file=games/fog-harbor-files/cloud/schema.sql
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Deploy daily game save cleanup
         if: steps.game-storage.outputs.ready == 'true'
         uses: cloudflare/wrangler-action@v3
@@ -89,6 +99,9 @@ jobs:
 
       - name: Verify the published strategy game and its Worker assets
         run: node scripts/verify-nations-live.mjs
+
+      - name: Verify the published Fog Harbor Files game
+        run: node scripts/verify-fog-harbor-files-live.mjs
 
       - name: Detach independent VPS status page from Pages
         run: node scripts/ensure-vps-status-domain.mjs

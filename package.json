@@ -21,7 +21,7 @@
     "novel:build": "tsc -p novel/tsconfig.json && node scripts/build-novel.mjs",
     "novel:test": "node --test novel/test/*.test.mjs",
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run nations:build -- --portal && node scripts/prepare-pwa.mjs portal dist && node scripts/check-build-assets.mjs web",
+    "build": "tsc -b && vite build && npm run nations:build -- --portal && npm run mystery:build -- --portal && node scripts/prepare-pwa.mjs portal dist && node scripts/check-build-assets.mjs web",
     "build:desktop": "tsc -b && vite build --mode desktop && node scripts/check-build-assets.mjs desktop",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -36,7 +36,10 @@
     "readers:test": "node --test novel/test/*.test.mjs fiction/test/*.test.mjs shared/test/*.test.mjs",
     "nations:dev": "vite --config games/age-of-nations/vite.config.ts",
     "nations:build": "tsc -p games/age-of-nations/tsconfig.json && node scripts/build-nations.mjs",
-    "nations:test": "vitest run --config games/age-of-nations/vitest.config.ts"
+    "nations:test": "vitest run --config games/age-of-nations/vitest.config.ts",
+    "mystery:dev": "vite --config games/fog-harbor-files/vite.config.ts",
+    "mystery:build": "tsc -p games/fog-harbor-files/tsconfig.json && node scripts/build-fog-harbor-files.mjs",
+    "mystery:test": "vitest run --config games/fog-harbor-files/vitest.config.ts"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",
