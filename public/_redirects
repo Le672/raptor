@@ -3,4 +3,6 @@
 /api/* /api/:splat 200
 /age-of-nations /age-of-nations/ 308
 /age-of-nations/ /age-of-nations/index.html 200
+/fog-harbor-files /fog-harbor-files/ 308
+/fog-harbor-files/ /fog-harbor-files/index.html 200
 /* /index.html 200
