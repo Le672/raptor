@@ -29,6 +29,12 @@ IndexedDB 升级至版本 2，保留原 saves 表，增加同步设置和待上�
 
 部署工作流创建私有 `yukino-games-saves` bucket，幂等执行 `cloud/schema.sql` 并发布每日清理 Worker；R2 必须已启用，现有部署令牌需要 R2 读写权限。存档无需公开 bucket 地址。`privacy.html` 说明存储内容、版本保留、导出与删除。
 
+### 发布存储检查失败
+
+GitHub Actions 使用仓库 secret `CLOUDFLARE_API_TOKEN`。在 Cloudflare 的 API Tokens 页面为该令牌保留现有权限，并增加部署账户的 `Account > Workers R2 Storage > Edit`；如果替换令牌，在仓库 Settings → Secrets and variables → Actions 中更新同名 secret，不要将令牌写入代码或日志。
+
+若日志给出 Cloudflare 错误码 `10042`，需要先在该账户的 R2 Object Storage 页面完成首次开通；部署脚本不会代为接受订阅条款。完成后在失败的发布运行中选择 Re-run failed jobs。脚本会创建私有 bucket，再执行数据库迁移和部署，无需开启公开访问。
+
 ## 验证边界
 
 自动测试不代表真机帧率、手机发热、外部玩家可用性或胜率平衡已经达标。发布前后需要真机检查；核心规则变更后应运行完整自对战模拟，再根据结果校准 JSON 数值。
