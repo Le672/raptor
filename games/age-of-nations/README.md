@@ -11,6 +11,10 @@
 
 ## 架构
 
+### 0.3 远征界面
+
+`GameArt.tsx` 提供主菜单城镇插画、资源图标和单位档案图；`map-art.ts` 按坐标生成并缓存地形绘制，地图区分城镇、马车、步兵、工程师、海空军及机械部队。所有插画随站点打包，无外部图片、字体或动画循环。`expedition.css` 覆盖主菜单、指挥界面与移动端底部面板。开国任务可直接定位开拓者、城市生产和首项研究，不改变核心规则或存档结构。
+
 `core.ts` 只依赖 `content.ts` 与 JSON 数据，无 DOM、墙上时钟或非种子随机数。命令先验证再应用；失败保留原状态。操作记录携带 playerId、turn、seq；LocalHuman / Ai / Remote 共享 PlayerController 接口，Remote 只留接口。状态哈希使用键排序后的规范化序列化，同时兼容读取早期未排序哈希的存档。界面仅拿当前玩家的视图，权威完整状态留在命令与存档边界。`projectView` 为 AI 提供经过迷雾过滤的视图；`ai.worker.ts` 在 Worker 规划对手行动。`render.ts` 使用轻量原生 WebGL 绘制六边形，再叠加 Canvas 墨线、图标与文字；WebGL 不可用时降级 Canvas。这里替换了规范中的建议 PixiJS，以免为无纹理地图引入额外运行时。
 
 `store.ts` 的 `SaveStore`/`LocalSaveStore` 管理 IndexedDB 原子事务、五回合滚动存档、操作检查点、手动存档、状态哈希与导入校验。每次已执行操作立即排队写检查点，页面隐藏时再补写，不依赖浏览器退出时才保存。未完成写入会显示错误并保留导出入口。当前 schemaVersion 为 1；未来结构变化必须添加迁移及测试。用户设置单独保存，核心状态不直接访问存储。
@@ -33,7 +37,9 @@ IndexedDB 升级至版本 2，保留原 saves 表，增加同步设置和待上�
 
 GitHub Actions 使用仓库 secret `CLOUDFLARE_API_TOKEN`。在 Cloudflare 的 API Tokens 页面为该令牌保留现有权限，并增加部署账户的 `Account > Workers R2 Storage > Edit`；如果替换令牌，在仓库 Settings → Secrets and variables → Actions 中更新同名 secret，不要将令牌写入代码或日志。
 
-若日志给出 Cloudflare 错误码 `10042`，需要先在该账户的 R2 Object Storage 页面完成首次开通；部署脚本不会代为接受订阅条款。完成后在失败的发布运行中选择 Re-run failed jobs。脚本会创建私有 bucket，再执行数据库迁移和部署，无需开启公开访问。
+若日志给出 Cloudflare 错误码 `10042`，需要先在该账户的 R2 Object Storage 页面完成首次开通；部署脚本不会代为接受订阅条款。完成后重新运行完整发布工作流；脚本会创建私有 bucket，再执行数据库迁移和部署，无需开启公开访问。
+
+网站发布使用 `--allow-unavailable`：只有明确的 `10042` 会让本次临时构建省略 `GAMES_SAVES` 绑定，并跳过依赖它的迁移与清理 Worker；本机游戏照常发布，云存档显示暂不可用。源代码中的绑定保留，下一次发布会重新检查；权限错误、网络中断和其他响应仍会停止发布。账户开通 R2 后重新运行整个工作流即可启用云服务，不需要改游戏存档或公开 bucket。
 
 ## 验证边界
 

@@ -1,14 +1,21 @@
 const {test,expect}=await import(process.env.NATIONS_PLAYWRIGHT_MODULE||'@playwright/test');
-test('new world → capital → production → science → turn → persistent reload',async({page})=>{
+import {mkdir} from 'node:fs/promises';
+import {join} from 'node:path';
+test('new world → capital → production → science → turn → persistent reload',async({page},testInfo)=>{
+  const capture=async name=>{if(process.env.NATIONS_CAPTURE_DIR){await mkdir(process.env.NATIONS_CAPTURE_DIR,{recursive:true});await page.screenshot({path:join(process.env.NATIONS_CAPTURE_DIR,`${testInfo.project.name}-${name}.png`),fullPage:true});}};
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/age-of-nations/');await expect(page).toHaveTitle(/列国纪元/);
+  await capture('menu');
   await page.getByRole('button',{name:'开启新纪元'}).click();
   await page.getByRole('button',{name:'建立国家'}).click();
-  const map=page.locator('.atlas-canvas');await expect(map).toBeVisible();const box=await map.boundingBox();await map.click({position:{x:box.width/2,y:box.height/2}});
+  const map=page.locator('.atlas-canvas');await expect(map).toBeVisible();
+  await page.getByRole('region',{name:'开国之路'}).getByRole('button',{name:/建立第一座首都/}).click();
+  await expect(page.locator('.selection-panel').getByRole('heading',{name:'开拓者'})).toBeVisible();
   await page.getByRole('button',{name:'建立城市'}).click();
   let dialog=page.getByRole('dialog',{name:'城市'});await expect(dialog.getByRole('heading',{name:'晨京'})).toBeVisible();
   await dialog.getByRole('button',{name:/粮仓/}).click();await expect(dialog.locator('.current-production')).toContainText('粮仓');
   await dialog.getByRole('button',{name:'关闭'}).click();
+  await capture('map');
   await page.getByRole('button',{name:'科技',exact:true}).click();dialog=page.getByRole('dialog',{name:'科技与时代'});
   await dialog.locator('.tech-card').filter({has:page.locator('b',{hasText:/^教育$/})}).getByRole('button',{name:'科技',exact:true}).click();
   await dialog.getByRole('button',{name:'关闭'}).click();await page.getByRole('button',{name:/下一回合/}).click();

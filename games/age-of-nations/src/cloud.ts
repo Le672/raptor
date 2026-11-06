@@ -6,7 +6,7 @@ export class CloudError extends Error{constructor(public code:string,public stat
 export interface AuthProvider{getSession():Promise<Session|null>;login(returnUrl:string):void}
 const endpoint='/api/games/age-of-nations/';
 export class PortalAuth implements AuthProvider{
-  async getSession(){const r=await fetch(endpoint+'session',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(10000)});if(r.status===401)return null;if(!r.ok)throw new CloudError('CLOUD_UNAVAILABLE',r.status);const data=await r.json();if(!data.available)throw new CloudError('CLOUD_UNAVAILABLE',503);return data.user as Session;}
+  async getSession(){const r=await fetch(endpoint+'session',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(10000)});if(r.status===401){const data=await r.json();if(data.available===false)throw new CloudError('CLOUD_UNAVAILABLE',503);return null;}if(!r.ok)throw new CloudError('CLOUD_UNAVAILABLE',r.status);const data=await r.json();if(!data.available)throw new CloudError('CLOUD_UNAVAILABLE',503);return data.user as Session;}
   login(returnUrl:string){const url=new URL('/login','https://www.yukino.bond');url.searchParams.set('returnTo',returnUrl);location.assign(url.href);}
 }
 const digest=async(bytes:ArrayBuffer)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(n=>n.toString(16).padStart(2,'0')).join('');
