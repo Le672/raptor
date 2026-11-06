@@ -7,6 +7,7 @@ self.addEventListener('fetch', event => {
   const request = event.request, url = new URL(request.url);
   // Identity, media, shared files, private laboratory HTML and all mutations
   // stay on the network. Never copy credentials or private API data to caches.
+  if (/^\/(?:age-of-nations|fog-harbor-files)(?:\/|$)/.test(url.pathname)) return;
   if (request.method !== 'GET' || url.origin !== self.location.origin || /^\/(?:api|upload|pasta|file|raw|auth|admin)(?:\/|$)/.test(url.pathname) || (CONFIG.privateLab && /^\/lab(?:\/|$)/.test(url.pathname))) return;
   if (request.mode === 'navigate') {
     if (CONFIG.onlineOnly && url.pathname !== '/') return;

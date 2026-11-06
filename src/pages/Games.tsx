@@ -1,5 +1,5 @@
 import { Component, ComponentType, lazy, ReactNode, Suspense, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Dices, Gamepad2, Loader2, Search, Star } from "lucide-react";
+import { ArrowLeft, Dices, FileText, Gamepad2, Loader2, Search, Star } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { SiteLink as Link } from "@/components/SiteLink";
 import { HomeLink } from "@/components/HomeLink";
@@ -61,6 +61,7 @@ export default function Games() {
     {activeGame && !game && <p role="alert" className="game-notice">没有找到这个游戏，可以从下方重新选择。<button type="button" className="ml-3 underline" onClick={() => setParams({})}>清除无效链接</button></p>}
     <div><div className="feature-heading"><HomeLink className="pill-button"><ArrowLeft size={15} />返回首页</HomeLink><span className="feature-eyebrow">PLAY A LITTLE</span></div><h1 className="feature-title">小游戏中心<span>{gameCatalog.length} 个小乐趣</span></h1><p className="feature-description">换个节奏，开一局。益智、棋类、街机和手速练习，打开即玩。</p></div>
     <div className="daily-challenge"><div><span className="feature-eyebrow">AGE OF NATIONS · 1780—2100</span><h2>列国纪元</h2><p>建设城市、探索世界，在科技、外交与战争之间书写国家史。复古地图风格，手机和电脑都能玩。</p></div><div className="game-actions"><a className="pill-button" href={window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "/age-of-nations/" : "https://games.yukino.bond/age-of-nations/"}><Gamepad2 size={16} />开始游戏 ↗</a></div></div>
+    <div className="daily-challenge"><div><span className="feature-eyebrow">FOG HARBOR FILES · CASE 001</span><h2>雾港档案</h2><p>一段雨夜广播，一份迟了八年的证词。调查现场、核对证言、比对录音，在《最后一卷录音》中还原真相。完整首案，支持手机与电脑。</p></div><div className="game-actions"><a className="pill-button" href={window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "/fog-harbor-files/" : "https://games.yukino.bond/fog-harbor-files/"}><FileText size={16} />开始调查 ↗</a></div></div>
     <div className="daily-challenge"><div><span className="feature-eyebrow">DAILY CHALLENGE · {todayKey()}</span><h2>每天两道新题目</h2><p>同一天打开的是同一题，可以复制链接和朋友一起挑战。</p></div><div className="game-actions"><button className="pill-button" onClick={() => open("sudoku", true)}>每日数独</button><button className="pill-button" onClick={() => open("puzzle", true)}>每日华容道</button></div></div>
     <div className="feature-toolbar"><label className="feature-search"><Search size={17} /><input aria-label="搜索小游戏" placeholder="找个游戏玩…" value={query} onChange={(event) => setQuery(event.target.value)} /></label><button className="pill-button" disabled={!filtered.length} onClick={() => open(filtered[Math.floor(Math.random() * filtered.length)].id)}><Dices size={16} />随机一局</button></div>
     <div className="filter-chips" aria-label="游戏分类">{(["全部", "益智", "街机", "棋类", "反应", "收藏"] as const).map((cat) => <button key={cat} aria-pressed={category === cat} onClick={() => setCategory(cat)}>{cat}{cat === "收藏" ? ` ${favorites.length}` : ""}</button>)}</div>
