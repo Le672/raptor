@@ -52,6 +52,19 @@ jobs:
 
       - run: npm run build
 
+      - name: Check Fog Harbor Files complete case, persistent saves and offline recovery
+        run: node .wrangler/nations-browser-tools/node_modules/@playwright/test/cli.js test --config games/fog-harbor-files/playwright.config.mjs
+        env:
+          NATIONS_PLAYWRIGHT_MODULE: file://${{ github.workspace }}/.wrangler/nations-browser-tools/node_modules/@playwright/test/index.mjs
+
+      - name: Preserve Fog Harbor Files browser verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fog-harbor-files-browser
+          path: .wrangler/fog-browser
+          retention-days: 7
+
       - name: Preserve verified F1 schedules and results for edge cold starts
         run: node scripts/warm-f1-snapshots.mjs
 
