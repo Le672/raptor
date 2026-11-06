@@ -5,3 +5,6 @@
 @media(max-width:390px){.title-copy h1{font-size:59px;letter-spacing:5px}.title-copy{margin-top:11vh}.english-title{letter-spacing:5px}.case-title{gap:12px}.case-title h2{font-size:21px;letter-spacing:2px}.title-actions{gap:9px}.title-actions .primary-button{min-width:160px}.title-actions .secondary-button{padding:13px 16px}.header-tools .icon-button:first-child{display:none}.scene-heading h1{font-size:23px}.scene{min-height:490px}.modal-heading h2{font-size:21px}.selection-heading{align-items:flex-start;flex-direction:column;gap:0}}
 
 .guidance-focus .task-note ul,.guidance-focus .unread-dot,.guidance-focus .hotspot-label small{display:none}.cloud-versions{position:relative;color:#baac87;font-size:10px}.cloud-versions summary{cursor:pointer;min-height:44px;display:flex;align-items:center}.cloud-versions[open]{background:#11232a;padding:0 8px}.cloud-versions button{display:block;white-space:nowrap}.cloud-versions button+button{border-top:1px solid #a8aa7c22}
+
+.hotspot{width:max-content}.hotspot.label-left{flex-direction:row-reverse;transform:translate(calc(-100% + 21px),-21px)}
+@media(max-width:800px){.brand{flex:0 0 112px}.brand-symbol{flex-shrink:0}.brand>span:last-child{white-space:nowrap}.chapter-label{flex:1;overflow:hidden}.chapter-label strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
