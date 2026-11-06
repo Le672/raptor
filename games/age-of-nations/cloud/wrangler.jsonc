@@ -1,0 +1,1 @@
+{"name":"yukino-nations-cleanup","main":"cleanup.mjs","compatibility_date":"2026-11-06","workers_dev":false,"triggers":{"crons":["17 20 * * *"]},"d1_databases":[{"binding":"DB","database_name":"yukino-portal","database_id":"e069f104-f55e-441f-9907-0106e2100df7"}],"r2_buckets":[{"binding":"GAMES_SAVES","bucket_name":"yukino-games-saves"}],"observability":{"enabled":true}}

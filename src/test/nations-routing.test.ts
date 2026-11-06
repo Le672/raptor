@@ -1,7 +1,9 @@
 import {describe,it,expect} from 'vitest';
+import {safeAuthReturn} from '../lib/auth-return';
 import {canonicalPageUrl} from '../lib/site-routing';
 import {onRequest} from '../../functions/_middleware';
 describe('Age of Nations independent document path',()=>{
+  it('returns from portal login only to the trusted game origin',()=>{expect(safeAuthReturn('https://games.yukino.bond/age-of-nations/')).toBe('https://games.yukino.bond/age-of-nations/');expect(safeAuthReturn('https://games.yukino.bond.evil.invalid/')).toBeNull();});
   it('keeps the game at its named path and retains the game catalogue root',()=>{
     const target='https://games.yukino.bond/age-of-nations/?seed=example#map';
     for(const url of ['https://www.yukino.bond/age-of-nations?seed=example#map','https://www.yukino.bond/games/age-of-nations/?seed=example#map',target])expect(canonicalPageUrl(url)).toBe(target);
