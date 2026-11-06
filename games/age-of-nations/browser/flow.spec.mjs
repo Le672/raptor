@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+const {test,expect}=await import(process.env.NATIONS_PLAYWRIGHT_MODULE||'@playwright/test');
 test('new world → capital → production → science → turn → persistent reload',async({page})=>{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/age-of-nations/');await expect(page).toHaveTitle(/列国纪元/);

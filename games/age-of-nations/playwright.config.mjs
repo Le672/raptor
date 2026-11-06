@@ -1,2 +1,2 @@
-import {defineConfig} from '@playwright/test';
+const {defineConfig}=await import(process.env.NATIONS_PLAYWRIGHT_MODULE||'@playwright/test');
 export default defineConfig({testDir:'browser',timeout:60000,fullyParallel:false,retries:1,workers:1,outputDir:'../../.wrangler/nations-browser',use:{baseURL:'http://127.0.0.1:5196',trace:'retain-on-failure',screenshot:'only-on-failure'},projects:[{name:'desktop',use:{browserName:'chromium',viewport:{width:1440,height:900}}},{name:'mobile',use:{browserName:'chromium',viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1}}],webServer:{command:'npm run nations:dev',url:'http://127.0.0.1:5196/age-of-nations/',reuseExistingServer:!process.env.CI,timeout:30000,cwd:'../..'}});

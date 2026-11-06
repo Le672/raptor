@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       deployments: write
@@ -28,13 +28,15 @@ jobs:
         run: npm run nations:test
 
       - name: Install the isolated game browser checks
-        run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+        run: npm install --prefix .wrangler/nations-browser-tools --no-save --package-lock=false @playwright/test@1.56.1
 
       - name: Prepare the game test browser
-        run: npx playwright install --with-deps chromium
+        run: node .wrangler/nations-browser-tools/node_modules/@playwright/test/cli.js install --with-deps chromium
 
       - name: Check desktop and mobile gameplay with real persistent storage
-        run: npx playwright test --config games/age-of-nations/playwright.config.mjs
+        run: node .wrangler/nations-browser-tools/node_modules/@playwright/test/cli.js test --config games/age-of-nations/playwright.config.mjs
+        env:
+          NATIONS_PLAYWRIGHT_MODULE: file://${{ github.workspace }}/.wrangler/nations-browser-tools/node_modules/@playwright/test/index.mjs
 
       - run: npm run build
 

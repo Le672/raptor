@@ -1,5 +1,5 @@
 import { buildings, civs, improvements, techs, unitTypes } from './content';
-import { canProduce, cityYields, distance, era, execute, hasTech, neighbors, passableLand, pathfind, predictBattle, projectView, settleWorld, tileAt, visible, type Command, type GameState, type Item, type Unit } from './core';
+import { canProduce, connected, cityYields, distance, era, execute, hasTech, neighbors, passableLand, pathfind, predictBattle, projectView, settleWorld, tileAt, visible, type Command, type GameState, type Item, type Unit } from './core';
 
 function legal(s:GameState,player:number,cmd:Command):GameState {const r=execute(s,player,cmd,false,true);return r.ok?r.state:s;}
 // This planner receives only a player-specific projection, never the authoritative world.
@@ -15,19 +15,22 @@ export function planPlayer(view:GameState,player:number):Command[] {
   // All evaluations here use visible units/cities; difficulty changes planning, not vision.
   if(!wars.length&&troops.length>=2&&s.turn>18){const enemy=s.cities.filter(c=>c.owner>=0&&c.owner!==player).sort((a,b)=>distance(tileAt(s,owned[0]?.tile||'')||tileAt(s,a.tile)!,tileAt(s,a.tile)!)-distance(tileAt(s,owned[0]?.tile||'')||tileAt(s,b.tile)!,tileAt(s,b.tile)!))[0];if(enemy&&personality.aggression>.45&&p.relations[enemy.owner]?.truce===0){const theirs=s.units.filter(u=>u.owner===enemy.owner&&!unitTypes[u.type].civilian);if(troops.length>theirs.length||s.turn>70)act({type:'DIPLOMACY',target:enemy.owner,action:'war'});}}
   for(const [other]of wars)if(p.fatigue>20)act({type:'DIPLOMACY',target:Number(other),action:'peace',gold:Math.max(0,Math.min(35,p.treasury))});
-  for(const c of owned){if(c.queue.length)continue;const units=s.units.filter(u=>u.owner===player);let desired:[Item['kind'],string]|undefined;
-    if(owned.length<Math.min(7,2+Math.floor(s.turn/20))&&!units.some(u=>u.type==='settler'))desired=['unit','settler'];
+  for(const c of owned){if(c.queue.length&&canProduce(s,c,c.queue[0].kind,c.queue[0].id)){if(s.players[player].treasury>200)act({type:'BUY',city:c.id});continue;}const units=s.units.filter(u=>u.owner===player);let desired:[Item['kind'],string]|undefined;
+    if(!c.buildings.includes('workshop')&&canProduce(s,c,'building','workshop'))desired=['building','workshop'];
+    else if(!c.buildings.includes('academy')&&canProduce(s,c,'building','academy')&&troops.length>=Math.max(1,owned.length-1))desired=['building','academy'];
+    else if(owned.length<Math.min(7,2+Math.floor(s.turn/20))&&!units.some(u=>u.type==='settler'))desired=['unit','settler'];
     else if(!units.some(u=>u.type==='engineer')||units.filter(u=>u.type==='engineer').length<Math.ceil(owned.length/2))desired=['unit','engineer'];
-    else if(troops.length<owned.length+(wars.length?3:1)){const ids=['mechanized','tank','rifle','guard','infantry'];desired=['unit',ids.find(id=>canProduce(s,c,'unit',id))||'infantry'];}
-    else {const project=['moon','station','colony'].find(id=>canProduce(s,c,'project',id));if(project)desired=['project',project];else {const priority=personality.science>.6?['workshop','granary','academy','university','national_lab','lab','data_center','fusion_plant','factory','bank','hospital','power','rail_hub','harbor','airport']:['workshop','granary','factory','bank','academy','university','arsenal','hospital','rail_hub','power','lab','data_center','harbor','airport'];const id=priority.find(id=>canProduce(s,c,'building',id));if(id)desired=['building',id];else desired=['unit',canProduce(s,c,'unit','artillery')?'artillery':'infantry'];}}
+    else if(troops.length<Math.max(2,Math.ceil(owned.length*.7))+(wars.length?3:0)){const ids=['mechanized','tank','rifle','guard','infantry'];desired=['unit',ids.find(id=>canProduce(s,c,'unit',id))||'infantry'];}
+    else {const project=['moon','station','colony'].find(id=>canProduce(s,c,'project',id));if(project)desired=['project',project];else {const priority=personality.science>.6?['workshop','granary','academy','university','national_lab','factory','bank','lab','data_center','fusion_plant','hospital','power','rail_hub','harbor','airport']:['workshop','granary','factory','bank','academy','university','arsenal','hospital','rail_hub','power','lab','data_center','harbor','airport'];const id=priority.find(id=>canProduce(s,c,'building',id));if(id)desired=['building',id];else desired=['unit',canProduce(s,c,'unit','artillery')?'artillery':'infantry'];}}
     if(desired&&!act({type:'PRODUCE',city:c.id,kind:desired[0],id:desired[1]})){const other=Object.values(buildings).find(b=>canProduce(s,c,'building',b.id));if(other)act({type:'PRODUCE',city:c.id,kind:'building',id:other.id});}
-    if(p.treasury>200&&c.queue[0])act({type:'BUY',city:c.id});
+    if(s.players[player].treasury>200&&s.cities.find(city=>city.id===c.id)?.queue[0])act({type:'BUY',city:c.id});
   }
   for(const original of [...s.units.filter(u=>u.owner===player)]){
     const u=s.units.find(u=>u.id===original.id);if(!u||u.moves<=0)continue;const at=tileAt(s,u.tile)!;if(!at)continue;
     if(u.type==='engineer'){
       const target=s.tiles.filter(t=>t.owner===player&&passableLand(t)&&!t.city&&!t.improvement).sort((a,b)=>Number(!!b.resource)-Number(!!a.resource)||distance(a,at)-distance(b,at))[0];
       if(at.owner===player&&!at.city&&!at.improvement){const res=at.resource;const imp=res?(['coal','iron','wood','aluminium','uranium'].includes(res)?'mine':res==='oil'?'well':['wheat','cattle'].includes(res)?'farm':'plantation'):at.terrain==='hills'?'mine':'farm';if(act({type:'IMPROVE',unit:u.id,improvement:imp}))continue;}
+      if(hasTech(p,'railway')){const links=connected(s,s.players[player]);const remote=s.tiles.filter(t=>t.owner===player&&t.resource&&['coal','iron','oil','aluminium','uranium','rubber'].includes(t.resource)&&t.improvement&&!links.has(t.id)).sort((a,b)=>distance(a,at)-distance(b,at))[0];if(remote){if(at.owner===player&&!at.city&&!at.rail&&act({type:'IMPROVE',unit:u.id,improvement:'rail'}))continue;const home=s.cities.filter(c=>c.owner===player).sort((a,b)=>distance(tileAt(s,a.tile)!,at)-distance(tileAt(s,b.tile)!,at))[0];const goal=at.id===remote.id?home?.tile:remote.id;if(goal){const route=pathfind(s,u,goal);if(route?.path[0]&&act({type:'MOVE',unit:u.id,target:route.path[0]}))continue;}}}
       if(target){moveToward(s,u,target.id,act);continue;}
       if(at.owner===player&&!at.rail&&hasTech(p,'railway'))act({type:'IMPROVE',unit:u.id,improvement:'rail'});continue;
     }
@@ -42,7 +45,7 @@ export function planPlayer(view:GameState,player:number):Command[] {
     // Explore boundaries of the known map, rather than selecting hidden world tiles.
     const candidates=s.tiles.filter(t=>passableLand(t)&&neighbors(s,t).length<6).sort((a,b)=>distance(a,at)-distance(b,at));if(!candidates.slice(0,s.config.difficulty==='casual'?4:12).some(t=>moveToward(s,u,t.id,act)))act({type:'STATUS',unit:u.id,status:'fortify'});
   }
-  commands.push({type:'END_TURN'});return commands;
+  if(hasTech(s.players[player],'civics')&&s.players[player].government==='monarchy'&&personality.science>.6)act({type:'GOVERNMENT',id:'republic'});if(hasTech(s.players[player],'education')&&s.players[player].culture>=12&&!s.players[player].policies.includes('education')&&!s.players[player].pendingPolicies)act({type:'POLICIES',ids:['education']});commands.push({type:'END_TURN'});return commands;
 }
 function moveToward(s:GameState,u:Unit,target:string,act:(c:Command)=>boolean):boolean {const route=pathfind(s,u,target);if(!route)return false;for(let i=route.path.length-1;i>=0;i--){const possible=pathfind(s,u,route.path[i],u.moves);if(possible)return act({type:'MOVE',unit:u.id,target:route.path[i]});}return false;}
 export function runAiRound(initial:GameState,onProgress?:(player:number)=>void):GameState {let s=initial;for(let i=Math.max(1,s.currentPlayer);i<s.players.length;i++){s={...s,currentPlayer:i};if(s.players[i].alive){const view=projectView(s,i);for(const cmd of planPlayer(view,i)){const result=execute(s,i,cmd);if(result.ok)s=result.state;if(s.winner)break;}}onProgress?.(i);if(s.winner)break;}return s.winner?s:settleWorld(s);}
