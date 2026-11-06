@@ -39,6 +39,9 @@ jobs:
 
       - name: Prepare the game test browser
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk
+          fc-match :lang=zh
           if command -v google-chrome >/dev/null 2>&1; then
             echo "NATIONS_BROWSER_CHANNEL=chrome" >> "$GITHUB_ENV"
           else
@@ -168,3 +171,4 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
