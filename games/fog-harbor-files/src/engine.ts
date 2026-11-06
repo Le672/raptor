@@ -1,6 +1,7 @@
-import {evidence,persons,statements,deductions,locations,chapters} from './content';
+import {evidence,persons,statements,deductions,locations,chapters,endings} from './content';
 
 export const CONTENT_VERSION='1.0.0';
+export function endingFor(result:string){const id=result==='full'?'voice-remains':result==='current'?'before-dawn':result;return endings.find(ending=>ending.id===id);}
 export type GameState={schemaVersion:1;contentVersion:string;caseId:'last-recording';playthroughId:string;chapter:number;location:string;collected:string[];heard:string[];readTopics:string[];readEvidence:string[];solved:string[];challenged:string[];notes:string;timelineOrder:string[];hints:Record<string,number>;endings:string[];startedAt:number;updatedAt:number;seq:number;settings:{sound:boolean;fontSize:number;reducedMotion:boolean;hotspots:boolean;guidance:'guided'|'standard'|'focus'}};
 export type Command={type:'visit';id:string}|{type:'collect';id:string}|{type:'read';id:string}|{type:'topic';person:string;id:string}|{type:'challenge';id:string;supports:string[]}|{type:'deduce';id:string;option:string;supports:string[]}|{type:'advance'}|{type:'note';text:string}|{type:'timeline';ids:string[]}|{type:'hint';id:string}|{type:'settings';value:Partial<GameState['settings']>}|{type:'report';answers:Record<string,string>;supports:string[]};
 export type Result={state:GameState;ok:boolean;message:string;ending?:string};

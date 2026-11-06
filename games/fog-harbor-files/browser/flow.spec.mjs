@@ -1,5 +1,5 @@
 const {test,expect}=await import(process.env.NATIONS_PLAYWRIGHT_MODULE||'@playwright/test');
-import {evidence,locations,deductions,chapters,endings} from '../src/content.ts';
+import {evidence,locations,deductions,chapters} from '../src/content.ts';
 import {REPORT_QUESTIONS} from '../src/engine.ts';
 const base='/fog-harbor-files/';
 async function close(page){await page.getByRole('dialog').getByRole('button',{name:'关闭面板',exact:true}).click();}
@@ -25,7 +25,7 @@ test('completes the whole case, keeps IndexedDB progress and resumes offline',as
   if(chapter<5){await page.getByRole('button',{name:'进入下一章',exact:true}).click();await expect(page.getByRole('dialog').getByRole('heading',{name:chapters.find(c=>c.id===chapter+1).title,exact:true})).toBeVisible();await page.getByRole('button',{name:'继续调查',exact:true}).click();}
  }
  expect(owned.size).toBe(32);expect(proved.size).toBe(8);await page.getByRole('button',{name:'提交调查报告',exact:true}).click();
- const report=page.getByRole('dialog',{name:'调查报告'});for(const q of REPORT_QUESTIONS)await report.getByLabel(q.label,{exact:true}).selectOption(q.correct);await report.getByRole('button',{name:'选择已收录材料',exact:true}).click();page.once('dialog',dialog=>dialog.accept());await report.getByRole('button',{name:'提交复核',exact:true}).click();await expect(page.getByRole('dialog').getByRole('heading',{name:endings.find(e=>e.id==='full').title,exact:true})).toBeVisible();await close(page);
+ const report=page.getByRole('dialog',{name:'调查报告'});for(const q of REPORT_QUESTIONS)await report.getByLabel(q.label,{exact:true}).selectOption(q.correct);await report.getByRole('button',{name:'选择已收录材料',exact:true}).click();page.once('dialog',dialog=>dialog.accept());await report.getByRole('button',{name:'提交复核',exact:true}).click();await expect(page.getByRole('dialog').getByRole('heading',{name:'被留下的声音',exact:true})).toBeVisible();await close(page);
  await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('button',{name:'下载完整首案以便离线调查',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'完整首案已缓存'})).toBeVisible({timeout:20000});await close(page);
  await page.reload();await page.getByRole('button',{name:'继续调查',exact:true}).click();await expect(page.getByText('已收录 32 / 32',{exact:true})).toBeVisible();
  await context.setOffline(true);await page.reload();await page.getByRole('button',{name:'继续调查',exact:true}).click();await expect(page.getByText('已收录 32 / 32',{exact:true})).toBeVisible();await context.setOffline(false);

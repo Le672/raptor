@@ -1,7 +1,7 @@
 import {useCallback,useEffect,useId,useMemo,useRef,useState,type ReactNode,type CSSProperties} from 'react';
 import {ArrowLeft,ArrowRight,BookOpen,Check,CheckCircle2,ChevronDown,ChevronLeft,ChevronRight,Clock3,Cloud,Download,FileSearch,FileText,FolderOpen,GitBranch,HelpCircle,Map,MapPin,Maximize2,MessageSquare,Pause,Play,Save,Search,Settings2,Upload,Users,Volume2,VolumeX,X} from 'lucide-react';
 import {chapters,deductions,endings,evidence,locations,persons,statements,timeline,type Evidence,type Person} from './content';
-import {apply,initialState,decodeState,nextChapterMissing,evidenceOpen,locationOpen,REPORT_QUESTIONS,type GameState,type Command} from './engine';
+import {apply,initialState,decodeState,endingFor,nextChapterMissing,evidenceOpen,locationOpen,REPORT_QUESTIONS,type GameState,type Command} from './engine';
 import {CaseStore,exportCase,importCase,type Saved} from './storage';
 import {CaseSync,type CloudView} from './cloud';
 import {ambience,readTranscript,stopTranscript} from './audio';
@@ -43,7 +43,7 @@ export default function App(){
  const chooseTopic=(person:Person,id:string)=>{const t=person.topics.find(t=>t.id===id);if(!t)return;const result=dispatch({type:'topic',person:person.id,id});if(result?.ok){setTopicId(id);setDialogue(t.lines);setChallengeId('');setNotice('');}};
  const restore=async(next:GameState)=>{next=decodeState(next);if(!window.confirm('恢复这份档案？当前调查会先另存一份备份。'))return;if(state)await localStore.save(state,'backup','恢复前备份');await sync.pause();replace(next);setPlaying(true);close();inform('档案已恢复。云同步已暂停，确认进度后可重新启用。');};
  if(!loaded||!state)return <main className="loading-screen"><span className="seal-mark">雾</span><p>正在打开旧港档案…</p></main>;
- const chapter=chapters.find(c=>c.id===state.chapter)!,place=locations.find(l=>l.id===state.location)!,missing=nextChapterMissing(state),person=persons.find(p=>p.id===personId)!,deduction=deductions.find(d=>d.id===deductionId)||deductions[0],visibleDed=deductions.filter(d=>d.chapter<=state.chapter),activeDoc=evidence.find(e=>e.id===selectedEvidence),ending=endings.find(e=>e.id===endingId)||endings[0];
+ const chapter=chapters.find(c=>c.id===state.chapter)!,place=locations.find(l=>l.id===state.location)!,missing=nextChapterMissing(state),person=persons.find(p=>p.id===personId)!,deduction=deductions.find(d=>d.id===deductionId)||deductions[0],visibleDed=deductions.filter(d=>d.chapter<=state.chapter),activeDoc=evidence.find(e=>e.id===selectedEvidence),ending=endingFor(endingId)||endings[0];
  const knownEvents=timeline.filter(t=>t.requires.every(id=>state.collected.includes(id)||state.solved.includes(id)));const orderedEvents=[...knownEvents].sort((a,b)=>{const ia=state.timelineOrder.indexOf(a.id),ib=state.timelineOrder.indexOf(b.id);return (ia===-1?999:ia)-(ib===-1?999:ib);});
  const moveEvent=(id:string,dir:number)=>{const order=orderedEvents.map(e=>e.id),from=order.indexOf(id),to=from+dir;if(to<0||to>=order.length)return;[order[from],order[to]]=[order[to],order[from]];dispatch({type:'timeline',ids:order});};
  const navigation=[{id:'map',text:'馆内地图',icon:Map},{id:'people',text:'人物证言',icon:Users},{id:'evidence',text:'证据档案',icon:FolderOpen},{id:'board',text:'推理板',icon:GitBranch},{id:'timeline',text:'时间线',icon:Clock3}] as const;

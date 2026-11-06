@@ -1,11 +1,16 @@
 import {describe,it,expect} from 'vitest';
 import {evidence,persons,statements,deductions,locations,timeline,chapters} from '../src/content';
-import {initialState,apply,evidenceOpen,canProve,decodeState,REPORT_QUESTIONS,type GameState} from '../src/engine';
+import {initialState,apply,evidenceOpen,canProve,decodeState,endingFor,REPORT_QUESTIONS,type GameState} from '../src/engine';
 function collectAvailable(s:GameState){for(let pass=0;pass<40;pass++){let changed=false;for(const e of evidence)if(!s.collected.includes(e.id)&&evidenceOpen(s,e.id)){const r=apply(s,{type:'collect',id:e.id});expect(r.ok,e.id).toBe(true);s=r.state;changed=true;}if(!changed)return s;}throw new Error('Evidence dependency cycle');}
 function solveAvailable(s:GameState,old=true){for(let pass=0;pass<12;pass++){let changed=false;for(const d of deductions)if((old||!['D07','D08'].includes(d.id))&&!s.solved.includes(d.id)&&canProve(s,d.id)){const r=apply(s,{type:'deduce',id:d.id,option:d.options.find(o=>o.correct)!.id,supports:s.collected});expect(r.ok,d.id+': '+r.message).toBe(true);s=r.state;changed=true;}if(!changed)return s;}throw new Error('Deduction dependency cycle');}
 function finish(old=true,reverse=false){let s=initialState('case-test-001',1);for(let i=0;i<5;i++){if(reverse){for(let pass=0;pass<32;pass++)for(const e of [...evidence].reverse())if(evidenceOpen(s,e.id))s=apply(s,{type:'collect',id:e.id}).state;}else s=collectAvailable(s);s=solveAvailable(s,old);if(s.chapter<5){const r=apply(s,{type:'advance'});expect(r.ok,r.message).toBe(true);s=r.state;}}return s;}
 const answers=Object.fromEntries(REPORT_QUESTIONS.map(q=>[q.id,q.correct]));
 describe('authored case integrity',()=>{
+ it('maps saved investigation results to the correct distinct authored epilogues',()=>{
+  expect(endingFor('current')?.title).toBe('破晓之前');
+  expect(endingFor('full')?.title).toBe('被留下的声音');
+  expect(endingFor('current')).not.toBe(endingFor('full'));
+ });
  it('contains substantive documents and complete linked content, without dangling IDs',()=>{
   expect(evidence).toHaveLength(32);expect(statements).toHaveLength(24);expect(deductions).toHaveLength(8);expect(locations).toHaveLength(7);expect(persons).toHaveLength(6);expect(chapters).toHaveLength(5);
   const ids=new Set(evidence.map(e=>e.id));expect(ids.size).toBe(32);const dIds=new Set(deductions.map(d=>d.id)),sIds=new Set(statements.map(s=>s.id));
