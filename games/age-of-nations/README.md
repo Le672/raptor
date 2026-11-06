@@ -11,7 +11,7 @@
 
 ## 架构
 
-`core.ts` 只依赖 `content.ts` 与 JSON 数据，无 DOM、墙上时钟或非种子随机数。命令先验证再应用；失败保留原状态。`projectView` 为 AI 提供经过迷雾过滤的视图；`ai.worker.ts` 在 Worker 规划对手行动。`render.ts` 使用轻量原生 WebGL 绘制六边形，再叠加 Canvas 墨线、图标与文字；WebGL 不可用时降级 Canvas。这里替换了规范中的建议 PixiJS，以免为无纹理地图引入额外运行时。
+`core.ts` 只依赖 `content.ts` 与 JSON 数据，无 DOM、墙上时钟或非种子随机数。命令先验证再应用；失败保留原状态。操作记录携带 playerId、turn、seq；LocalHuman / Ai / Remote 共享 PlayerController 接口，Remote 只留接口。状态哈希使用键排序后的规范化序列化，同时兼容读取早期未排序哈希的存档。界面仅拿当前玩家的视图，权威完整状态留在命令与存档边界。`projectView` 为 AI 提供经过迷雾过滤的视图；`ai.worker.ts` 在 Worker 规划对手行动。`render.ts` 使用轻量原生 WebGL 绘制六边形，再叠加 Canvas 墨线、图标与文字；WebGL 不可用时降级 Canvas。这里替换了规范中的建议 PixiJS，以免为无纹理地图引入额外运行时。
 
 `store.ts` 的 `SaveStore`/`LocalSaveStore` 管理 IndexedDB 原子事务、五回合滚动存档、操作检查点、手动存档、状态哈希与导入校验。每次已执行操作立即排队写检查点，页面隐藏时再补写，不依赖浏览器退出时才保存。未完成写入会显示错误并保留导出入口。当前 schemaVersion 为 1；未来结构变化必须添加迁移及测试。用户设置单独保存，核心状态不直接访问存储。
 

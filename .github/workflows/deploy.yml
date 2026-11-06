@@ -5,6 +5,10 @@ on:
     branches: [master]
   workflow_dispatch:
 
+concurrency:
+  group: portal-production
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-24.04
@@ -31,7 +35,12 @@ jobs:
         run: npm install --prefix .wrangler/nations-browser-tools --no-save --package-lock=false @playwright/test@1.56.1
 
       - name: Prepare the game test browser
-        run: node .wrangler/nations-browser-tools/node_modules/@playwright/test/cli.js install --with-deps chromium
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "NATIONS_BROWSER_CHANNEL=chrome" >> "$GITHUB_ENV"
+          else
+            node .wrangler/nations-browser-tools/node_modules/@playwright/test/cli.js install --with-deps chromium
+          fi
 
       - name: Check desktop and mobile gameplay with real persistent storage
         run: node .wrangler/nations-browser-tools/node_modules/@playwright/test/cli.js test --config games/age-of-nations/playwright.config.mjs

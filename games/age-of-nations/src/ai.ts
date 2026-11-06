@@ -1,5 +1,5 @@
 import { buildings, civs, improvements, techs, unitTypes } from './content';
-import { canProduce, connected, cityYields, distance, era, execute, hasTech, neighbors, passableLand, pathfind, predictBattle, projectView, settleWorld, tileAt, visible, type Command, type GameState, type Item, type Unit } from './core';
+import { canProduce, connected, cityYields, distance, era, execute, hasTech, neighbors, passableLand, pathfind, predictBattle, projectView, settleWorld, tileAt, visible, type Command, type GameState, type Item, type PlayerController, type Unit } from './core';
 
 function legal(s:GameState,player:number,cmd:Command):GameState {const r=execute(s,player,cmd,false,true);return r.ok?r.state:s;}
 // This planner receives only a player-specific projection, never the authoritative world.
@@ -48,4 +48,6 @@ export function planPlayer(view:GameState,player:number):Command[] {
   if(hasTech(s.players[player],'civics')&&s.players[player].government==='monarchy'&&personality.science>.6)act({type:'GOVERNMENT',id:'republic'});if(hasTech(s.players[player],'education')&&s.players[player].culture>=12&&!s.players[player].policies.includes('education')&&!s.players[player].pendingPolicies)act({type:'POLICIES',ids:['education']});commands.push({type:'END_TURN'});return commands;
 }
 function moveToward(s:GameState,u:Unit,target:string,act:(c:Command)=>boolean):boolean {const route=pathfind(s,u,target);if(!route)return false;for(let i=route.path.length-1;i>=0;i--){const possible=pathfind(s,u,route.path[i],u.moves);if(possible)return act({type:'MOVE',unit:u.id,target:route.path[i]});}return false;}
-export function runAiRound(initial:GameState,onProgress?:(player:number)=>void):GameState {let s=initial;for(let i=Math.max(1,s.currentPlayer);i<s.players.length;i++){s={...s,currentPlayer:i};if(s.players[i].alive){const view=projectView(s,i);for(const cmd of planPlayer(view,i)){const result=execute(s,i,cmd);if(result.ok)s=result.state;if(s.winner)break;}}onProgress?.(i);if(s.winner)break;}return s.winner?s:settleWorld(s);}
+export function runAiRound(initial:GameState,onProgress?:(player:number)=>void):GameState {let s=initial;for(let i=Math.max(1,s.currentPlayer);i<s.players.length;i++){s={...s,currentPlayer:i};if(s.players[i].alive){const view=projectView(s,i);for(const cmd of aiController(i).commands(view)){const result=execute(s,i,cmd);if(result.ok)s=result.state;if(s.winner)break;}}onProgress?.(i);if(s.winner)break;}return s.winner?s:settleWorld(s);}
+
+export function aiController(playerId:number):PlayerController{return{playerId,kind:'ai',commands:view=>planPlayer(view as GameState,playerId)}}
