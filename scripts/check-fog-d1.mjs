@@ -1,0 +1,24 @@
+import {Miniflare} from 'miniflare';
+import {build} from 'esbuild';
+import {fileURLToPath} from 'node:url';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+const built=await build({stdin:{contents:"import {handleSaves} from './games/fog-harbor-files/cloud/service.mjs';import {ensureSchema} from './games/fog-harbor-files/cloud/schema.mjs';export default{async fetch(request,env){await ensureSchema(env.DB);return handleSaves(request,env,{userId:1,name:'D1 runtime check'});}}",resolveDir:fileURLToPath(new URL('../',import.meta.url)),loader:'js'},bundle:true,platform:'browser',format:'esm',write:false});
+const runtime=new Miniflare({modules:true,script:built.outputFiles[0].text,compatibilityDate:'2026-01-01',d1Databases:{DB:'fog-check'}});
+try{
+  const db=await runtime.getD1Database('DB');
+  const id=crypto.randomUUID(),origin='https://games.yukino.bond',path=origin+'/api/games/fog-harbor-files/saves/'+id;
+  const payload=new Uint8Array(2*1024*1024);for(let i=0;i<payload.length;i++)payload[i]=i%251;payload[0]=31;payload[1]=139;
+  const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+  const put=(revision,bytes)=>runtime.dispatchFetch(path,{method:'PUT',headers:{Origin:origin,'X-Fog-Account':'1','X-Fog-Sync':'1','Content-Type':'application/gzip','If-Match':`"${revision}"`,'X-State-Hash':hash(bytes),'X-Fog-Meta':encodeURIComponent(JSON.stringify({kind:'auto',name:'Runtime verification',chapter:Math.min(5,revision+1),caseId:'last-recording',schemaVersion:1,deviceId:id}))},body:bytes});
+  const first=await put(0,payload);assert.equal(first.status,200,await first.text());
+  const chunks=await db.prepare('SELECT length(data) AS size FROM fog_save_chunks').all();assert.equal(chunks.results.length,8);assert.ok(chunks.results.every(row=>row.size<=262144));
+  const restored=await runtime.dispatchFetch(path,{headers:{'X-Fog-Account':'1'}});assert.equal(restored.status,200);assert.equal(hash(new Uint8Array(await restored.arrayBuffer())),hash(payload));
+  await db.prepare("CREATE TRIGGER injected_failure BEFORE INSERT ON fog_save_chunks WHEN NEW.chunk_index=1 BEGIN SELECT RAISE(ABORT,'injected D1 failure'); END").run();
+  const changed=payload.slice();changed[2]++;
+  assert.equal((await put(1,changed)).status,503);
+  assert.equal((await db.prepare('SELECT revision FROM fog_saves').first()).revision,1);
+  assert.equal((await db.prepare('SELECT COUNT(*) AS count FROM fog_save_chunks').first()).count,8);
+  assert.equal((await db.prepare('SELECT COUNT(*) AS count FROM fog_save_versions').first()).count,1);
+  console.log('Verified Fog Harbor Files in the real Workers D1 runtime: eight BLOB chunks, exact 2 MiB restoration, and atomic rollback after a mid-write failure. No R2 binding was used.');
+}finally{await runtime.dispose();}

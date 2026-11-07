@@ -5,5 +5,13 @@ const refs=[...html.matchAll(/(?:src|href)="(\/fog-harbor-files\/assets\/[^"?#]+
 for(const ref of refs){const r=await get(ref);if((r.headers.get('Content-Type')||'').includes('text/html'))throw new Error('SPA fallback intercepted mystery asset');}
 const manifest=await(await get(base+'offline-manifest.json')).json();if(!manifest.files.some(path=>path.endsWith('/art/archive.svg')))throw new Error('Archive art missing');
 await get(base+'art/archive.svg');await get(base+'privacy.html');await get(base+'sw.js');
-for(const headers of [{},{Authorization:'Bearer forged-session'}]){const r=await fetch(origin+'/api/games/fog-harbor-files/session',{headers,signal:AbortSignal.timeout(20000)});if(r.status!==401||(await r.json()).code!=='LOGIN_REQUIRED')throw new Error('Mystery API accepted an unverified user');}
-console.log(`Verified Fog Harbor Files document, ${refs.length} assets, case artwork, offline manifest and authenticated API.`);
+for(const headers of [{},{Authorization:'Bearer forged-session'}]){
+ let ready=false;
+ for(let attempt=0;attempt<5;attempt++){
+  const r=await fetch(origin+'/api/games/fog-harbor-files/session',{headers:{...headers,'Cache-Control':'no-cache'},signal:AbortSignal.timeout(20000)}),body=await r.json();
+  if(r.status===401&&body.code==='LOGIN_REQUIRED'&&body.available===true&&body.storage==='d1'){ready=true;break;}
+  if(attempt<4)await new Promise(resolve=>setTimeout(resolve,3000));
+ }
+ if(!ready)throw new Error('Mystery D1 must be ready and reject missing or forged sessions');
+}
+console.log(`Verified Fog Harbor Files document, ${refs.length} assets, case artwork, offline manifest and available authenticated D1 API.`);

@@ -1,0 +1,20 @@
+// Fixed, idempotent game schema. No request-supplied SQL is accepted.
+export const SCHEMA=[
+  "CREATE TABLE IF NOT EXISTS fog_saves (\n  id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, kind TEXT NOT NULL,\n  name TEXT NOT NULL, chapter INTEGER NOT NULL, case_id INTEGER NOT NULL,\n  schema_version INTEGER NOT NULL, revision INTEGER NOT NULL,\n  state_hash TEXT NOT NULL, size_bytes INTEGER NOT NULL, r2_key TEXT NOT NULL,\n  device_id TEXT NOT NULL, write_token TEXT NOT NULL,\n  created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, deleted_at INTEGER\n);",
+  "CREATE INDEX IF NOT EXISTS fog_saves_user ON fog_saves(user_id, updated_at DESC);",
+  "CREATE TABLE IF NOT EXISTS fog_save_versions (\n  save_id TEXT NOT NULL, user_id INTEGER NOT NULL, revision INTEGER NOT NULL,\n  r2_key TEXT NOT NULL UNIQUE, state_hash TEXT NOT NULL, size_bytes INTEGER NOT NULL,\n  created_at INTEGER NOT NULL, PRIMARY KEY(save_id,revision)\n);",
+  "CREATE INDEX IF NOT EXISTS fog_versions_user ON fog_save_versions(user_id);",
+  "CREATE INDEX IF NOT EXISTS fog_versions_payload ON fog_save_versions(user_id,state_hash);",
+  "CREATE TABLE IF NOT EXISTS fog_save_chunks (\n  user_id INTEGER NOT NULL, state_hash TEXT NOT NULL, chunk_index INTEGER NOT NULL,\n  data BLOB NOT NULL CHECK(length(data)<=262144),\n  PRIMARY KEY(user_id,state_hash,chunk_index)\n);",
+  "CREATE TABLE IF NOT EXISTS fog_save_budget (user_id INTEGER PRIMARY KEY, minute INTEGER NOT NULL, count INTEGER NOT NULL);",
+  "CREATE TABLE IF NOT EXISTS fog_legacy_gc (r2_key TEXT PRIMARY KEY, queued_at INTEGER NOT NULL);",
+  "CREATE TRIGGER IF NOT EXISTS fog_save_count BEFORE INSERT ON fog_saves\nWHEN (SELECT COUNT(*) FROM fog_saves WHERE user_id=NEW.user_id AND deleted_at IS NULL)>=20\nAND NOT EXISTS(SELECT 1 FROM fog_saves WHERE id=NEW.id)\nBEGIN SELECT RAISE(ABORT,'FOG_SAVE_COUNT'); END;",
+  "CREATE TRIGGER IF NOT EXISTS fog_save_bytes BEFORE INSERT ON fog_save_versions\nWHEN COALESCE((SELECT SUM(size_bytes) FROM fog_save_versions WHERE user_id=NEW.user_id),0)+NEW.size_bytes>52428800\nBEGIN SELECT RAISE(ABORT,'FOG_SAVE_BYTES'); END;"
+];
+const initialized=new WeakMap();
+export function ensureSchema(db){
+  if(!db)throw new Error("Game D1 binding is unavailable");
+  let pending=initialized.get(db);
+  if(!pending){pending=db.batch(SCHEMA.map(sql=>db.prepare(sql))).catch(error=>{initialized.delete(db);throw error;});initialized.set(db,pending);}
+  return pending;
+}
