@@ -18,16 +18,17 @@ export async function ensureGameDatabase(options){
   if(database?.name!==GAME_DATABASE||!uuid.test(database?.uuid||''))throw new Error('Invalid game D1 database response');
   return{id:database.uuid,created:!found.length};
 }
-export function withGameDatabase(config,id){
+export function withGameDatabase(config,id,name=GAME_DATABASE){
   if(!uuid.test(id))throw new Error('Invalid game database ID');
+  if(![GAME_DATABASE,'yukino-portal'].includes(name))throw new Error('Invalid game database name');
   let count=0;
   const output=config.split(/(?=^\[)/m).map(section=>{
     if(!section.startsWith('[[d1_databases]]')||!/^binding\s*=\s*"GAMES_DB"\s*$/m.test(section))return section;
     count++;if(!/^database_id\s*=/m.test(section))throw new Error('Game database binding is missing its ID');
-    return section.replace(/^database_id\s*=.*$/m,`database_id = "${id}"`);
+    return section.replace(/^database_id\s*=.*$/m,`database_id = "${id}"`).replace(/^database_name\s*=.*$/m,`database_name = "${name}"`);
   }).join('');
   if(count>1)throw new Error('Duplicate game database binding');
-  return count?output:output+`\n[[d1_databases]]\nbinding = "GAMES_DB"\ndatabase_name = "${GAME_DATABASE}"\ndatabase_id = "${id}"\n`;
+  return count?output:output+`\n[[d1_databases]]\nbinding = "GAMES_DB"\ndatabase_name = "${name}"\ndatabase_id = "${id}"\n`;
 }
 
 // Copy metadata only, retaining the old private objects as a read fallback.
@@ -35,6 +36,7 @@ export function withGameDatabase(config,id){
 export async function importLegacySaves({source,target,query}){
   const migration='portal-r2-metadata-v1';
   if((await query(target,'SELECT name FROM nations_storage_migrations WHERE name=?',[migration])).length)return{imported:0,alreadyDone:true};
+  if((await query(source,"SELECT name FROM sqlite_master WHERE type='table' AND name='nations_save_chunks'")).length&&(await query(source,'SELECT 1 AS present FROM nations_save_chunks LIMIT 1')).length)throw new Error('D1 snapshots already exist in the source; migrate their bytes before selecting an independent database');
   const tables=await query(source,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nations_saves','nations_save_versions')");
   let imported=0;
   if(tables.length){

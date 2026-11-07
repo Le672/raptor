@@ -1,3 +1,4 @@
+import {ensureSchema} from './schema.mjs';
 export const LIMITS={saves:20,bytes:50*1024*1024,upload:2*1024*1024,versions:3};
 export const CHUNK_BYTES=256*1024;
 const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','Vary':'Cookie, Authorization','X-Content-Type-Options':'nosniff'};
@@ -101,7 +102,7 @@ export async function handleSaves(request,env,user){
 
 export async function cleanSaves(env){
   if(!env.GAMES_DB)return;
-  const db=env.GAMES_DB,{results}=await db.prepare('SELECT DISTINCT user_id FROM nations_saves').all();
+  const db=env.GAMES_DB;await ensureSchema(db);const {results}=await db.prepare('SELECT DISTINCT user_id FROM nations_saves').all();
   // Identity stays in the portal DB; game bytes stay in their own database.
   for(let offset=0;offset<results.length;offset+=100){
     const ids=results.slice(offset,offset+100).map(row=>row.user_id);
