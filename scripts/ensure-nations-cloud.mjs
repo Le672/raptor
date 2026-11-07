@@ -7,6 +7,10 @@ if(!result.ready){
   // so the next release can restore cloud sync as soon as the account is ready.
   const config=new URL('../wrangler.toml',import.meta.url);
   await writeFile(config,withoutGameStorage(await readFile(config,'utf8')));
-  console.log('::warning::R2 is not enabled. Publishing local gameplay with cloud saves explicitly unavailable; no storage or account data was deleted.');
+  console.log('::warning::R2 is not enabled. Publishing strategy D1 saves independently; optional object-backed saves remain unavailable. No storage or account data was deleted.');
 }else console.log(result.created?'Created private game save storage.':'Private game save bucket is already configured.');
+// Only legacy imported saves need an optional R2 binding in the D1 cleaner.
+const cleaner=new URL('../games/age-of-nations/cloud/d1-wrangler.jsonc',import.meta.url),settings=JSON.parse(await readFile(cleaner,'utf8'));
+if(result.ready)settings.r2_buckets=[{binding:'GAMES_SAVES',bucket_name:'yukino-games-saves'}];else delete settings.r2_buckets;
+await writeFile(cleaner,JSON.stringify(settings,null,2)+'\n');
 if(process.env.GITHUB_OUTPUT)await appendFile(process.env.GITHUB_OUTPUT,`ready=${result.ready}\n`);

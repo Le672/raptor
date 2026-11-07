@@ -29,17 +29,20 @@
 
 IndexedDB 升级至版本 2，保留原 saves 表，增加同步设置和待上传队列；进度 schemaVersion 仍为 1。每个本机对局使用独立 campaignId 映射到云端自动存档，加载云端自动存档会继承其 revision。离线、会话过期和云端故障不阻塞本地保存；重新登录会比较最近本机自动存档，补传新进度。409 冲突由玩家选择云端、本机或两份保留。
 
-后端复用主站 D1 的账号验证与独立 `nations_*` 表，压缩存档放在私有 R2。D1 条件更新与事务控制 revision、20 份 / 50 MB 配额以及最近三版本；R2 使用唯一暂存键，失败写入不会覆盖其他设备的对象。删除保留标记以阻止旧设备静默恢复，Cron 清理中断上传、过期对象与已注销账号的存档。云端不解析 GameState，也不记录存档内容。
+账号验证继续使用主站 D1，游戏的 `nations_*` 表与压缩正文存放在独立的 `yukino-nations` D1 数据库（`GAMES_DB`）。正文按 256 KiB 分块，每次最多八块；元数据、最近三版本、配额与分块在同一 D1 batch 事务中提交。20 份 / 50 MiB 配额按保留版本的逻辑大小计算。同一账号的相同压缩快照共用数据块；删除最后一个引用或淘汰旧版本时回收。账号删除后的游戏数据由独立 Cron 校验主站账号表并清理。云端不解压或记录 GameState 内容。
 
-部署工作流创建私有 `yukino-games-saves` bucket，幂等执行 `cloud/schema.sql` 并发布每日清理 Worker；R2 必须已启用，现有部署令牌需要 R2 读写权限。存档无需公开 bucket 地址。`privacy.html` 说明存储内容、版本保留、导出与删除。
+### 存档与写入优化
 
-### 发布存储检查失败
+- 存储格式 `nations-packed` v1 独立于游戏 schemaVersion：重复记录的字段名只写一次，地图坐标 ID 在读取时恢复，视野改用地图索引。单位、城市、日志和完整命令记录全部保留，不截断重放历史。JSON 文件导入导出格式保持兼容；早期 JSON / gzip 快照仍可读取。
+- 本机相同检查点与自动档跳过重复写入。云端同一对局的待上传进度合并为最新一份；未改变的自动存档不上传，手动另存仍保留独立存档。待上传队列持久保存压缩快照，并直接复用已压缩内容上传。
+- 自动同步仍延迟 3.5 秒合并连续操作，手动存档立即同步。重复上传或丢失回执后的重试不会增加版本；不同内容的旧 revision 仍产生 409，由玩家选择。
+- `node scripts/benchmark-nations-saves.mjs` 比较新旧 gzip 体积，生成 `.wrangler/nations-saves/benchmark.json`。`node scripts/check-nations-d1.mjs` 在实际 Workers / D1 本机运行时检查 2 MiB 分块恢复与中途失败后的事务回滚。
 
-GitHub Actions 使用仓库 secret `CLOUDFLARE_API_TOKEN`。在 Cloudflare 的 API Tokens 页面为该令牌保留现有权限，并增加部署账户的 `Account > Workers R2 Storage > Edit`；如果替换令牌，在仓库 Settings → Secrets and variables → Actions 中更新同名 secret，不要将令牌写入代码或日志。
+### 发布与旧数据
 
-若日志给出 Cloudflare 错误码 `10042`，需要先在该账户的 R2 Object Storage 页面完成首次开通；部署脚本不会代为接受订阅条款。完成后重新运行完整发布工作流；脚本会创建私有 bucket，再执行数据库迁移和部署，无需开启公开访问。
+CI 运行 `scripts/ensure-nations-d1.mjs`，查找或创建名为 `yukino-nations` 的数据库，将真实 ID 写入本次发布的 Pages 和 D1 清理 Worker 配置，然后幂等执行 `cloud/schema.sql`。部署令牌需要 `Account > D1 > Edit`，无需开通 R2。清理配置中的全零 ID 仅为占位，必须先运行配置脚本，不能直接用于生产部署。
 
-网站发布使用 `--allow-unavailable`：只有明确的 `10042` 会让本次临时构建省略 `GAMES_SAVES` 绑定，并跳过依赖它的迁移与清理 Worker；本机游戏照常发布，云存档显示暂不可用。源代码中的绑定保留，下一次发布会重新检查；权限错误、网络中断和其他响应仍会停止发布。账户开通 R2 后重新运行整个工作流即可启用云服务，不需要改游戏存档或公开 bucket。
+`scripts/migrate-nations-legacy.mjs` 一次性复制旧主站数据库中的游戏元数据，不修改主站记录或私有对象；中断后可恢复。旧 R2 存档保留只读回退，新保存一律进入 D1。另一款游戏及历史对象仍沿用原有的可选 R2 发布步骤；R2 的 `10042` 不影响《列国纪元》的 D1 存档。D1 权限、迁移或网络错误会停止本次发布，不会假装云端可用。
 
 ## 验证边界
 

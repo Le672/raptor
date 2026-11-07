@@ -1,0 +1,12 @@
+{
+  "name":"yukino-nations-d1-cleanup",
+  "main":"d1-cleanup.mjs",
+  "compatibility_date":"2026-11-07",
+  "workers_dev":false,
+  "triggers":{"crons":["23 20 * * *"]},
+  "d1_databases":[
+    {"binding":"DB","database_name":"yukino-portal","database_id":"e069f104-f55e-441f-9907-0106e2100df7"},
+    {"binding":"GAMES_DB","database_name":"yukino-nations","database_id":"00000000-0000-0000-0000-000000000000"}
+  ],
+  "observability":{"enabled":true}
+}

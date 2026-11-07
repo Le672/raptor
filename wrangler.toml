@@ -2,6 +2,8 @@ name = "raptor"
 compatibility_date = "2026-01-01"
 pages_build_output_dir = "dist"
 
+# CI resolves the independent GAMES_DB binding with ensure-nations-d1.mjs.
+
 [[d1_databases]]
 binding = "DB"
 database_name = "yukino-portal"

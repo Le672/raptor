@@ -19,3 +19,14 @@ it('isolates queued progress across account switches',async()=>{const{sync,r,l}=
 it('a cloud failure cannot turn a successful local save into a failed game operation',async()=>{const{sync,r,l}=make();await sync.connect();await sync.enable();r.cloud.put=async()=>{throw new CloudError('LOGIN_REQUIRED',401);};await expect(sync.save(makeState(),'auto')).resolves.toBeDefined();await sync.flush();expect(l.saves.has('auto')).toBe(true);expect(sync.view.status).toBe('login');});
 
 it('reconciles newer local turns played during an expired session before retrying an old queue',async()=>{const{sync,r}=make();await sync.connect();await sync.enable();let state=makeState();await sync.save(state,'auto');await sync.flush();const original=r.cloud.put.bind(r.cloud);r.cloud.put=async()=>{throw new CloudError('LOGIN_REQUIRED',401);};state.turn=2;await sync.save(state,'auto');await sync.flush();state.turn=9;await sync.save(state,'auto');r.cloud.put=original;await sync.connect();await sync.flush();expect([...r.entries.values()][0].state.turn).toBe(9);});
+it('coalesces offline autosaves and stores a compressed queue that survives a restart',async()=>{
+  const{sync,r,l}=make();await sync.connect();await sync.enable();vi.stubGlobal('navigator',{onLine:false});const state=makeState();
+  for(let turn=1;turn<=4;turn++){state.turn=turn;await sync.save(state,'auto');}
+  const pending=Object.values(l.settings.get('user:1').pending)as any[];expect(pending).toHaveLength(1);expect(pending[0].state).toBeUndefined();expect(pending[0].encoded.gzip.byteLength).toBeLessThan(JSON.stringify(state).length);
+  sync.dispose();const resumed=new SyncedSaveStore(l.store,r.cloud);managers.push(resumed);await resumed.connect();vi.stubGlobal('navigator',{onLine:true});await resumed.flush();expect([...r.entries.values()][0].state.turn).toBe(4);
+});
+it('does not upload or allocate a new cloud revision when automatic progress has not changed',async()=>{
+  const{sync,r}=make(),put=vi.spyOn(r.cloud,'put');await sync.connect();await sync.enable();const state=makeState();await sync.save(state,'auto');await sync.flush();
+  await sync.save(state,'auto');await sync.save(structuredClone(state),'auto');await sync.flush();expect(put).toHaveBeenCalledTimes(1);
+  state.turn=2;await sync.save(state,'auto');await sync.flush();expect(put).toHaveBeenCalledTimes(2);expect([...r.entries.values()][0].meta.revision).toBe(2);
+});

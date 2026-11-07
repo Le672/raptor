@@ -13,7 +13,15 @@ CREATE TABLE IF NOT EXISTS nations_save_versions (
   created_at INTEGER NOT NULL, PRIMARY KEY(save_id,revision)
 );
 CREATE INDEX IF NOT EXISTS nations_versions_user ON nations_save_versions(user_id);
+CREATE INDEX IF NOT EXISTS nations_versions_payload ON nations_save_versions(user_id,state_hash);
+CREATE TABLE IF NOT EXISTS nations_save_chunks (
+  user_id INTEGER NOT NULL, state_hash TEXT NOT NULL, chunk_index INTEGER NOT NULL,
+  data BLOB NOT NULL CHECK(length(data)<=262144),
+  PRIMARY KEY(user_id,state_hash,chunk_index)
+);
 CREATE TABLE IF NOT EXISTS nations_save_budget (user_id INTEGER PRIMARY KEY, minute INTEGER NOT NULL, count INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS nations_storage_migrations (name TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS nations_legacy_gc (r2_key TEXT PRIMARY KEY, queued_at INTEGER NOT NULL);
 CREATE TRIGGER IF NOT EXISTS nations_save_count BEFORE INSERT ON nations_saves
 WHEN (SELECT COUNT(*) FROM nations_saves WHERE user_id=NEW.user_id AND deleted_at IS NULL)>=20
 AND NOT EXISTS(SELECT 1 FROM nations_saves WHERE id=NEW.id)

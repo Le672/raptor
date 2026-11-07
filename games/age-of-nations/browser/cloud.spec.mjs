@@ -10,7 +10,7 @@ test('opt-in, automatic upload, a concurrent edit, keep-both and cloud restorati
     if(id==='saves')return json({saves:[...records.values()].map(r=>r.meta),usage:0,limits:{saves:20,bytes:52428800,versions:3}});
     if(method==='PUT'){
       const data=JSON.parse(decodeURIComponent(req.headers()['x-nations-meta'])),body=req.postDataBuffer(),old=records.get(id),revision=Number(req.headers()['if-match'].replaceAll('"',''));
-      if(old&&injectConflict){injectConflict=false;const state=JSON.parse(gunzipSync(old.body));state.turn=5;old.body=gzipSync(Buffer.from(JSON.stringify(state)));old.meta={...old.meta,turn:5,revision:old.meta.revision+1,hash:createHash('sha256').update(old.body).digest('hex')};}
+      if(old&&injectConflict){injectConflict=false;const state=JSON.parse(gunzipSync(old.body));(state.saveFormat==='nations-packed'?state.state:state).turn=5;old.body=gzipSync(Buffer.from(JSON.stringify(state)));old.meta={...old.meta,turn:5,revision:old.meta.revision+1,hash:createHash('sha256').update(old.body).digest('hex')};}
       if(revision!==(old?.meta.revision||0))return json({code:'CONFLICT',save:old.meta},409);
       const meta={...data,id,revision:revision+1,hash:req.headers()['x-state-hash'],size:body.length,created:Date.now(),updated:Date.now(),deleted:false};records.set(id,{meta,body});return json({save:meta});
     }
