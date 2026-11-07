@@ -32,7 +32,7 @@ describe('authenticated private game saves',()=>{
     const id=crypto.randomUUID(),bytes=new Uint8Array(2*1024*1024);bytes[0]=31;bytes[1]=139;for(let i=2;i<bytes.length;i++)bytes[i]=i%251;
     const response=await request('saves/'+id,'PUT',1,{'Content-Type':'application/gzip','If-Match':'"0"','X-State-Hash':await sha256(bytes),'X-Nations-Meta':encodeURIComponent(JSON.stringify({kind:'manual',name:'large',turn:1,era:0,schemaVersion:1,deviceId:device}))},bytes);
     expect(response.status).toBe(200);const sizes=await db.prepare('SELECT length(data) AS size FROM nations_save_chunks').all();expect(sizes.results).toHaveLength(8);expect(sizes.results.every((row:any)=>row.size<=262144)).toBe(true);
-    expect(new Uint8Array(await(await request('saves/'+id)).arrayBuffer())).toEqual(bytes);
+    const restored=await(await request('saves/'+id)).arrayBuffer();expect(restored.byteLength).toBe(bytes.byteLength);expect(await sha256(restored)).toBe(await sha256(bytes));
     await db.prepare('DELETE FROM nations_save_chunks WHERE chunk_index=3').run();expect((await request('saves/'+id)).status).toBe(503);
   });
   it('keeps shared bytes until the last referencing save is deleted',async()=>{
