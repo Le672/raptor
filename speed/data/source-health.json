@@ -3864,226 +3864,6 @@
       "mime": "application/octet-stream"
     },
     {
-      "id": "new-5aeae7acb88d",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:36Z",
-      "finalUrl": "https://am3-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-99ce99f2ebf5",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:37Z",
-      "finalUrl": "https://fr5-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-df7bbca1a8a3",
-      "status": 200,
-      "bytes": 15527,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:36Z",
-      "finalUrl": "https://thn2-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-964b45a7a08b",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:09:18Z",
-      "finalUrl": "https://pa5-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-2a6ba985d22a",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:36Z",
-      "finalUrl": "https://ny2-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-87b3265a8747",
-      "status": 200,
-      "bytes": 15529,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:36Z",
-      "finalUrl": "https://sqr-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-3cde8c008891",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:37Z",
-      "finalUrl": "https://sp3-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-e57d70ad62be",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:36Z",
-      "finalUrl": "https://tii-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-6d62ae6ee359",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:37Z",
-      "finalUrl": "https://bzi-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-9bdd934be820",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:37Z",
-      "finalUrl": "https://kal-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-bed2c9179c04",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:37Z",
-      "finalUrl": "https://hk2-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-9054ace1e0e6",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:43Z",
-      "finalUrl": "https://ww-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-45042a7f138a",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:43Z",
-      "finalUrl": "https://kx-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-450c9c92341f",
-      "status": 200,
-      "bytes": 16384,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:44Z",
-      "finalUrl": "https://sg1-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-3935538cb57a",
-      "status": 200,
-      "bytes": 15528,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:45Z",
-      "finalUrl": "https://sy4-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-089dacea6b49",
-      "status": 200,
-      "bytes": 15528,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:44Z",
-      "finalUrl": "https://cc1-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-fc2c17de08b1",
-      "status": 200,
-      "bytes": 16045,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:44Z",
-      "finalUrl": "https://teg-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-a80ad3014cdc",
-      "status": 200,
-      "bytes": 16384,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:44Z",
-      "finalUrl": "https://jp1-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-480415d6d6e2",
-      "status": 200,
-      "bytes": 16384,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:45Z",
-      "finalUrl": "https://lgs-speedtest.tools.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
-      "id": "new-c849d965f6e6",
-      "status": 200,
-      "bytes": 11155,
-      "web": false,
-      "rangeSupported": false,
-      "cacheBust": false,
-      "checkedAt": "2026-11-08T11:03:44Z",
-      "finalUrl": "https://speedtest-dta.gcore.com/.well-known/cdn-debug/download",
-      "mime": "application/octet-stream"
-    },
-    {
       "id": "new-a1dded2aa9ce",
       "status": 206,
       "bytes": 16384,
@@ -5818,6 +5598,118 @@
       "url": "https://lg.lon.hosthatch.com/1GB.test",
       "reason": "HTTPSConnectionPool(host='lg.lon.hosthatch.com', port=443): Read timed out. (read timeout=15)",
       "checkedAt": "2026-11-08T11:04:31Z"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "provider": "Gcore",
+      "reason": "接口单次可读取，但 Amsterdam 本机持续与限速下载验收重复超时；该组尚未通过持续下载验收，暂缓收录，不表示所有地区永久失效。",
+      "testedSource": "new-5aeae7acb88d",
+      "observedBytes": 152667,
+      "observedStatus": "error",
+      "observedError": "连接或读取超时",
+      "candidates": [
+        {
+          "id": "new-5aeae7acb88d",
+          "url": "https://am3-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Amsterdam"
+        },
+        {
+          "id": "new-99ce99f2ebf5",
+          "url": "https://fr5-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Frankfurt"
+        },
+        {
+          "id": "new-df7bbca1a8a3",
+          "url": "https://thn2-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · London"
+        },
+        {
+          "id": "new-964b45a7a08b",
+          "url": "https://pa5-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Paris"
+        },
+        {
+          "id": "new-2a6ba985d22a",
+          "url": "https://ny2-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · New York"
+        },
+        {
+          "id": "new-87b3265a8747",
+          "url": "https://sqr-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Santiago de Querétaro"
+        },
+        {
+          "id": "new-3cde8c008891",
+          "url": "https://sp3-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · São Paulo"
+        },
+        {
+          "id": "new-e57d70ad62be",
+          "url": "https://tii-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Istanbul"
+        },
+        {
+          "id": "new-6d62ae6ee359",
+          "url": "https://bzi-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Tel Aviv"
+        },
+        {
+          "id": "new-9bdd934be820",
+          "url": "https://kal-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Almaty"
+        },
+        {
+          "id": "new-bed2c9179c04",
+          "url": "https://hk2-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Hong Kong"
+        },
+        {
+          "id": "new-9054ace1e0e6",
+          "url": "https://ww-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Mumbai"
+        },
+        {
+          "id": "new-45042a7f138a",
+          "url": "https://kx-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Seoul"
+        },
+        {
+          "id": "new-450c9c92341f",
+          "url": "https://sg1-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Singapore"
+        },
+        {
+          "id": "new-3935538cb57a",
+          "url": "https://sy4-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Sydney"
+        },
+        {
+          "id": "new-089dacea6b49",
+          "url": "https://cc1-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Tokyo"
+        },
+        {
+          "id": "new-fc2c17de08b1",
+          "url": "https://teg-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Cairo"
+        },
+        {
+          "id": "new-a80ad3014cdc",
+          "url": "https://jp1-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Johannesburg"
+        },
+        {
+          "id": "new-480415d6d6e2",
+          "url": "https://lgs-speedtest.tools.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Lagos"
+        },
+        {
+          "id": "new-c849d965f6e6",
+          "url": "https://speedtest-dta.gcore.com/.well-known/cdn-debug/download?ckSize=100",
+          "name": "Gcore · Baku"
+        }
+      ]
     }
   ]
 }

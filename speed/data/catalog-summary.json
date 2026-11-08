@@ -1,10 +1,10 @@
 {
-  "total": 504,
+  "total": 484,
   "web": 144,
-  "countries": 63,
-  "providers": 127,
+  "countries": 61,
+  "providers": 126,
   "mainland": 119,
-  "added": 203,
+  "added": 183,
   "retired": 38,
-  "globalProviders": 97
+  "globalProviders": 96
 }

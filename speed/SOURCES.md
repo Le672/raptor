@@ -1,6 +1,6 @@
 # 公开下载源目录
 
-核验日期：2026-11-08。共 **504 个地址**、**127 个服务商 / 文件提供方**、**63 个国家和地区**；中国大陆标注 119 个地址，144 个支持网页下载。本次新增 203 个，停用 38 个本轮未通过复测的旧地址。
+核验日期：2026-11-08。共 **484 个地址**、**126 个服务商 / 文件提供方**、**61 个国家和地区**；中国大陆标注 119 个地址，144 个支持网页下载。本次新增 183 个，停用 38 个本轮未通过复测的旧地址。
 
 ## 选择方式与核验范围
 
@@ -8,7 +8,9 @@
 
 GET 请求附带 Origin 与单段 Range，最多读取约 16 KiB 后关闭，排除错误网页及过小响应，检查 HTTPS 证书、响应类型、分段读取及每一跳的 CORS。核验来自单一网络环境，不能保证所有运营商均可到达。失败旧源延长超时复测后停用，停用不等于全球永久失效。完整证据与原因见 [source-health.json](data/source-health.json)。
 
-国内新文件来自腾讯微信 / QQ 音乐 / 腾讯云 COSBrowser、阿里云盘 / OSSBrowser、字节剪映、钉钉、华为云 OBS、七牛 Qshell、哔哩哔哩和迅雷等公开下载页（以各行来源为准）。全球目录包括 Gcore、RackNerd、HOSTKEY、Hetzner 和软件 CDN；LOOKING.HOUSE 地址为第三方标注的服务商测试文件，**不称为这些服务商的官方 CDN**，也不代表专用测速协议。保留四运营商与 Steam 的可用文件。
+国内新文件来自腾讯微信 / QQ 音乐 / 腾讯云 COSBrowser、阿里云盘 / OSSBrowser、字节剪映、钉钉、华为云 OBS、七牛 Qshell、哔哩哔哩和迅雷等公开下载页（以各行来源为准）。全球目录包括 RackNerd、HOSTKEY、Hetzner 和软件 CDN；LOOKING.HOUSE 地址为第三方标注的服务商测试文件，**不称为这些服务商的官方 CDN**，也不代表专用测速协议。保留四运营商与 Steam 的可用文件。
+
+Gcore 的 20 个候选地址单次可读取，但 Amsterdam 在本机持续与限速下载验收中重复超时，该组暂缓收录；保留测试结果与候选地址供后续复查。
 
 ## 完整目录
 
@@ -379,26 +381,6 @@ GET 请求附带 Origin 与单段 Range，最多读取约 16 KiB 后关闭，排
 | Hetzner · Ashburn | 美国 | Hetzner | Windows | Range | [下载文件](https://ash-speed.hetzner.com/100MB.bin) | [官方公开资源](https://ash-speed.hetzner.com/) |
 | Hetzner · Hillsboro | 美国 | Hetzner | Windows | Range | [下载文件](https://hil-speed.hetzner.com/100MB.bin) | [官方公开资源](https://hil-speed.hetzner.com/) |
 | BuyVM / FranTech · Las Vegas | 美国 | BuyVM / FranTech | Windows | Range | [下载文件](https://speedtest.lv.buyvm.net/100MB.test) | [官方公开资源](https://speedtest.lv.buyvm.net/) |
-| Gcore · Amsterdam | 荷兰 | Gcore | Windows | 未确认 | [下载文件](https://am3-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Frankfurt | 德国 | Gcore | Windows | 未确认 | [下载文件](https://fr5-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · London | 英国 | Gcore | Windows | 未确认 | [下载文件](https://thn2-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Paris | 法国 | Gcore | Windows | 未确认 | [下载文件](https://pa5-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · New York | 美国 | Gcore | Windows | 未确认 | [下载文件](https://ny2-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Santiago de Querétaro | 墨西哥 | Gcore | Windows | 未确认 | [下载文件](https://sqr-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · São Paulo | 巴西 | Gcore | Windows | 未确认 | [下载文件](https://sp3-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Istanbul | 土耳其 | Gcore | Windows | 未确认 | [下载文件](https://tii-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Tel Aviv | 以色列 | Gcore | Windows | 未确认 | [下载文件](https://bzi-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Almaty | 哈萨克斯坦 | Gcore | Windows | 未确认 | [下载文件](https://kal-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Hong Kong | 中国香港特别行政区 | Gcore | Windows | 未确认 | [下载文件](https://hk2-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Mumbai | 印度 | Gcore | Windows | 未确认 | [下载文件](https://ww-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Seoul | 韩国 | Gcore | Windows | 未确认 | [下载文件](https://kx-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Singapore | 新加坡 | Gcore | Windows | 未确认 | [下载文件](https://sg1-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Sydney | 澳大利亚 | Gcore | Windows | 未确认 | [下载文件](https://sy4-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Tokyo | 日本 | Gcore | Windows | 未确认 | [下载文件](https://cc1-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Cairo | 埃及 | Gcore | Windows | 未确认 | [下载文件](https://teg-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Johannesburg | 南非 | Gcore | Windows | 未确认 | [下载文件](https://jp1-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Lagos | 尼日利亚 | Gcore | Windows | 未确认 | [下载文件](https://lgs-speedtest.tools.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
-| Gcore · Baku | 阿塞拜疆 | Gcore | Windows | 未确认 | [下载文件](https://speedtest-dta.gcore.com/.well-known/cdn-debug/download) | [官方公开下载文件 / 测试目录](https://speedtest.gcore.com/) |
 | RackNerd · Los Angeles DC03 | 美国 | RackNerd | Windows | Range | [下载文件](https://lg-lax03.racknerd.com/test_files/100MB.test) | [官方公开下载文件 / 测试目录](https://lg-lax03.racknerd.com/) |
 | RackNerd · San Jose | 美国 | RackNerd | Windows | Range | [下载文件](https://lg-sj.racknerd.com/test_files/100MB.test) | [官方公开下载文件 / 测试目录](https://lg-lax03.racknerd.com/) |
 | RackNerd · Seattle | 美国 | RackNerd | Windows | Range | [下载文件](https://lg-sea.racknerd.com/test_files/100MB.test) | [官方公开下载文件 / 测试目录](https://lg-lax03.racknerd.com/) |
