@@ -7,6 +7,14 @@ function validDate(value: string | undefined, maximumAge: number): string {
 }
 const ipv4 = (value: string) => normalizeIp(value)?.version === "IPv4";
 
+export function parseAddressFeed(body: string, updated: string | undefined, ipv4Only = false) {
+  const updatedAt = validDate(updated, 3 * 86400000);
+  const lines = body.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith("#"));
+  const addresses = lines.map(line => normalizeIp(line));
+  if (!addresses.length || addresses.some(ip => !ip || ipv4Only && ip.version !== "IPv4")) throw new Error("地址名单为空或格式异常，未纳入判断");
+  return { updatedAt, addresses: addresses.map(ip => ip!.ip) };
+}
+
 export function parseDshield(body: string, ip: string) {
   const date = body.match(/^#\s*updated:\s*(\S+)/m)?.[1];
   const updatedAt = validDate(date?.endsWith("Z") ? date : date && `${date}Z`, 3 * 86400000);

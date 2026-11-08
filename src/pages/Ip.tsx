@@ -63,9 +63,11 @@ export default function Ip() {
     <IpAiRisk report={report} loading={loading} />
     <IpSources report={report} />
     <details className="ip-method"><summary><CircleHelp size={17} /> 综合评分是怎样计算的？</summary><div>
-      <p><strong>综合纯净度 = 100 − 综合风险。</strong>对成功返回的广义风险数据库分数取等权平均，再应用已检出标记的风险下限。默认评分来自 IPQuery 与 proxycheck，启用授权 IPQualityScore 后可增加该评分。没有有效原始风险分数时不生成纯净度；失败、缺失、未启用或不支持的结果不会算作零风险。</p>
+      <p><strong>综合纯净度 = 100 − 综合风险。</strong>对成功返回的广义风险数据库分数取等权平均，再应用已检出标记的风险下限。默认评分来自 IPQuery、proxycheck 与 Layer3 Intel，启用授权 IPQualityScore 后可增加该评分。没有有效原始风险分数时不生成纯净度；失败、缺失、未启用或不支持的结果不会算作零风险。</p>
       <p>风险下限：机房 20、VPN / 匿名网络 35、公开代理 50、Tor 或滥用 / 扫描标记 70、被入侵记录 80、近期恶意 C2 或 DROP 95。同类标记只算一次，下限之间取最大值，不按名单数量重复扣分。此分数是本站的可解释启发式模型，不表示统计概率。</p>
       <p>位置与 ASN 资料不参与风险平均；ASN 注册地不作为出口位置。AbuseIPDB 的滥用置信分单独展示，在分数 ≥50 且有报告时提示标记，不能与广义欺诈评分混算。IPsum 仅核对至少 3 份名单收录的地址，聚合记录可能与其他来源重叠；DShield 检测的是扫描活跃网段，不能证明每个用户的行为。</p>
+      <p>Blackbox 使用公开 v3beta 分类接口，与 IPinfo.io 是不同提供方；测试接口可能调整字段，资料不符时显示不可用。IPlogs 的匿名网络检出分及 Stop Forum Spam 的垃圾信息置信度单独展示，不参与风险平均。论坛记录仅在最近 30 天、置信度 ≥50 且有报告时提示滥用；Blackbox 聚合的 Spamhaus / SFS 标记不作为额外名单证据。</p>
+      <p>Layer3 Intel 与 Emerging Threats 仅覆盖 IPv4；blocklist.de 同时核对 IPv4 / IPv6。新增地址名单必须有最近 3 天内的数据日期，缓存最多每小时刷新一次。Layer3 公开版未提供实时住宅代理资料，缺失字段保留为未知。</p>
       <p>Tor、Feodo、DShield、CINS 与 IPsum 公共名单仅核对 IPv4，未覆盖 IPv6 时明确显示不支持。Spamhaus DROP 核对 IPv4 / IPv6 网段。Feodo 超过 30 天的记录不参与判断；新增名单缺少日期、格式异常或超过 3 天不会当作干净结果。</p>
       <p>风险与网络接口缓存最多 10 分钟；Tor 10 分钟、Feodo 5 分钟；DROP、DShield、CINS、IPsum 全站共享且最多每小时刷新一次。来源卡保留数据日期、缓存与限制状态。遇到限额时遵守提供方重试时间，个别失败仍保留其他来源。</p>
       <p>© The Spamhaus Project SLU，版权与日期保留在来源卡。<a href="https://www.spamhaus.org/drop/terms/" target="_blank" rel="noreferrer">DROP 使用说明 <ArrowUpRight size={12} /></a> · DShield 数据来源 SANS Technology Institute / Internet Storm Center，遵循其 CC BY-NC-SA 2.5 使用条件。</p>

@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { compactIpsum, parseCins, parseDshield, parseIpsum } from "../../functions/_utils/ip-feeds";
+import { compactIpsum, parseAddressFeed, parseCins, parseDshield, parseIpsum } from "../../functions/_utils/ip-feeds";
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-12T12:00:00Z")); });
 afterEach(() => vi.useRealTimers());
 
 describe("public IP feed provenance and scope", () => {
+  it("normalizes exact IPv6 entries and rejects stale, empty or partially malformed feeds", () => {
+    expect(parseAddressFeed("1.2.3.4\n2606:4700:4700:0::1111\n", "2026-10-12").addresses).toEqual(["1.2.3.4", "2606:4700:4700::1111"]);
+    for (const [body, date, v4] of [["1.2.3.4", undefined, false], ["1.2.3.4", "2026-10-01", false], ["", "2026-10-12", false], ["1.2.3.4\nerror", "2026-10-12", false], ["2606:4700::1111", "2026-10-12", true]] as const) expect(() => parseAddressFeed(body, date, v4)).toThrow();
+  });
   it("matches DShield /24 ranges including padded IPv4 without attributing a user's behavior", () => {
     const feed = "# updated: 2026-10-12T00:45:42.801641\n001.002.003.000\t001.002.003.255\t24\t331\tTEST\n";
     expect(parseDshield(feed, "1.2.3.23")).toMatchObject({ updatedAt: "2026-10-12T00:45:42.801Z", match: { cidr: "1.2.3.0/24", targets: 331 } });

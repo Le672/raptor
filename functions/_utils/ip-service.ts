@@ -1,6 +1,6 @@
 import { assessIp, ipInCidr, isPublicIp, normalizeIp, type IpReport, type IpSource, type VisitorNetwork } from "../../src/lib/ip";
 import { IP_SOURCE_DEFINITIONS, type IpSourceDefinition } from "../../src/data/ip-sources";
-import { compactIpsum, parseCins, parseDshield, parseIpsum } from "./ip-feeds";
+import { compactIpsum, parseAddressFeed, parseCins, parseDshield, parseIpsum } from "./ip-feeds";
 
 type EdgeRequest = Request & { cf?: { asn?: number; asOrganization?: string; country?: string; city?: string } };
 export type IpEnv = { DB?: any; PROXYCHECK_API_KEY?: string; IPAPI_IS_API_KEY?: string; IPQS_API_KEY?: string; ABUSEIPDB_API_KEY?: string; IPINFO_TOKEN?: string };
@@ -130,9 +130,15 @@ async function inspectSource(definition: IpSourceDefinition, ip: string, version
     const id = definition.id;
     const credential = id === "proxycheck" ? env.PROXYCHECK_API_KEY : id === "ipapiis" ? env.IPAPI_IS_API_KEY : id === "ipqs" ? env.IPQS_API_KEY : id === "abuseipdb" ? env.ABUSEIPDB_API_KEY : id === "ipinfo" ? env.IPINFO_TOKEN : undefined;
     if (definition.optional && !credential) return { ...base, status: "not-configured", detail: "此授权来源尚未启用，本次未向它发送 IP，也不计入覆盖率或评分。" };
-    if (version === "IPv6" && ["tor", "feodo", "dshield", "cins", "ipsum"].includes(id)) return { ...base, status: "unsupported", detail: "此公开名单仅核对 IPv4；IPv6 不会被标记为未命中。" };
+    if (version === "IPv6" && ["tor", "feodo", "dshield", "cins", "ipsum", "layer3", "emergingthreats"].includes(id)) return { ...base, status: "unsupported", detail: "此公开来源仅核对 IPv4；IPv6 不会被标记为未命中。" };
     let address = id === "ipquery" ? `https://api.ipquery.io/${encodeURIComponent(ip)}`
       : id === "proxycheck" ? `https://proxycheck.io/v3/${encodeURIComponent(ip)}?tag=0`
+      : id === "layer3" ? `https://api.layer3intel.com/open/${encodeURIComponent(ip)}`
+      : id === "blackbox" ? `https://blackbox.ipinfo.app/api/v3beta/${encodeURIComponent(ip)}`
+      : id === "iplogs" ? `https://iplogs.com/v1/check/${encodeURIComponent(ip)}`
+      : id === "stopforumspam" ? `https://api.stopforumspam.org/api?ip=${encodeURIComponent(ip)}&json`
+      : id === "blocklistde" ? "https://lists.blocklist.de/lists/all.txt"
+      : id === "emergingthreats" ? "https://rules.emergingthreats.net/blockrules/compromised-ips.txt"
       : id === "ipwhois" ? `https://ipwho.is/${encodeURIComponent(ip)}`
       : id === "ipapiis" ? `https://api.ipapi.is/?q=${encodeURIComponent(ip)}`
       : id === "ipguide" ? `https://ip.guide/${encodeURIComponent(ip)}`
@@ -148,13 +154,19 @@ async function inspectSource(definition: IpSourceDefinition, ip: string, version
       : `https://api.ipinfo.io/lite/${encodeURIComponent(ip)}`;
     if (id === "proxycheck" && env.PROXYCHECK_API_KEY) address += `&key=${encodeURIComponent(env.PROXYCHECK_API_KEY)}`;
     if (id === "ipapiis" && credential) address += `&key=${encodeURIComponent(credential)}`;
-    const feed = ["tor", "spamhaus", "feodo", "dshield", "cins", "ipsum"].includes(id);
-    const ttl = ["spamhaus", "dshield", "cins", "ipsum"].includes(id) ? 3600000 : id === "feodo" ? 300000 : 600000;
+    const feed = ["tor", "spamhaus", "feodo", "dshield", "cins", "ipsum", "blocklistde", "emergingthreats"].includes(id);
+    const ttl = ["spamhaus", "dshield", "cins", "ipsum", "blocklistde", "emergingthreats"].includes(id) ? 3600000 : id === "feodo" ? 300000 : 600000;
     const provider = `${id}:${credential ? "authenticated" : "public"}`;
     const headers = id === "abuseipdb" ? { Key: credential! } : id === "ipinfo" ? { Authorization: `Bearer ${credential}` } : undefined;
     const raw = await upstream(address, `${provider}:${feed ? version : ip}`, ttl, { provider, DB: env.DB, headers, largeFeed: id === "ipsum", compact: id === "ipsum" ? compactIpsum : undefined }, feed);
     base.checkedAt = raw.fetchedAt; base.updatedAt = raw.updatedAt; base.cached = raw.cached;
-    if (id === "tor") {
+    if (id === "blocklistde" || id === "emergingthreats") {
+      const parsed = parseAddressFeed(raw.text, raw.updatedAt, id === "emergingthreats");
+      base.updatedAt = parsed.updatedAt;
+      base.signals[id === "blocklistde" ? "abuse" : "compromised"] = parsed.addresses.includes(ip);
+      base.attribution = id === "blocklistde" ? "www.blocklist.de · distributed attack reports" : "Proofpoint / Emerging Threats Open";
+      base.detail = parsed.addresses.includes(ip) ? "命中本期公开地址名单；保留数据日期，同类标记仅应用一次风险下限。" : "未命中本期名单；只代表该名单覆盖的记录。";
+    } else if (id === "tor") {
       const lines = raw.text.split(/\r?\n/).map(line => line.trim()).filter(line => ipv4Line(line));
       if (!lines.length) throw new Error("出口名单格式异常，未纳入判断");
       base.signals.tor = lines.includes(ip); base.detail = base.signals.tor ? "命中 Tor 官方出口名单。" : "未命中 Tor 出口名单；仅代表这一项检查。";
@@ -181,7 +193,34 @@ async function inspectSource(definition: IpSourceDefinition, ip: string, version
       base.detail = "仅核对至少 3 份名单共同收录的地址；聚合名单可能与其他来源重叠，次数不是风险分数。";
     } else {
       const data = sourceJson(raw.text);
-      if (id === "feodo") {
+      if (id === "layer3") {
+        if (normalizeIp(data?.ip)?.ip !== ip || score(data.risk?.score) === null || !data.flags || typeof data.flags !== "object" || Array.isArray(data.flags)) throw new Error("未返回目标 IPv4 的有效风险资料");
+        base.risk = score(data.risk.score); base.asn = asnLabel(data.network?.asn); base.organization = text(data.network?.name); base.network = text(data.network?.prefix);
+        base.countryCode = countryCode(data.location?.country); base.city = text(data.location?.city);
+        base.signals = { vpn: flag(data.flags.vpn), proxy: flag(data.flags.proxy), tor: flag(data.flags.tor), hosting: flag(data.flags.hosting), anonymous: data.flags.anonymizer === true || data.flags.relay === true ? true : undefined };
+        base.metrics = [{ label: "网络类型", value: text(data.type) || "未提供" }, { label: "提供方风险依据", value: Array.isArray(data.risk.reasons) ? data.risk.reasons.filter((v: unknown) => typeof v === "string").slice(0, 8).join("、").slice(0, 300) || "无附加标记" : "未提供" }];
+        base.detail = "公开版风险分参与平均；免费版不提供实时住宅代理检测，未返回的字段不作未检出处理。";
+      } else if (id === "blackbox") {
+        if (normalizeIp(data?.ip)?.ip !== ip || data.error != null || !data.signals || typeof data.signals !== "object" || Array.isArray(data.signals) || !Object.values(data.signals).some(value => typeof value === "boolean")) throw new Error("网络分类接口返回无效或不匹配的资料");
+        base.asn = asnLabel(data.asn?.number); base.organization = text(data.asn?.name);
+        base.signals = { hosting: flag(data.signals.hosting), proxy: flag(data.signals.proxy), tor: flag(data.signals.tor), vpn: data.signals.vpnasn === true || data.signals.goodvpn === true || data.classification === "vpn" ? true : undefined, anonymous: data.classification === "privacy_relay" ? true : undefined };
+        base.metrics = [{ label: "网络分类", value: text(data.classification) || "未提供" }];
+        base.detail = "v3beta 测试接口，只核对分类与标记；分类置信度不作风险分。Spamhaus / SFS 聚合标记不再重复作为独立名单证据；此提供方与 IPinfo.io 无关。";
+      } else if (id === "iplogs") {
+        if (normalizeIp(data?.ip_info?.ip)?.ip !== ip || data.error || typeof data.score !== "number" || !Number.isFinite(data.score) || data.score < 0 || data.score > 1 || typeof data.is_vpn !== "boolean") throw new Error("匿名网络接口未返回有效的目标资料");
+        base.asn = asnLabel(data.ip_info.asn); base.organization = text(data.ip_info.org); base.countryCode = countryCode(data.ip_info.country_code); base.country = text(data.ip_info.country); base.city = text(data.ip_info.city);
+        base.signals = { vpn: flag(data.is_vpn), proxy: flag(data.is_proxy), tor: flag(data.is_tor), hosting: flag(data.is_hosting), anonymous: data.is_relay === true ? true : undefined };
+        base.metrics = [{ label: "匿名网络检出分（非欺诈风险）", value: `${Math.round(data.score * 100)} / 100` }, { label: "提供方结论", value: text(data.verdict) || "未提供" }];
+        base.detail = "检出分单独展示，只有实际返回的布尔标记参与下限判断；不将检出分当作欺诈风险分或封禁概率。";
+      } else if (id === "stopforumspam") {
+        const entry = data?.ip;
+        if (data.success !== 1 || normalizeIp(entry?.value)?.ip !== ip || ![0, 1].includes(entry.appears) || !Number.isInteger(entry.frequency) || entry.frequency < 0) throw new Error("论坛记录接口返回无效或不匹配的资料");
+        const last = entry.lastseen && Date.parse(String(entry.lastseen).replace(" ", "T") + (/Z$|[+-]\d\d:\d\d$/.test(entry.lastseen) ? "" : "Z"));
+        if (entry.appears === 1 && (!Number.isFinite(last) || last > Date.now() + 86400000 || score(entry.confidence) === null)) throw new Error("论坛记录缺少有效日期或置信度，未纳入判断");
+        base.signals.abuse = entry.appears === 0 ? false : last >= Date.now() - 30 * 86400000 && entry.confidence >= 50 && entry.frequency > 0 ? true : undefined;
+        base.metrics = [{ label: "记录次数", value: String(entry.frequency) }, { label: "最后出现（UTC）", value: text(entry.lastseen) || "未提供" }, { label: "垃圾信息置信度（非广义风险）", value: score(entry.confidence) === null ? "未提供" : `${entry.confidence} / 100` }];
+        base.detail = "仅最近 30 天、置信度 ≥50 且有记录时提示滥用；旧记录保留展示，置信度不混入综合风险平均。";
+      } else if (id === "feodo") {
         if (!Array.isArray(data) || data.some(row => !normalizeIp(row?.ip_address))) throw new Error("恶意 C2 名单格式异常");
         const recent = data.filter(row => Date.parse(row.last_online) >= Date.now() - 30 * 86400000 && Date.parse(row.last_online) <= Date.now() + 86400000);
         if (data.length && !recent.length) throw new Error("名单全部记录超过 30 天，本次不参与判断");

@@ -46,7 +46,8 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
   const [catalogQuery, setCatalogQuery] = useState('');
   const [catalogGroup, setCatalogGroup] = useState('all');
   const [catalogCountry, setCatalogCountry] = useState('all');
-  const [catalogClient, setCatalogClient] = useState('all');
+  const [catalogClient, setCatalogClient] = useState(desktop ? 'all' : 'web');
+  const [catalogProvider, setCatalogProvider] = useState('all');
   const [discovered, setDiscovered] = useState<Server[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -61,7 +62,8 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
   const url = (desktop && selected.httpUrl ? selected.httpUrl : selected.url) || effectiveUrl(customUrl);
   const unsupported = !desktop && !!selected.desktopOnly;
   const active = ['running', 'paused', 'recovering'].includes(state.status);
-  const filteredServers = filterServers(SERVERS, { query: catalogQuery, group: catalogGroup, country: catalogCountry, client: catalogClient });
+  const filteredServers = filterServers(SERVERS, { query: catalogQuery, group: catalogGroup, country: catalogCountry, client: catalogClient, provider: catalogProvider });
+  const providers = [...new Set(SERVERS.filter(s => s.url && s.provider).map(s => s.provider!))].sort((a, b) => a.localeCompare(b));
   const selectionOutsideFilter = !!selected.url && SERVERS.some(s => s.id === serverId) && !filteredServers.some(s => s.id === serverId);
   const presetCount = SERVERS.filter(s => s.url).length;
   const webCount = SERVERS.filter(s => s.url && !s.desktopOnly).length;
@@ -198,6 +200,7 @@ export default function SpeedApp({ embedded = false }: { embedded?: boolean }) {
           <div className="ys-source-shortcuts" role="group" aria-label="源分类">{[{ id: 'all', name: '全部' }, ...SERVER_GROUPS.filter(g => g.id !== 'custom')].map(g => <button key={g.id} type="button" aria-pressed={catalogGroup === g.id} disabled={active} onClick={() => { setCatalogGroup(g.id); setCatalogQuery(''); setCatalogCountry('all'); if (g.id !== 'all') { const choices = SERVERS.filter(s => s.group === g.id && s.url); setServerId((!desktop ? choices.find(s => !s.desktopOnly) : null)?.id || choices[0].id); } setProbe(null); setError(''); }}>{g.name}</button>)}</div>
           <p className="ys-catalog-summary">{presetCount} 个地址 · {COUNTRIES.filter(c => c.id !== 'GLOBAL').length} 个国家 / 地区 · {webCount} 个网页可用</p>
           <label className="ys-field ys-catalog-search">筛选预置源<input type="search" aria-label="筛选预置源" placeholder="名称、国家地区或域名，如 Vultr 日本" value={catalogQuery} disabled={active} onChange={e => setCatalogQuery(e.target.value)}/></label>
+          <label className="ys-field">服务商<select aria-label="服务商" value={catalogProvider} disabled={active} onChange={e => setCatalogProvider(e.target.value)}><option value="all">全部服务商（{providers.length}）</option>{providers.map(provider => <option key={provider} value={provider}>{provider}</option>)}</select></label>
           <div className="ys-two-fields ys-catalog-filters"><label className="ys-field">国家 / 地区<select aria-label="国家或地区" value={catalogCountry} disabled={active} onChange={e => setCatalogCountry(e.target.value)}><option value="all">全部国家 / 地区</option>{COUNTRIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="ys-field">客户端<select aria-label="源兼容性" value={catalogClient} disabled={active} onChange={e => setCatalogClient(e.target.value)}><option value="all">全部源</option><option value="web">网页 / Windows</option><option value="windows">仅 Windows</option></select></label></div>
           <p className="ys-filter-result" role="status">匹配 {filteredServers.length} 个源{selectionOutsideFilter ? ' · 当前选择保留在下方' : ''}{!filteredServers.length && ' · 可调整筛选或自定义地址'}</p>
           <label className="ys-field">下载服务器<select aria-label="下载服务器" value={serverId} disabled={active} onChange={e => { setServerId(e.target.value); setProbe(null); }}>{selectionOutsideFilter && <optgroup label="当前选择（筛选外）"><option value={selected.id}>{selected.name}{selected.desktopOnly ? ' · Windows' : ' · 网页 / Windows'}</option></optgroup>}{SERVER_GROUPS.filter(g => g.id !== 'custom').map(g => { const choices = filteredServers.filter(s => s.group === g.id); return choices.length ? <optgroup key={g.id} label={g.name}>{choices.map(s => <option value={s.id} key={s.id}>{s.name}{s.desktopOnly ? ' · Windows' : ' · 网页 / Windows'}</option>)}</optgroup> : null; })}<optgroup label="自定义"><option value="custom">自定义 · 完整文件 URL</option></optgroup>{discovered.map(s => <option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
