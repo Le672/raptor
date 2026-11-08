@@ -35,3 +35,38 @@ test('system download adapter blocks local protocols and credentials at request 
   }
   let permitted; guard({ url:'https://example.com/public' }, value => { permitted = value; }); assert.equal(permitted.cancel, false);
 });
+
+test('Chromium receives source headers through native events, isolated across requests and redirects', async () => {
+  const hooks = {}, entries = [];
+  let sequence = 0;
+  const webRequest = Object.fromEntries(['onBeforeRequest','onBeforeSendHeaders','onCompleted','onErrorOccurred'].map(name => [name, (_filter, callback) => { hooks[name] = callback; }]));
+  const fetcher = createSystemFetch({ webRequest, fetch: async (url, options) => {
+    const id = ++sequence;
+    assert.equal(new Headers(options.headers).has('referer'), false, 'forbidden fetch header must be removed');
+    hooks.onBeforeRequest({ id, url }, value => assert.equal(value.cancel, false));
+    await new Promise(resolve => setTimeout(resolve, 2));
+    hooks.onBeforeRequest({ id, url: 'https://cdn.example/redirect' }, value => assert.equal(value.cancel, false));
+    hooks.onBeforeSendHeaders({ id, url: 'https://cdn.example/redirect', requestHeaders: options.headers }, value => entries.push(value.requestHeaders.Referer));
+    hooks.onCompleted({ id });
+    return new Response('file');
+  } });
+  await Promise.all(['one','two'].map(value => fetcher(`https://${value}.example/file`, { headers: { Referer: `https://${value}.example/source`, Range: 'bytes=0-1023' } })));
+  assert.deepEqual(entries.sort(), ['https://one.example/source','https://two.example/source']);
+  let clean; hooks.onBeforeSendHeaders({ id: 1, requestHeaders: {} }, value => { clean = value.requestHeaders; });
+  assert.equal(clean.Referer, undefined, 'completed request must not leak into a reused identifier');
+  await assert.rejects(fetcher('https://one.example/file', { headers: { Referer: 'file:///private' } }));
+});
+
+test('a failed Chromium request releases its source association before a later request', async () => {
+  const hooks = {};
+  const webRequest = Object.fromEntries(['onBeforeRequest','onBeforeSendHeaders','onCompleted','onErrorOccurred'].map(name => [name, (_filter, callback) => { hooks[name] = callback; }]));
+  const fetcher = createSystemFetch({ webRequest, fetch: async (url, options) => {
+    hooks.onBeforeRequest({ id: 1, url }, () => {});
+    hooks.onErrorOccurred({ id: 1 });
+    throw new Error('network offline');
+  } });
+  await assert.rejects(fetcher('https://one.example/file', { headers: { Referer: 'https://one.example/source' } }), /network offline/);
+  await assert.rejects(fetcher('https://one.example/file'), /network offline/);
+  let clean; hooks.onBeforeSendHeaders({ id: 1, requestHeaders: {} }, value => { clean = value.requestHeaders; });
+  assert.equal(clean.Referer, undefined);
+});

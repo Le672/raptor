@@ -77,7 +77,7 @@ async function init() {
     const proof = { version: app.getVersion(), packaged: app.isPackaged, sourceId,
       bridge: await window.webContents.executeJavaScript('typeof window.yukinoSpeed?.start'), bridgeVersion: await window.webContents.executeJavaScript('window.yukinoSpeed?.version'), title: window.getTitle(),
       catalog: await window.webContents.executeJavaScript("Array.from(document.querySelector(\"select[aria-label=\\\"下载服务器\\\"]\").options).map(option => ({id:option.value,label:option.textContent}))") };
-    runner.start({ url: selected.url, kind: selected.kind, referrer: selected.referrer, cacheBust: selected.cacheBust !== false, threads: 2, limitBytes: 1_000_000, rateBps: 500_000, durationMs: 20000 });
+    runner.start({ url: selected.url, kind: selected.kind, referrer: selected.referrer, cacheBust: selected.cacheBust !== false, threads: 2, limitBytes: 1_000_000, rateBps: 500_000, durationMs: 120000 });
     await runner.task;
     const syncDeadline = Date.now() + 12000;
     while (Date.now() < syncDeadline && (reporter.busy || Object.keys(storage).some(key => key.startsWith('yukino-speed:report:')))) {

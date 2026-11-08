@@ -21,6 +21,21 @@ jobs:
       - run: pnpm dist:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Verify the packaged Windows download engine
+        shell: pwsh
+        run: |
+          $binary = Get-ChildItem -LiteralPath release -Filter '*-portable.exe' | Select-Object -First 1
+          $data = Join-Path $env:RUNNER_TEMP 'yukino-speed-smoke'
+          Start-Process -FilePath $binary.FullName -ArgumentList @('--smoke', "--smoke-data=$data") -WindowStyle Hidden | Out-Null
+          $proof = Join-Path $data 'smoke.json'
+          $deadline = [DateTime]::UtcNow.AddMinutes(3)
+          while (!(Test-Path -LiteralPath $proof) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Seconds 1 }
+          if (!(Test-Path -LiteralPath $proof)) { throw 'Packaged download check timed out' }
+          $result = Get-Content -LiteralPath $proof -Raw | ConvertFrom-Json
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if (!$result.packaged -or $result.version -ne $version -or $result.bridgeVersion -ne $version -or $result.result.status -ne 'completed' -or $result.result.bytes -lt 1000000) { throw 'Packaged download check failed' }
+          [PSCustomObject]@{version=$result.version;packaged=$result.packaged;source=$result.sourceId;status=$result.result.status;bytes=$result.result.bytes} | ConvertTo-Json
+          Copy-Item -LiteralPath $proof -Destination release/smoke.json
       - name: Hash release files
         shell: pwsh
         run: |
@@ -32,6 +47,7 @@ jobs:
           path: |
             release/*.exe
             release/SHA256SUMS.txt
+            release/smoke.json
           if-no-files-found: error
       - name: Publish GitHub release
         shell: pwsh
