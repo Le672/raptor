@@ -1,3 +1,4 @@
+import { useAppearance } from '../../shared/theme/react';
 import { LibraryMigration,MigrationPage } from './Migration';
 import { readerSite } from './reader-site.mjs';
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type FormEvent } from 'react';
@@ -175,8 +176,10 @@ function Sources() { return <SourceSettings />; }
 
 export default function App() {
   useLibrary(); const location = useLocation(); const reader = location.pathname.startsWith('/read/');
-  const [settings, setSettings] = useState(preferences);
-  const updateSettings = (value: Preferences) => { setSettings(value); setPreferences(value); };
+  const [storedSettings, setSettings] = useState(preferences);
+  const [appearance, setAppearance] = useAppearance();
+  const settings = { ...storedSettings, theme: window.YukinoTheme ? appearance : storedSettings.theme };
+  const updateSettings = (value: Preferences) => { if (value.theme !== settings.theme) setAppearance(value.theme); setSettings(value); setPreferences(value); };
   useEffect(() => { document.documentElement.dataset.theme = settings.theme; }, [settings.theme]);
   useEffect(()=>{const sync=()=>setSettings(preferences());window.addEventListener('novel-library',sync);return()=>window.removeEventListener('novel-library',sync);},[]);
   useEffect(() => { if (!reader) window.scrollTo({ top: 0, behavior: 'instant' }); }, [location.pathname, location.search, reader]);

@@ -1,3 +1,4 @@
+import { useAppearance } from '../../shared/theme/react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock3, Download, ExternalLink, Heart, Home, Image as ImageIcon, Layers, LoaderCircle, Moon, Palette, RefreshCw, Search, Settings2, Sun, Trophy, Upload, UserRound, X } from 'lucide-react';
 import { assertCompleteImage, directDestination, getJson, imageUrl, type Artwork, type ArtworkCard, type ArtworkPage } from './api';
@@ -120,7 +121,7 @@ export default function App() {
   const [route, setRoute] = useState(() => new URL(location.href));
   const [library, setLibrary] = useState(readLibrary), libraryRef = useRef(library);
   const [keyword, setKeyword] = useState(() => new URLSearchParams(location.search).get('q') || '');
-  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('yukino-pixiv-theme') || 'light'; } catch { return 'light'; } });
+  const [theme, setTheme] = useAppearance();
   const [toast, setToast] = useState(''), [localQuery, setLocalQuery] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
   const notify = useCallback((value: string) => setToast(value), []);
@@ -133,7 +134,6 @@ export default function App() {
     history.pushState({}, '', path); setRoute(new URL(location.href)); window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
   useEffect(() => { const listener = () => setRoute(new URL(location.href)); window.addEventListener('popstate', listener); return () => window.removeEventListener('popstate', listener); }, []);
-  useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('yukino-pixiv-theme', theme); } catch { /* Theme still works for this visit. */ } }, [theme]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 4500); return () => clearTimeout(timer); }, [toast]);
   useEffect(() => { setKeyword(route.searchParams.get('q') || ''); setLocalQuery(''); document.title = `${labels[route.pathname] || (route.pathname.startsWith('/users/') ? '画师作品' : '作品详情')} · Pixiv 画廊 · Yukino`; }, [route]);
   useEffect(() => {

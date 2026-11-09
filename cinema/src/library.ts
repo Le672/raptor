@@ -1,3 +1,4 @@
+import { useAppearance } from '../../shared/theme/react';
 import {useEffect,useState} from 'react';
 import type {Media} from './api';
 import {isMediaId} from '../shared/source-names.mjs';
@@ -32,7 +33,7 @@ export function storageFailed(){return failed;}
 export function toggleFavorite(media:Media){const value=getLibrary(),safe=cleanMedia(media);if(!safe)return;save({...value,favorites:value.favorites.some(f=>f.media.id===safe.id)?value.favorites.filter(f=>f.media.id!==safe.id):[{media:safe,savedAt:Date.now()},...value.favorites].slice(0,1000)});}
 export function saveProgress(progress:Progress){const value=getLibrary(),safe=sanitize({...value,history:[progress]}).history[0];if(!safe)return;save({...value,history:[safe,...value.history.filter(p=>p.media.id!==safe.media.id)].slice(0,500)});}
 export function removeHistory(id:string){const value=getLibrary();save({...value,history:value.history.filter(p=>p.media.id!==id)});}
-export function updateSettings(patch:Partial<Settings>){const value=getLibrary();save({...value,settings:sanitize({...value,settings:{...value.settings,...patch}}).settings});}
+export function updateSettings(patch:Partial<Settings>){if(patch.theme)window.YukinoTheme?.setMode(patch.theme);const value=getLibrary();save({...value,settings:sanitize({...value,settings:{...value.settings,...patch}}).settings});}
 export function exportLibrary(){return JSON.stringify({...getLibrary(),app:'yukino-cinema',exportedAt:new Date().toISOString()},null,2);}
 export function importLibrary(text:string){if(text.length>3*1024*1024)throw new Error('备份超过 3 MB');let raw;try{raw=JSON.parse(text);}catch{throw new Error('不是有效的 JSON 备份');}if(raw?.app!=='yukino-cinema'||raw?.version!==1||!Array.isArray(raw.favorites)||!Array.isArray(raw.history))throw new Error('备份格式不正确');const imported=sanitize(raw),old=getLibrary();save({...old,favorites:dedupe([...old.favorites,...imported.favorites]),history:dedupe([...old.history,...imported.history])});return {favorites:imported.favorites.length,history:imported.history.length};}
-export function useLibrary(){const[value,setValue]=useState(getLibrary);useEffect(()=>{const changed=()=>setValue({...getLibrary()});window.addEventListener('cinema-library',changed);window.addEventListener('storage',changed);return()=>{window.removeEventListener('cinema-library',changed);window.removeEventListener('storage',changed);};},[]);return value;}
+export function useLibrary(){const[appearance]=useAppearance();const[value,setValue]=useState(getLibrary);useEffect(()=>{const changed=()=>setValue({...getLibrary()});window.addEventListener('cinema-library',changed);window.addEventListener('storage',changed);return()=>{window.removeEventListener('cinema-library',changed);window.removeEventListener('storage',changed);};},[]);return window.YukinoTheme?{...value,settings:{...value.settings,theme:appearance}}:value;}

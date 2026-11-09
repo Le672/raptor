@@ -25,6 +25,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Check shared automatic appearance and application packaging
+        run: node --test shared/test/theme.test.mjs shared/test/pwa.test.mjs
+
       - name: Check website behavior
         run: npm run test -- src/test
 

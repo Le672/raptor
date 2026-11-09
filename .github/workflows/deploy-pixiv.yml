@@ -5,6 +5,8 @@ on:
     paths:
       - 'pixiv/**'
       - 'shared/pwa/**'
+      - 'shared/theme/**'
+      - 'scripts/prepare-theme.mjs'
       - 'scripts/prepare-pwa.mjs'
       - 'scripts/*pixiv*.mjs'
       - 'src/test/pixiv-library.test.ts'

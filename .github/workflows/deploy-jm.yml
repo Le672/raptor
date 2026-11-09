@@ -6,6 +6,8 @@ on:
     paths:
       - 'jm/**'
       - 'shared/pwa/**'
+      - 'shared/theme/**'
+      - 'scripts/prepare-theme.mjs'
       - 'scripts/prepare-pwa.mjs'
       - '.github/workflows/deploy-jm.yml'
   workflow_dispatch:

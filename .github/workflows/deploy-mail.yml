@@ -7,6 +7,8 @@ on:
       - 'scripts/prepare-mail-deploy.mjs'
       - 'shared/test/mail-deploy-config.test.mjs'
       - 'shared/pwa/**'
+      - 'shared/theme/**'
+      - 'scripts/prepare-theme.mjs'
       - 'scripts/prepare-pwa.mjs'
   workflow_dispatch:
 permissions:

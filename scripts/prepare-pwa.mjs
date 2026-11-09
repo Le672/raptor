@@ -3,6 +3,7 @@ import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { APPS, appManifest } from '../shared/pwa/sites.mjs';
+import { themeAssets } from './prepare-theme.mjs';
 const source = new URL('../shared/pwa/', import.meta.url);
 const hash = value => createHash('sha256').update(value).digest('hex').slice(0, 14);
 function scripts(html) { return [...html.matchAll(/(?:src|href)=["']([^"'#?]+\.(?:js|mjs|css))["']/g)].map(match => new URL(match[1], 'https://pwa.test/').pathname); }
@@ -24,10 +25,13 @@ export async function preparePwa(directory, id = 'portal', options = {}) {
   let html = await readFile(entry, 'utf8');
   // Re-running the packaging step must produce one control, not duplicate apps.
   html = html.replace(/<script[^>]*data-yukino-app[^>]*><\/script>/g, '');
+  html = html.replace(/<link[^>]*data-yukino-theme[^>]*>/g, '');
   html = html.replace(/content=["']width=device-width,\s*initial-scale=1(?:\.0)?["']/g, 'content="width=device-width, initial-scale=1.0, viewport-fit=cover"');
   const apps = id === 'portal' ? APPS.filter(app => app.group === 'portal') : APPS.filter(app => app.id === id);
   if (!apps.length) throw new Error(`Unknown PWA ${id}`);
   let runtime = await readFile(new URL('client.js', source), 'utf8');
+  const appearance = await themeAssets(root);
+  runtime = appearance.script + '\n' + runtime;
   const worker = await readFile(new URL('sw-template.js', source), 'utf8');
   const iconDir = resolve(root, 'yukino-app-assets'); await mkdir(iconDir, { recursive: true });
   const css = runtime.match(/<style>([\s\S]*?)<\/style>/);
@@ -55,14 +59,14 @@ export async function preparePwa(directory, id = 'portal', options = {}) {
   const payload = JSON.stringify({ sites: configurations, fallback: apps[0].host, version });
   const client = runtime.replace('__YUKINO_APPS__', payload), clientPath = `/yukino-app-assets/client-${hash(client)}.js`;
   await writeFile(resolve(root, '.' + clientPath), client);
-  const tag = `<script src="${clientPath}" data-yukino-app></script>`;
+  const tag = `<link rel="stylesheet" href="${appearance.css}" data-yukino-theme><script src="${clientPath}" data-yukino-app></script>`;
   html = html.replace('</head>', `${tag}</head>`).replace(/content=["']width=device-width,\s*initial-scale=1(?:\.0)?["']/g, 'content="width=device-width, initial-scale=1.0, viewport-fit=cover"');
   if (!options.keepEntry) await writeFile(entry, html);
   const offline = app => app.onlineOnly ? `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${app.name}</title>${tag}</head><body style="font:16px/1.8 system-ui;background:#f8fafc;color:#34465c;padding:10vh 7vw"><h1>${app.name}</h1><p>当前离线。上传、读取分享内容与验证口令需要网络连接。</p><p>此应用不会缓存文件、口令或私有分享页面。</p><a href="/">联网后重新打开</a></body></html>` : html;
   for (const config of new Set(Object.values(configurations))) {
     const shell = `/yukino-app-shell-${config.id}-${version}.html`; await writeFile(resolve(root, '.' + shell), offline(config));
     const prefix = `yukino-app-shell-${config.id}-`;
-    const data = { prefix, cache: prefix + version, shell, onlineOnly: Boolean(config.onlineOnly), privateLab: config.id === 'tools', files: [shell, clientPath, cssPath, config.manifest, ...config.icons, ...config.assets] };
+    const data = { prefix, cache: prefix + version, shell, onlineOnly: Boolean(config.onlineOnly), privateLab: config.id === 'tools', files: [shell, clientPath, cssPath, appearance.css, config.manifest, ...config.icons, ...config.assets] };
     await writeFile(resolve(root, '.' + config.sw), worker.replace('__YUKINO_APP_WORKER__', JSON.stringify(data)));
   }
   const headersPath = resolve(root, '_headers'); let headers = await readFile(headersPath, 'utf8').catch(() => '');

@@ -1,3 +1,4 @@
+import { useAppearance } from './useAppearance';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, BookHeart, BookOpen, ChevronLeft, ChevronRight, CircleHelp, Download, Heart, Home, LayoutGrid, LoaderCircle, Moon, Search, Settings2, Sun, WandSparkles, X } from 'lucide-react';
 import { coverUrl, findBooks, getBook, getChapter, type Book, type BookCard, type Chapter, type SearchPage } from './api';
@@ -195,12 +196,11 @@ export default function App() {
   const [saved, setSaved] = useState(favorites);
   const [selected, setSelected] = useState<string[]>([]);
   const [downloadBusy, setDownloadBusy] = useState('');
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => setting('theme', isDesktop ? 'dark' : 'light'));
+  const [theme, setTheme] = useAppearance(setting('theme', isDesktop ? 'dark' : 'light'));
   const [translation, setTranslation] = useState<TranslationOptions>(() => setting('translation', { endpoint: '', apiKey: '', model: '', language: '简体中文' }));
   const marks = history();
 
   useEffect(() => { const update = () => setRoute(parseRoute()); window.addEventListener('hashchange', update); return () => window.removeEventListener('hashchange', update); }, []);
-  useEffect(() => { document.documentElement.dataset.jmTheme = theme; setSetting('theme', theme); }, [theme]);
   useEffect(() => {
     if (!submitted) return;
     const controller = new AbortController();

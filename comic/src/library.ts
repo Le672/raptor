@@ -1,3 +1,4 @@
+import { useAppearance } from '../../shared/theme/react';
 import {useEffect,useState} from 'react';
 import type {Anime} from './api';
 export type Favorite={anime:Anime;savedAt:number};
@@ -31,7 +32,7 @@ export function storageFailed(){return failed;}
 export function toggleFavorite(anime:Anime){const value=getLibrary(),safe=cleanAnime(anime);if(!safe)return;save({...value,favorites:value.favorites.some(f=>f.anime.id===safe.id)?value.favorites.filter(f=>f.anime.id!==safe.id):[{anime:safe,savedAt:Date.now()},...value.favorites].slice(0,1000)});}
 export function saveProgress(progress:Progress){const value=getLibrary(),safe=sanitize({...value,history:[progress]}).history[0];if(!safe)return;save({...value,history:[safe,...value.history.filter(p=>p.anime.id!==safe.anime.id)].slice(0,500)});}
 export function removeHistory(id:string){const value=getLibrary();save({...value,history:value.history.filter(p=>p.anime.id!==id)});}
-export function updateSettings(patch:Partial<Settings>){const value=getLibrary();save({...value,settings:sanitize({...value,settings:{...value.settings,...patch}}).settings});}
+export function updateSettings(patch:Partial<Settings>){if(patch.theme)window.YukinoTheme?.setMode(patch.theme);const value=getLibrary();save({...value,settings:sanitize({...value,settings:{...value.settings,...patch}}).settings});}
 export function exportLibrary(){return JSON.stringify({...getLibrary(),exportedAt:new Date().toISOString()},null,2);}
 export function importLibrary(text:string){if(text.length>3*1024*1024)throw new Error('备份超过 3 MB');let raw;try{raw=JSON.parse(text);}catch{throw new Error('不是有效的 JSON 备份');}if(raw?.version!==1||!Array.isArray(raw.favorites)||!Array.isArray(raw.history))throw new Error('备份格式不正确');const imported=sanitize(raw),old=getLibrary();save({...old,favorites:dedupe([...old.favorites,...imported.favorites]),history:dedupe([...old.history,...imported.history])});return {favorites:imported.favorites.length,history:imported.history.length};}
-export function useLibrary(){const[value,setValue]=useState(getLibrary);useEffect(()=>{const changed=()=>setValue({...getLibrary()});window.addEventListener('comic-library',changed);window.addEventListener('storage',changed);return()=>{window.removeEventListener('comic-library',changed);window.removeEventListener('storage',changed);};},[]);return value;}
+export function useLibrary(){const[appearance]=useAppearance();const[value,setValue]=useState(getLibrary);useEffect(()=>{const changed=()=>setValue({...getLibrary()});window.addEventListener('comic-library',changed);window.addEventListener('storage',changed);return()=>{window.removeEventListener('comic-library',changed);window.removeEventListener('storage',changed);};},[]);return window.YukinoTheme?{...value,settings:{...value.settings,theme:appearance}}:value;}
