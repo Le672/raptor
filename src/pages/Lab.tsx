@@ -1,84 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { HomeLink } from "@/components/HomeLink";
 import { ServiceEntry } from "@/components/ServiceEntry";
 import { yukinoServices } from "@/data/services";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { CopyButton } from "@/components/CopyButton";
-
-/* A small interactive experiment: particle text effect */
-
-function ParticleText() {
-  const [text, setText] = useState("Yukino Lab");
-  const [sparkles, setSparkles] = useState<
-    { id: number; x: number; y: number; color: string; createdAt: number }[]
-  >([]);
-
-  const sequence = useRef(0);
-  useEffect(() => { const timer = setInterval(() => setSparkles(previous => previous.filter(point => Date.now() - point.createdAt < 650)), 150); return () => clearInterval(timer); }, []);
-  const handlePointer = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const colors = [
-      "#EF4444",
-      "#F97316",
-      "#F59E0B",
-      "#22C55E",
-      "#3B82F6",
-      "#8B5CF6",
-      "#EC4899",
-    ];
-    const newSparkle = {
-      id: ++sequence.current,
-      createdAt: Date.now(),
-      x,
-      y,
-      color: colors[Math.floor(Math.random() * colors.length)],
-    };
-    setSparkles((prev) => [...prev.slice(-30), newSparkle]);
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <input
-          className="flex-1 rounded-2xl border border-white/40 bg-white/30 px-4 py-3 text-sm text-stone-800 backdrop-blur-xl focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
-          onChange={(e) => setText(e.target.value)}
-          maxLength={60}
-          aria-label="粒子文字"
-          placeholder="输入文字..."
-          type="text"
-          value={text}
-        />
-      </div>
-      <div
-        className="relative flex h-40 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/20 backdrop-blur-xl"
-        onPointerMove={event => { if (event.pointerType !== "touch") handlePointer(event); }}
-        onPointerDown={handlePointer}
-      >
-        <span className="relative z-10 break-all p-5 text-center font-display text-4xl text-stone-800 select-none">
-          {text}
-        </span>
-        {sparkles.map((s) => (
-          <span
-            key={s.id}
-            className="pointer-events-none absolute animate-ping rounded-full"
-            style={{
-              left: s.x,
-              top: s.y,
-              width: 8,
-              height: 8,
-              backgroundColor: s.color,
-              opacity: 0.7,
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
+import { ParticleText } from "@/components/ParticleText";
 
 /* A small counter with animation */
 
@@ -191,7 +118,7 @@ export default function Lab() {
     </header>
     <section id="tools" className="scroll-mt-24 space-y-5"><div><p className="text-xs tracking-[0.2em] text-stone-500">THE TOOLBOX</p><h2 className="mt-2 font-display text-3xl text-stone-900">日常工具</h2><p className="mt-2 text-sm leading-7 text-stone-600">记录变化、接收回调、管理短链，或打开画布随手画画。前三项使用实验室专用管理口令，数据保存在服务器。</p></div><div className="grid gap-4 md:grid-cols-2"><ServiceEntry service={yukinoServices.radar}/><ServiceEntry service={yukinoServices.hooks}/><ServiceEntry service={yukinoServices.shortlinks}/><ServiceEntry service={yukinoServices.draw}/></div></section>
     <section id="experiments" className="scroll-mt-24 space-y-5"><div><p className="text-xs tracking-[0.2em] text-stone-500">PLAY & CREATE</p><h2 className="mt-2 font-display text-3xl text-stone-900">动手试试看</h2><p className="mt-2 text-sm leading-7 text-stone-600">无需登录，在页面里直接玩、直接用。</p></div><div className="grid items-start gap-4 lg:grid-cols-2">
-      <Experiment number="01" title="粒子文字" description="输入文字，移动鼠标或轻触画面留下彩色粒子。"><ParticleText/></Experiment>
+      <Experiment number="01" title="粒子文字" description="让文字由彩色粒子组成，移动鼠标或轻触画面将它打散。"><ParticleText/></Experiment>
       <Experiment number="02" title="随机渐变" description="发现一组新配色，并复制 CSS 到自己的项目。"><RandomGradient/></Experiment>
       <Experiment number="03" title="文字统计" description="快速查看文字长度、词组和行数。"><TextWorkbench/></Experiment>
       <Experiment number="04" title="点击计数器" description="看看你一秒钟能点击多少次。"><Counter/></Experiment>
