@@ -92,3 +92,14 @@ test('theme assets are versioned, idempotent, and work on a game subpath', async
     assert.ok(first.script.includes(first.css)); assert.ok(!first.script.includes('__YUKINO_THEME_CSS__'));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+test('IT Tools native color mode follows automatic changes and its own toggle can select a manual mode', async () => {
+  const b = await browser({ url: 'https://tools.yukino.bond/' });
+  try {
+    assert.equal(b.window.localStorage.getItem('vueuse-color-scheme'), 'dark');
+    b.advance('2026-11-09T01:15:00Z');
+    assert.equal(b.window.localStorage.getItem('vueuse-color-scheme'), 'light');
+    assert.equal(b.window.YukinoTheme.getState().mode, 'auto');
+    b.window.dispatchEvent(new b.window.CustomEvent('vueuse-storage', { detail: { key: 'vueuse-color-scheme', newValue: 'dark' } }));
+    assert.equal(b.window.YukinoTheme.getState().mode, 'dark');
+  } finally { await b.close(); }
+});

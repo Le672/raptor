@@ -47,8 +47,13 @@ html[data-yukino-theme="dark"] .excalidraw { color-scheme:dark; }
 html[data-yukino-theme="dark"] .app .sidebar nav a.active { background:#30455e; color:#e1eaf4; }
 html[data-yukino-theme="dark"] body.yukino-lab-app { --paper:#151e29; --ink:#dce6f1; --soft:#acbdd0; --faint:#acbdd0; --line:#425369; --blue:#24354a; --pink:#382b3c; --accent:#a9c9ee; color-scheme:dark; background:#151e29; color:#dce6f1; }
 html[data-yukino-theme="dark"] body.yukino-lab-app :is(.yukino-app-header,.yukino-app-footer,.yukino-drop-guide,.yukino-drop-panel,form,textarea,input,select,pre,table,th,td) { background:#1d2938; color:#dce6f1; border-color:#425369; }
+html[data-yukino-theme="dark"] body.yukino-lab-app :is(#nav,#pasta-form,.code-container,#lab-upload-status) { background:#1d2938; color:#dce6f1; border-color:#425369; }
+html[data-yukino-theme="dark"] body.yukino-lab-app :is(textarea,select,input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"])) { background-color:#182434!important; color:#dce6f1!important; }
+html[data-yukino-theme="dark"] body.yukino-lab-app :is(#submit-button,#attach-file-button) { background:#4d7198!important; color:#fff!important; }
+html[data-yukino-theme="dark"] body.yukino-lab-app :is(a,.yukino-app-identity strong) { color:#b5cdeb; }
 html[data-yukino-theme="dark"] body[data-yukino-app="tools"] :is(.hero-wrapper,.c-card) { background:#1d2938!important; color:#dce6f1!important; border-color:#425369!important; }
 html[data-yukino-theme="dark"] body[data-yukino-app="tools"] .hero-wrapper .text-wrapper { color:#dce6f1; }
+html[data-yukino-theme="dark"] body[data-yukino-app="tools"] .c-card svg { color:#acbdd0; }
 html[data-yukino-theme="dark"] body:has(.workspace>#main) { --muted:#acbdd0; --blue:#24354a; --green:#8bd2be; background:#151e29; }
 html[data-yukino-theme="dark"] body:has(.workspace>#main) :is(.topbar,.sidebar,.panel,.project,.login-panel,.stats>div,.item,.bottom-note,input,select,textarea,pre,.notice,.detail-panel,.payload,.mini-features span) { background:#1d2938; color:var(--ink); border-color:var(--line); }
 html[data-yukino-theme="dark"] body:has(.atlas-canvas),

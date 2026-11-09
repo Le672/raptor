@@ -20,6 +20,33 @@
   let mode = validMode(cookieMode) ? cookieMode : validMode(storedMode) ? storedMode : validMode(read('theme')) ? read('theme') : 'auto';
   let zone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   let source = 'browser', offset = 0, fetchedAt = 0, inFlight = null, control;
+  const nativeTools = location.hostname === 'tools.yukino.bond' && !location.pathname.startsWith('/lab');
+  const nativeDraw = location.hostname === 'draw.yukino.bond';
+  let nativeSyncing = false, drawingSwitchPending = false, drawingInteractionAt = -Infinity;
+  const syncNative = theme => {
+    if (nativeTools) {
+      try {
+        const previous = read('vueuse-color-scheme');
+        if (previous !== theme) {
+          nativeSyncing = true;
+          localStorage.setItem('vueuse-color-scheme', theme);
+          window.dispatchEvent(new CustomEvent('vueuse-storage', { detail: { key: 'vueuse-color-scheme', oldValue: previous, newValue: theme, storageArea: localStorage } }));
+          nativeSyncing = false;
+        }
+      } catch { nativeSyncing = false; }
+    }
+    if (nativeDraw) {
+      const canvas = document.querySelector('.excalidraw');
+      if (!canvas) { try { localStorage.setItem('excalidraw-theme', theme); } catch { /* Native defaults still work without storage. */ } }
+      else if (canvas.classList.contains('theme--dark') !== (theme === 'dark') && !drawingSwitchPending) {
+        // Excalidraw's native theme shortcut changes its renderer as well as
+        // its menus. Never invert a canvas or rewrite the saved scene.
+        drawingSwitchPending = true;
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'D', code: 'KeyD', altKey: true, shiftKey: true, bubbles: true }));
+        setTimeout(() => { drawingSwitchPending = false; }, 100);
+      }
+    } else document.querySelectorAll('.excalidraw').forEach(node => node.classList.toggle('theme--dark', theme === 'dark'));
+  };
   const clock = () => Date.now() + offset;
   const hourAt = (at, timeZone) => Number(new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hourCycle: 'h23' }).format(at));
   const themeAt = (at, timeZone) => { const hour = hourAt(at, timeZone); return hour >= 7 && hour < 19 ? 'light' : 'dark'; };
@@ -35,7 +62,7 @@
     root.classList.toggle('dark', theme === 'dark');
     root.classList.toggle('light', theme === 'light');
     if (root.style.colorScheme !== theme) root.style.colorScheme = theme;
-    document.querySelectorAll('.excalidraw').forEach(node => node.classList.toggle('theme--dark', theme === 'dark'));
+    syncNative(theme);
     document.querySelectorAll('meta[name="theme-color"]').forEach(meta => { meta.content = theme === 'dark' ? '#151e29' : '#f8fafc'; });
     if (control) {
       const select = control.querySelector('select');
@@ -89,7 +116,13 @@
     box.addEventListener('keydown', event => { if (event.key === 'Escape') { box.open = false; box.querySelector('summary').focus(); } });
     document.body.append(host); apply();
     // Apply the native Excalidraw theme when its asynchronously loaded shell arrives.
-    new MutationObserver(() => document.querySelectorAll('.excalidraw').forEach(node => node.classList.toggle('theme--dark', state.theme === 'dark'))).observe(document.body, { childList: true, subtree: true });
+    new MutationObserver(records => {
+      if (records.every(record => record.type === 'attributes' && !record.target.matches('.excalidraw'))) return;
+      const canvas = nativeDraw && document.querySelector('.excalidraw');
+      if (canvas && !drawingSwitchPending && Date.now() - drawingInteractionAt < 1000 && canvas.classList.contains('theme--dark') !== (state.theme === 'dark')) {
+        setMode(canvas.classList.contains('theme--dark') ? 'dark' : 'light');
+      } else syncNative(state.theme);
+    }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true }); else mount();
   const sync = () => {
@@ -100,6 +133,14 @@
   window.addEventListener('online', () => void refresh());
   document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
   window.addEventListener('storage', event => { if (event.key === 'yukino-theme-mode' && validMode(event.newValue)) { mode = event.newValue; apply(); } });
+  window.addEventListener('vueuse-storage', event => {
+    const change = event.detail;
+    if (!nativeTools || nativeSyncing || change?.key !== 'vueuse-color-scheme') return;
+    if (change.newValue === 'auto') setMode(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    else if (['light', 'dark'].includes(change.newValue)) setMode(change.newValue);
+  });
+  document.addEventListener('click', event => { if (nativeDraw && event.isTrusted && event.target.closest?.('.excalidraw')) { drawingInteractionAt = Date.now(); drawingSwitchPending = false; } }, true);
+  document.addEventListener('keydown', event => { if (nativeDraw && event.isTrusted && event.altKey && event.shiftKey && event.code === 'KeyD') { drawingInteractionAt = Date.now(); drawingSwitchPending = false; } }, true);
   setInterval(() => { if (!document.hidden) sync(); }, 30000);
   void refresh();
 })();

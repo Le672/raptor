@@ -31,6 +31,14 @@ body = archive.getvalue()
 gateway = repo / '.wrangler/theme-gateway'
 metadata = json.loads((gateway / 'theme.json').read_text(encoding='utf-8'))
 files = {p.relative_to(gateway).as_posix(): base64.b64encode(p.read_bytes()).decode() for p in (gateway / 'yukino-app-assets').iterdir() if p.is_file()}
+if '--prepare-only' in sys.argv:
+    target = repo / '.wrangler/theme-release'
+    target.mkdir(parents=True, exist_ok=True)
+    (target / 'frontends.tar.gz').write_bytes(body)
+    result = {'phase': 'prepared', 'sites': list(sources), 'gatewaySites': ['draw', 'tools', 'drop'], 'bytes': len(body), 'sha256': hashlib.sha256(body).hexdigest()}
+    (target / 'manifest.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
+    print(json.dumps(result))
+    raise SystemExit(0)
 name = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ-appearance')
 payload = base64.b64encode(json.dumps({'files': files, 'client': metadata['client']}).encode()).decode()
 code = r'''
