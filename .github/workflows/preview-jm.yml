@@ -51,4 +51,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy jm/packages/page/dist --project-name=jm-yukino --branch=codex-jm-independent
+          workingDirectory: jm/packages/page
+          command: pages deploy dist --project-name=jm-yukino --branch=codex-jm-independent
