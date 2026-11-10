@@ -1,0 +1,44 @@
+name: Publish shared content interface
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'shared/shell/**'
+      - 'src/styles/chrome-refresh.css'
+      - 'scripts/prepare-site-shell.mjs'
+      - 'scripts/prepare-pwa.mjs'
+      - 'scripts/prepare-content-ui.mjs'
+      - 'scripts/build-cinema.mjs'
+      - 'scripts/build-comic.mjs'
+      - '.github/workflows/deploy-content-ui.yml'
+  workflow_dispatch:
+concurrency:
+  group: content-ui-production
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run cinema:build && npm run comic:build
+      - run: node scripts/prepare-content-ui.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/content-ui/cinema.json --keep-vars
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/content-ui/comic.json --keep-vars

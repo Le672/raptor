@@ -23,7 +23,7 @@ export default function NotFound() {
           返回首页
         </HomeLink>
         <button type="button" className="pill-button ml-3" onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}>返回上一页</button>
-        <div className="mt-6 flex flex-wrap gap-3"><Link className="text-link" to="/notes">全部笔记 ↗</Link><Link className="text-link" to="/dev">开发工具 ↗</Link><Link className="text-link" to="/status">服务状态 ↗</Link></div>
+        <div className="mt-6 flex flex-wrap gap-3"><Link className="text-link" to="/notes">全部笔记 ↗</Link><Link className="text-link" to="/tools">开发工具 ↗</Link><Link className="text-link" to="/status">服务状态 ↗</Link></div>
       </div>
     </div>
   );

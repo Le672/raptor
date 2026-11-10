@@ -6,7 +6,7 @@ import Home from "../pages/Home";
 import Notes from "../pages/Notes";
 import Blog from "../pages/Blog";
 import Box from "../pages/Box";
-import Dev from "../pages/Dev";
+import Dev from "../pages/Tools";
 import Lab from "../pages/Lab";
 import Focus from "../pages/Focus";
 import Links from "../pages/Links";
@@ -98,10 +98,11 @@ describe("tools and small experiments", () => {
     expect(request.mock.calls.some(call => String(call[0]).includes("train=G101"))).toBe(true);
   });
   it("keeps inputs across tool switches and reports extreme timestamps without crashing", async () => {
-    mount(<Dev />); const base = screen.getByRole("tabpanel"); fireEvent.change(within(base).getByLabelText("原始文本"), { target: { value: " " } }); expect(within(base).getByLabelText("Base64 结果")).toHaveValue("IA==");
-    fireEvent.click(screen.getByRole("tab", { name: "时间戳" })); fireEvent.change(screen.getByLabelText("时间戳输入"), { target: { value: "999999999999999999999999999999999" } }); expect(await screen.findByText("时间戳超出有效日期范围")).toBeVisible();
-    fireEvent.click(screen.getByRole("tab", { name: "Base64" })); expect(within(screen.getByRole("tabpanel")).getByLabelText("原始文本")).toHaveValue(" ");
-    fireEvent.click(screen.getByRole("tab", { name: "哈希" })); fireEvent.change(screen.getByLabelText("哈希算法"), { target: { value: "MD5" } }); expect(await screen.findByLabelText("MD5 结果")).toHaveValue("d41d8cd98f00b204e9800998ecf8427e");
+    mount(<Dev />, '/tools?tool=base64'); const base = screen.getByRole("region", {name:"Base64"}); fireEvent.change(within(base).getByLabelText("原始文本"), { target: { value: " " } }); expect(within(base).getByLabelText("Base64 结果")).toHaveValue("IA==");
+    const open = (name:RegExp) => { fireEvent.click(screen.getByRole('button',{name:'全部工具'})); fireEvent.click(screen.getByRole('button',{name})); };
+    open(/^时间戳 秒/); fireEvent.change(screen.getByLabelText("时间戳输入"), { target: { value: "999999999999999999999999999999999" } }); expect(await screen.findByText("时间戳超出有效日期范围")).toBeVisible();
+    open(/^Base64 UTF/); expect(within(screen.getByRole("region",{name:'Base64'})).getByLabelText("原始文本")).toHaveValue(" ");
+    open(/^哈希 SHA/); fireEvent.change(screen.getByLabelText("哈希算法"), { target: { value: "MD5" } }); expect(await screen.findByLabelText("MD5 结果")).toHaveValue("d41d8cd98f00b204e9800998ecf8427e");
   });
   it("counts clicks in a real one-second window, allows empty text and offers gradient copying", () => {
     vi.useFakeTimers(); mount(<Lab />); const count = screen.getByRole("button", { name: "增加点击计数" }); fireEvent.click(count); fireEvent.click(count);
@@ -154,7 +155,7 @@ describe("catalogs and global search", () => {
   it("opens the selected keyboard search result and restores focus after closing", async () => {
     const close = vi.fn(); const trigger = document.createElement("button"); document.body.appendChild(trigger); trigger.focus();
     const view = mount(<Routes><Route path="/" element={<QuickSearch open onClose={close} />} /><Route path="/lab" element={<h1>实验室已打开</h1>} /></Routes>);
-    const input = screen.getByRole("combobox", { name: "搜索内容" }); fireEvent.change(input, { target: { value: "工具" } }); fireEvent.keyDown(input, { key: "ArrowDown" }); fireEvent.submit(input.closest("form")!);
+    const input = screen.getByRole("combobox", { name: "搜索内容" }); fireEvent.change(input, { target: { value: "实验" } }); fireEvent.keyDown(input, { key: "ArrowDown" }); fireEvent.keyDown(input, { key: "ArrowUp" }); fireEvent.submit(input.closest("form")!);
     await screen.findByRole("heading", { name: "实验室已打开" }); expect(close).toHaveBeenCalled(); view.unmount(); expect(document.activeElement).toBe(trigger); trigger.remove();
   });
 });

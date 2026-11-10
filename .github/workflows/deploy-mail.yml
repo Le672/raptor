@@ -3,6 +3,9 @@ on:
   push:
     branches: [master]
     paths:
+      - 'shared/shell/**'
+      - 'scripts/prepare-site-shell.mjs'
+      - 'src/styles/chrome-refresh.css'
       - '.github/workflows/deploy-mail.yml'
       - 'scripts/prepare-mail-deploy.mjs'
       - 'shared/test/mail-deploy-config.test.mjs'

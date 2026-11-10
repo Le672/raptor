@@ -7,8 +7,8 @@ import { runInNewContext } from 'node:vm';
 import { APPS, appForHost } from '../pwa/sites.mjs';
 import { preparePwa } from '../../scripts/prepare-pwa.mjs';
 import { createContentSignIn } from '../content-signin.mjs';
-test('all 29 website origins have a distinct app name and valid opaque platform icons', async () => {
-  assert.equal(APPS.length, 29); assert.equal(new Set(APPS.map(app => app.host)).size, 29);
+test('all 28 website origins have a distinct app name and valid opaque platform icons', async () => {
+  assert.equal(APPS.length, 28); assert.equal(new Set(APPS.map(app => app.host)).size, 28);
   assert.equal(appForHost('status.yukino.bond').auth, 'none'); assert.equal(appForHost('yukino.bond').id, 'www');
   assert.equal(appForHost('api.yukino.bond'), undefined);
   for (const app of APPS) for (const size of [180, 192, 512]) {
