@@ -1,5 +1,6 @@
 import { canonicalPageUrl } from '../speed/src/site-routing.mjs';
 export function onRequest({ request, next }: { request: Request; next: () => Promise<Response> }) {
+  if (new URL(request.url).hostname === 'dev.yukino.bond') return new Response('此子域名已关闭。', { status: 410, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
   if (!['GET', 'HEAD'].includes(request.method)) return next();
   const url = new URL(request.url), target = canonicalPageUrl(url.href);
   // Legacy speed pages must read their old origin's pending reports before leaving it.

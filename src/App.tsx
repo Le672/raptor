@@ -9,7 +9,8 @@ const AdminPosts = lazy(() => import("@/pages/AdminPosts"));
 const Blog = lazy(() => import("@/pages/Blog"));
 const Box = lazy(() => import("@/pages/Box"));
 const Changelog = lazy(() => import("@/pages/Changelog"));
-const Dev = lazy(() => import("@/pages/Dev"));
+const Draw = lazy(() => import("@/pages/Draw"));
+const Tools = lazy(() => import("@/pages/Tools"));
 const Friends = lazy(() => import("@/pages/Friends"));
 const Games = lazy(() => import("@/pages/Games"));
 const Lab = lazy(() => import("@/pages/Lab"));
@@ -34,7 +35,7 @@ import { SUBDOMAIN_ROUTES, isPortalHost } from "@/lib/site-routing";
 
 const rootPages: Record<string, React.ComponentType> = {
   "/about-me": AboutMe, "/blog": Blog, "/box": Box, "/changelog": Changelog,
-  "/dev": Dev, "/friends": Friends, "/lab": Lab, "/links": Links, "/rss": RSS,
+  "/tools": Tools, "/draw": Draw, "/friends": Friends, "/lab": Lab, "/links": Links, "/rss": RSS,
   "/status": Status, "/games": Games, "/focus": Focus, "/news": News,
   "/cr": Rail, "/f1": F1, "/ip": Ip, "/speed": Speed, "/uses": Uses,
 };

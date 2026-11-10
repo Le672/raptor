@@ -57,14 +57,6 @@ export const domainLinks: DomainLink[] = [
     category: "core",
   },
   {
-    title: "开发工具",
-    hostname: "dev.yukino.bond",
-    href: "https://dev.yukino.bond",
-    description: "常用开发小工具、脚本页和在线效率功能集合。",
-    status: "online",
-    category: "core",
-  },
-  {
     title: "资源站",
     hostname: "box.yukino.bond",
     href: "https://box.yukino.bond",
@@ -221,7 +213,7 @@ export const postPreviews: PostPreview[] = [
     href: "/blog?post=personal-domain",
   },
   {
-    title: "常用开发工具应该怎样拆到 dev.yukino.bond",
+    title: "常用开发工具的整理方式",
     summary: "把 JSON、时间戳、编码和文本处理拆成清晰的小页面，避免一个工具页过于拥挤。",
     date: "2026-06-12",
     tag: "开发",

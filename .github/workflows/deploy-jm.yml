@@ -4,6 +4,9 @@ on:
   push:
     branches: [master]
     paths:
+      - 'shared/shell/**'
+      - 'scripts/prepare-site-shell.mjs'
+      - 'src/styles/chrome-refresh.css'
       - 'jm/**'
       - 'shared/pwa/**'
       - 'scripts/prepare-pwa.mjs'

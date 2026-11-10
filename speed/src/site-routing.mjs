@@ -1,7 +1,7 @@
 // Shared by the portal, the independent speed deployment and their edge routers.
 export const MAIN_ORIGIN = 'https://www.yukino.bond';
 export const SITE_SECTIONS = [
-  ['/dev', 'dev'], ['/blog', 'blog'], ['/box', 'box'], ['/links', 'links'],
+  ['/tools', 'tools'], ['/draw', 'draw'], ['/drop', 'drop'], ['/blog', 'blog'], ['/box', 'box'], ['/links', 'links'],
   ['/about-me', 'about'], ['/uses', 'uses'], ['/changelog', 'changelog'],
   ['/friends', 'friends'], ['/rss', 'rss'], ['/lab', 'lab'], ['/status', 'status'],
   ['/games', 'games'], ['/focus', 'focus'], ['/news', 'news'], ['/cr', 'cr'],

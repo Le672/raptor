@@ -1,0 +1,38 @@
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowUpRight, Search, Star, Clock3, Code2, ShieldCheck, Copy, RotateCcw } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { coreToolPanels } from '@/components/CoreToolPanels';
+import { CopyButton } from '@/components/CopyButton';
+import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { TOOLS, TOOL_CATEGORIES, type Tool } from '@/lib/toolbox';
+import { SpecializedTool } from '@/components/SpecializedTools';
+import '@/styles/toolbox.css';
+
+function readList(key:string){try{const a=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(a)?a.filter((x:unknown)=>typeof x==='string'&&TOOLS.some(t=>t.id===x)):[];}catch{return [];}}
+function Runner({tool}:{tool:Tool}) {
+  const [input,setInput]=useState(''),[option,setOption]=useState(tool.options?.[0]||''),[result,setResult]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+  const revision=useRef(0);
+  useEffect(()=>()=>{revision.current++;},[]);
+  async function run(){const id=++revision.current;setBusy(true);setError('');try{const next=await tool.run!(input,option);if(id===revision.current)setResult(next);}catch(e){if(id===revision.current){setResult('');setError(e instanceof Error?e.message:'处理失败，请检查输入');}}finally{if(id===revision.current)setBusy(false);}}
+  function clear(){revision.current++;setInput('');setResult('');setError('');setBusy(false);}
+  return <div className="tool-runner"><div className="tool-actions">{tool.options&&<label>处理方式<select value={option} onChange={e=>{revision.current++;setBusy(false);setOption(e.target.value);setResult('');setError('');}}>{tool.options.map(o=><option key={o}>{o}</option>)}</select></label>}<button onClick={()=>{revision.current++;setBusy(false);setInput(tool.sample||'');setResult('');setError('');}}>载入示例</button><button onClick={clear}><RotateCcw size={14}/>清空</button></div>{tool.hint&&<p className="tool-hint">{tool.hint}</p>}<div className="tool-editor-grid"><label>输入<textarea value={input} onChange={e=>{revision.current++;setBusy(false);setInput(e.target.value);setResult('');setError('');}} rows={10} spellCheck={false} maxLength={100000}/><small>{Array.from(input).length.toLocaleString()} 字符</small></label><label>结果<textarea value={result} readOnly rows={10} spellCheck={false}/><span className="tool-output-actions"><CopyButton text={result} disabled={!result||!!error} label="复制结果"/></span></label></div>{error&&<p role="alert" className="tool-error">{error}</p>}<button className="tool-primary" onClick={()=>void run()} disabled={busy}>{busy?'正在处理…':'运行工具'}<ArrowUpRight size={15}/></button></div>;
+}
+export default function Tools(){
+  useDocumentMeta('工具箱','Yukino 自研工具箱：编码、格式化、文本、安全、时间、网络与设计，在浏览器本地处理。');
+  const[params,setParams]=useSearchParams(),[query,setQuery]=useState(''),[category,setCategory]=useState('全部'),[scope,setScope]=useState('全部'),[favorites,setFavorites]=useState<string[]>(()=>readList('yukino-tools:favorites')),[recent,setRecent]=useState<string[]>(()=>readList('yukino-tools:recent')),[visited,setVisited]=useState<string[]>([]),[reset,setReset]=useState(0),[storageError,setStorageError]=useState(false);
+  const selected=TOOLS.find(t=>t.id===params.get('tool'));
+  const selectedId=selected?.id;
+  useEffect(()=>{if(!selectedId)return;setVisited(a=>a.includes(selectedId)?a:[...a,selectedId]);setRecent(a=>[selectedId,...a.filter(x=>x!==selectedId)].slice(0,8));},[selectedId]);
+  useEffect(()=>{try{localStorage.setItem('yukino-tools:favorites',JSON.stringify(favorites));localStorage.setItem('yukino-tools:recent',JSON.stringify(recent));setStorageError(false);}catch{setStorageError(true);}},[favorites,recent]);
+  const toggle=(id:string)=>setFavorites(a=>a.includes(id)?a.filter(x=>x!==id):[...a,id]);
+  const open=(id?:string)=>setParams(p=>{const n=new URLSearchParams(p);if(id)n.set('tool',id);else n.delete('tool');return n;});
+  const visible=TOOLS.filter(t=>(category==='全部'||t.category===category)&&(scope==='全部'||(scope==='收藏'?favorites:recent).includes(t.id))&&[t.label,t.description,t.id,t.category].join(' ').toLowerCase().includes(query.toLowerCase()));
+  if(scope==='最近使用')visible.sort((a,b)=>recent.indexOf(a.id)-recent.indexOf(b.id));
+  return <div className="toolbox-page"><div className="toolbox-heading"><p className="eyebrow">THE EVERYDAY TOOLBOX</p><h1>小工具，<span>顺手就好。</span></h1><p>{TOOLS.length} 个日常工具，从一段文本到一个灵感，在这里轻松处理。</p><div className="toolbox-note"><ShieldCheck size={15}/>计算与文件处理在本机完成，仅收藏和最近使用的工具名称保存在浏览器。</div></div>
+    {storageError&&<p role="status" className="tool-hint">浏览器存储不可用，收藏与最近使用只保留到本次页面关闭。</p>}
+    {selected?<><div className="tool-workspace-head"><button onClick={()=>open()}><ArrowLeft size={15}/>全部工具</button><span>{selected.category}</span><h2>{selected.label}</h2><button aria-label={favorites.includes(selected.id)?'取消收藏':'收藏工具'} aria-pressed={favorites.includes(selected.id)} onClick={()=>toggle(selected.id)}><Star size={16} fill={favorites.includes(selected.id)?'currentColor':'none'}/></button><CopyButton text={'https://tools.yukino.bond/?tool='+selected.id} label="复制工具链接"/></div><p className="tool-description">{selected.description}</p></>:null}
+    <div hidden={!selected} className="tool-workspace">{[...new Set([...visited,...(selected?[selected.id]:[])])].map(id=>{const tool=TOOLS.find(t=>t.id===id)!;const Panel=coreToolPanels[id as keyof typeof coreToolPanels];return <section key={id+reset} hidden={selected?.id!==id} aria-label={tool.label}>{Panel?<Panel/>:tool.run?<Runner tool={tool}/>:<SpecializedTool id={id}/>}</section>;})}</div>
+    {selected&&<button className="tool-reset" onClick={()=>{setReset(x=>x+1);setVisited([selected.id]);}}>清空本次所有工具输入</button>}
+    {!selected&&<><div className="toolbox-search"><Search size={18}/><label className="sr-only" htmlFor="tool-search">搜索工具</label><input id="tool-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="搜索工具，例如 JSON、密码、图片…"/><kbd>{TOOLS.length} TOOLS</kbd></div><div className="toolbox-filters"><div className="toolbox-scopes">{['全部','收藏','最近使用'].map(s=><button key={s} aria-pressed={scope===s} onClick={()=>setScope(s)}>{s==='收藏'?<Star size={14}/>:s==='最近使用'?<Clock3 size={14}/>:<Code2 size={14}/>} {s}</button>)}</div><div className="toolbox-categories" aria-label="工具分类">{TOOL_CATEGORIES.map(c=><button key={c} aria-pressed={category===c} onClick={()=>setCategory(c)}>{c}</button>)}</div></div><div className="toolbox-results"><span>{visible.length} 个工具</span><span>YUKINO / MADE FOR EVERYDAY</span></div><div className="toolbox-grid">{visible.map((t,i)=><article key={t.id} className="toolbox-card"><div><span className="toolbox-card-number">{String(i+1).padStart(2,'0')}</span><span className="toolbox-card-category">{t.category}</span><button className="toolbox-star" onClick={()=>toggle(t.id)} aria-label={(favorites.includes(t.id)?'取消收藏 ':'收藏 ')+t.label} aria-pressed={favorites.includes(t.id)}><Star size={15} fill={favorites.includes(t.id)?'currentColor':'none'}/></button></div><button className="toolbox-open" onClick={()=>open(t.id)}><h2>{t.label}<ArrowUpRight size={17}/></h2><p>{t.description}</p><code>{t.id}</code></button></article>)}</div>{!visible.length&&<div className="toolbox-empty"><Search size={25}/><h2>{scope==='收藏'?'还没有收藏的工具':'没有找到工具'}</h2><p>{scope==='收藏'?'点击工具卡片上的星标，留下常用的小帮手。':'试试其他关键词，或查看全部分类。'}</p><button onClick={()=>{setQuery('');setCategory('全部');setScope('全部');}}>查看全部工具</button></div>}<div className="toolbox-footer"><Copy size={17}/><p>输入留在当前页面，切换工具可接着处理。<br/><small>分享工具链接仅包含工具名称，不包含输入内容。</small></p></div></>}
+  </div>;
+}

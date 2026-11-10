@@ -32,8 +32,8 @@ const linkGroups = [
     icon: Wrench,
     links: [
       {
-        label: "dev.yukino.bond",
-        url: "https://dev.yukino.bond",
+        label: "Yukino 工具箱",
+        url: "https://tools.yukino.bond/",
         desc: "Base64、JSON、时间戳等开发工具",
       },
       {
