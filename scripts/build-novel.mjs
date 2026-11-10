@@ -15,7 +15,7 @@ for (const site of [
       return html.replace(/<title>.*?<\/title>/,`<title>${site.title} · ${site.brand}</title>`).replace('</head>',`<meta name="reader-kind" content="${site.kind}"/></head>`);
     }}]});
   const { prepareSiteShell } = await import('./prepare-site-shell.mjs');
-  await prepareSiteShell(fileURLToPath(root));
+  await prepareSiteShell(fileURLToPath(root), { siteId: site.folder === 'ln' ? 'ln' : 'novel' });
   const html=await readFile(new URL('index.html',root),'utf8');
   const assets=['/yukino-shell/avatar.png',...new Set(Array.from(html.matchAll(/(?:src|href)="(\/(?:assets|yukino-shell)\/[^"?#]+)"/g),match=>match[1]))];
   if(!assets.some(path=>path.endsWith('.js'))||!assets.some(path=>path.endsWith('.css')))throw new Error('Reader assets are missing');

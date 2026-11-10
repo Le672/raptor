@@ -22,7 +22,7 @@ async function dependencies(root, paths) {
 }
 export async function preparePwa(directory, id = 'portal', options = {}) {
   const root = resolve(directory), entry = resolve(root, 'index.html');
-  const shell = id !== 'portal' ? await prepareSiteShell(root) : null;
+  const shell = id !== 'portal' ? await prepareSiteShell(root, { siteId: id }) : null;
   let html = await readFile(entry, 'utf8');
   // Re-running the packaging step must produce one control, not duplicate apps.
   html = html.replace(/<script[^>]*data-yukino-app[^>]*><\/script>/g, '');

@@ -38,6 +38,27 @@ test('shared worker never intercepts login, media, private lab HTML, files or no
     let intercepted = false; handlers.fetch({ request: { url: new URL(path, 'https://tools.yukino.bond').href, method, mode: 'navigate' }, respondWith: () => { intercepted = true; } }); assert.equal(intercepted, false, path);
   }
 });
+
+test('standalone apps package the same navigation with versioned offline assets and no duplicate shell', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'yukino-standalone-shell-'));
+  try {
+    await mkdir(join(directory, 'assets'));
+    await writeFile(join(directory, 'assets/app.js'), 'console.log("app");');
+    await writeFile(join(directory, 'index.html'), '<html><head><script type="module" src="/assets/app.js"></script></head><body><div id="app"></div></body></html>');
+    const first = await preparePwa(directory, 'mail');
+    const second = await preparePwa(directory, 'mail');
+    const html = await readFile(join(directory, 'index.html'), 'utf8');
+    assert.equal((html.match(/<script[^>]+data-yukino-shell/g) || []).length, 1);
+    const path = html.match(/src="(\/yukino-shell\/shell-[^"]+\.js)"/)[1];
+    const script = await readFile(join(directory, path), 'utf8');
+    assert.ok(script.includes('https://drop.yukino.bond/'));
+    assert.ok(script.includes('https://draw.yukino.bond/'));
+    assert.ok(!script.includes('dev.yukino.bond'));
+    const files = await import('node:fs/promises').then(fs => fs.readdir(directory));
+    const worker = await readFile(join(directory, files.find(name => /^yukino-app-sw-mail-/.test(name))), 'utf8');
+    assert.ok(worker.includes(path)); assert.ok(worker.includes('/yukino-shell/avatar.png'));
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
 test('each protected content site issues and clears a domain-scoped persistent cookie, returning no bearer token', async () => {
   const now = Date.now(), token = `a.${Buffer.from(JSON.stringify({ exp: Math.floor(now / 1000) + 604800 })).toString('base64url')}.b`;
   for (const site of ['ln', 'novel', 'cinema', 'comic']) {

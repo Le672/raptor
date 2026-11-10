@@ -14,7 +14,7 @@ for (const [site, source] of sites) {
     filter: path => !['rail-network', 'f1', 'f1-player', '_redirects', '_worker.js'].includes(basename(path)) && !path.endsWith('.map'),
   });
   await mkdir(resolve(root, 'assets'), { recursive: true });
-  const shell = await prepareSiteShell(resolve(root, 'assets'), { inject: false });
+  const shell = await prepareSiteShell(resolve(root, 'assets'), { inject: false, siteId: site });
   await writeFile(resolve(root, 'wrangler.json'), JSON.stringify({
     name: site === 'draw' ? 'yukino-draw' : 'yukino-' + site + '-edge',
     main: '../../../vps-content/edge-frontend.mjs',
