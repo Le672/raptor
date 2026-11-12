@@ -1,0 +1,51 @@
+export type ArtworkCard = {
+  id: string; title: string; userId: string; userName: string; image: string;
+  width: number; height: number; pageCount: number; type: number; ai: boolean;
+  tags: string[]; createdAt: string; rank?: number;
+};
+export type Artwork = Omit<ArtworkCard, 'tags'> & {
+  description: string; bookmarkCount: number; viewCount: number;
+  tags: { name: string; translation: string }[];
+  images: { regular: string; original: string; width: number; height: number }[];
+};
+export type ArtworkPage = {
+  items: ArtworkCard[]; page: number; total: number; hasNext: boolean;
+  fetchedAt: string; date?: string; relatedTags?: string[];
+  user?: { id: string; name: string; image: string; comment: string };
+};
+
+export async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
+  const response = await fetch(path, { signal });
+  const payload = await response.json().catch(() => ({ error: '服务返回的数据无法读取。' }));
+  if (!response.ok || payload.error) throw new Error(payload.error || `请求失败（${response.status}）。`);
+  return payload as T;
+}
+
+export function imageUrl(source: string, download = false) {
+  return '/api/image?' + new URLSearchParams({ url: source, ...(download ? { download: '1' } : {}) });
+}
+
+export async function assertCompleteImage(blob: Blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer()), size = bytes.length;
+  const ends = (values: number[]) => size >= values.length && values.every((value, index) => bytes[size - values.length + index] === value);
+  let valid = false;
+  if (blob.type === 'image/jpeg') valid = size > 4 && bytes[0] === 255 && bytes[1] === 216 && ends([255, 217]);
+  else if (blob.type === 'image/png') valid = size > 20 && bytes[0] === 137 && ends([0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130]);
+  else if (blob.type === 'image/webp') valid = size >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF' && String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP' && new DataView(bytes.buffer).getUint32(4, true) + 8 === size;
+  else if (blob.type === 'image/gif') valid = size > 14 && String.fromCharCode(...bytes.slice(0, 3)) === 'GIF' && ends([59]);
+  if (!valid) throw new Error('图片传输不完整，请重试保存原图。');
+}
+
+export function directDestination(input: string): string | null {
+  const value = input.trim();
+  if (/^[1-9]\d{0,11}$/.test(value)) return '/artworks/' + value;
+  if (/^(?:PID\s*[:：]?\s*)[1-9]\d{0,11}$/i.test(value)) return '/artworks/' + value.replace(/^PID\s*[:：]?\s*/i, '');
+  try {
+    const url = new URL(value);
+    if (!['https:', 'http:'].includes(url.protocol) || !['pixiv.net', 'www.pixiv.net'].includes(url.hostname)) return null;
+    const match = url.pathname.match(/^\/(?:[a-z]{2}\/)?(artworks|users)\/([1-9]\d{0,11})\/?$/);
+    if (match) return `/${match[1]}/${match[2]}`;
+    if (url.pathname === '/member_illust.php' && /^[1-9]\d{0,11}$/.test(url.searchParams.get('illust_id') || '')) return '/artworks/' + url.searchParams.get('illust_id');
+  } catch { /* Treat plain text as a search term. */ }
+  return null;
+}

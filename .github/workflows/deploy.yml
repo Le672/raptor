@@ -1,0 +1,225 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: portal-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Check website behavior
+        run: npm run test -- src/test
+
+      - name: Check Age of Nations rules, saves and AI
+        run: npm run nations:test
+
+      - name: Check strategy save BLOBs and rollback in the Workers D1 runtime
+        run: node scripts/check-nations-d1.mjs
+
+      - name: Check mystery save BLOBs and rollback in the Workers D1 runtime
+        run: node scripts/check-fog-d1.mjs
+
+      - name: Check Fog Harbor Files narrative, deductions and saves
+        run: npm run mystery:test
+
+      - name: Install the isolated game browser checks
+        run: npm install --prefix .wrangler/nations-browser-tools --no-save --package-lock=false @playwright/test@1.56.1
+
+      - name: Prepare the game test browser
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk
+          fc-match :lang=zh
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "NATIONS_BROWSER_CHANNEL=chrome" >> "$GITHUB_ENV"
+          else
+            node .wrangler/nations-browser-tools/node_modules/@playwright/test/cli.js install --with-deps chromium
+          fi
+
+      - name: Check desktop and mobile gameplay with real persistent storage
+        run: node .wrangler/nations-browser-tools/node_modules/@playwright/test/cli.js test --config games/age-of-nations/playwright.config.mjs
+        env:
+          NATIONS_PLAYWRIGHT_MODULE: file://${{ github.workspace }}/.wrangler/nations-browser-tools/node_modules/@playwright/test/index.mjs
+
+      - run: npm run build
+
+      - name: Check Fog Harbor Files complete case, persistent saves and offline recovery
+        run: node .wrangler/nations-browser-tools/node_modules/@playwright/test/cli.js test --config games/fog-harbor-files/playwright.config.mjs
+        env:
+          NATIONS_PLAYWRIGHT_MODULE: file://${{ github.workspace }}/.wrangler/nations-browser-tools/node_modules/@playwright/test/index.mjs
+
+      - name: Preserve Fog Harbor Files browser verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fog-harbor-files-browser
+          path: .wrangler/fog-browser
+          retention-days: 7
+
+      - name: Preserve verified F1 schedules and results for edge cold starts
+        run: node scripts/warm-f1-snapshots.mjs
+
+      - name: Ensure private portal signing secret
+        run: node scripts/ensure-auth-secret.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Configure strategy game D1 storage using the existing application binding
+        id: nations-d1
+        run: node scripts/ensure-nations-d1.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Migrate strategy game saves in independent D1 storage
+        if: steps.nations-d1.outputs.independent == 'true'
+        run: |
+          npx wrangler d1 execute yukino-nations --remote --file=games/age-of-nations/cloud/schema.sql
+          node scripts/migrate-nations-legacy.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Ensure optional legacy and mystery game object storage
+        id: game-storage
+        run: node scripts/ensure-nations-cloud.mjs --allow-unavailable
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy daily D1 cleanup for both games
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config games/age-of-nations/cloud/d1-wrangler.jsonc
+
+      - name: Deploy daily game save cleanup
+        if: steps.game-storage.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config games/age-of-nations/cloud/wrangler.jsonc
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=raptor --branch=master
+
+      - name: Verify the published strategy game and its Worker assets
+        run: node scripts/verify-nations-live.mjs
+
+      - name: Verify the published Fog Harbor Files game
+        run: node scripts/verify-fog-harbor-files-live.mjs
+
+      - name: Detach independent VPS status page from Pages
+        run: node scripts/ensure-vps-status-domain.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Package the independent status frontend
+        run: node scripts/build-edge-frontends.mjs --site=status
+
+      - name: Deploy the status frontend on its existing Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/edge-frontend/status/wrangler.json --keep-vars
+
+      - name: Package tools with shared Yukino interface
+        run: node scripts/build-edge-frontends.mjs --site=tools
+
+      - name: Publish tools on its existing Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/edge-frontend/tools/wrangler.json --keep-vars
+
+      - name: Package draw with shared Yukino interface
+        run: node scripts/build-edge-frontends.mjs --site=draw
+
+      - name: Publish draw on its existing Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/edge-frontend/draw/wrangler.json --keep-vars
+
+      - name: Package drop with shared Yukino interface
+        run: node scripts/build-edge-frontends.mjs --site=drop
+
+      - name: Publish drop on its existing Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/edge-frontend/drop/wrangler.json --keep-vars
+
+      - name: Verify the legacy status URL and independent history API
+        run: |
+          node --input-type=module <<'JS'
+          const origin = 'https://status.yukino.bond';
+          const old = await fetch(origin + '/status?from=legacy', { redirect: 'manual', signal: AbortSignal.timeout(20000) });
+          if (old.status !== 308 || old.headers.get('location') !== origin + '/?from=legacy') throw new Error('Status legacy URL did not redirect');
+          const history = await fetch(origin + '/api/history', { signal: AbortSignal.timeout(20000) });
+          if (!history.ok || (await history.json()).hours?.length !== 72) throw new Error('Independent status history unavailable');
+          JS
+
+      - name: Verify portal API and VPS session validation
+        run: node scripts/verify-portal-auth.mjs
+
+      - name: Attach rail watch subdomain
+        run: node scripts/ensure-rail-domain.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Attach F1 subdomain
+        run: node scripts/ensure-f1-domain.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Attach focus subdomain
+        run: node scripts/ensure-focus-domain.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Attach IP lookup subdomain
+        run: node scripts/ensure-ip-domain.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+
+      - name: Retire dev subdomain without a redirect
+        run: node scripts/retire-dev-domain.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

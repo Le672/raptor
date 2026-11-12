@@ -1,0 +1,44 @@
+:root {
+  color-scheme: light dark;
+  --background: #f3f1eb;
+  --paper: #fffdf7;
+  --text: #302e2b;
+  --muted: #57554d;
+  --accent: #255a79;
+  --border: #d8d4c8;
+  background: var(--background);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #181b1e;
+    --paper: #22272b;
+    --text: #e8e5df;
+    --muted: #c1bdb5;
+    --accent: #a9d5ed;
+    --border: #41464b;
+  }
+}
+
+body { max-width: 48rem; margin: auto; padding: 1.25rem clamp(1rem, 4vw, 2rem) 3rem; }
+a { color: var(--accent); text-underline-offset: .2em; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: .25rem; }
+.top, nav { display: flex; align-items: baseline; flex-wrap: wrap; gap: .75rem 1.5rem; }
+.top { justify-content: space-between; }
+.top span, .label { color: var(--muted); font-size: .85rem; letter-spacing: .08em; }
+.intro { padding: 2.5rem 0 1.5rem; }
+h1, h2, article p { font-family: "Noto Serif SC", "Songti SC", SimSun, serif; }
+h1 { font-size: clamp(2rem, 6vw, 3rem); margin: .55rem 0; }
+.intro p { color: var(--muted); line-height: 1.7; }
+article {
+  scroll-margin-top: 1rem;
+  margin-top: 1.25rem;
+  padding: clamp(1.25rem, 5vw, 2.75rem);
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+article p { font-size: 1.15rem; line-height: 2; text-indent: 2em; }
+article footer { border-top: 1px solid var(--border); margin-top: 2rem; padding-top: 1rem; }

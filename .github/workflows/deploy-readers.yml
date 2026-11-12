@@ -1,0 +1,61 @@
+name: Publish readers to Cloudflare Workers
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'shared/shell/**'
+      - 'scripts/prepare-site-shell.mjs'
+      - 'src/styles/chrome-refresh.css'
+      - 'novel/**'
+      - 'fiction/**'
+      - 'ln/**'
+      - 'shared/reader-worker.mjs'
+      - 'shared/reader-preview.mjs'
+      - 'vps-content/reader-preview.test.mjs'
+      - 'shared/content-*.mjs'
+      - 'scripts/build-novel.mjs'
+      - 'scripts/ensure-reader-routes.mjs'
+      - 'scripts/verify-readers-live.mjs'
+      - '.github/workflows/deploy-readers.yml'
+  workflow_dispatch:
+concurrency:
+  group: deploy-readers
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+          cache: npm
+      - run: npm ci
+      - name: Check reader security and migration
+        run: |
+          node scripts/check-kv-budget.mjs
+          node --test novel/test/*.test.mjs fiction/test/*.test.mjs shared/test/*.test.mjs vps-content/reader-preview.test.mjs
+          npx vitest run src/test/novel-library.test.ts src/test/reader-migration.test.tsx
+          npx tsc -p novel/tsconfig.json
+      - run: node scripts/build-novel.mjs
+      - name: Deploy light novel reader
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config ln/wrangler.jsonc
+      - name: Deploy ordinary novel reader
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config fiction/wrangler.jsonc
+      - name: Connect the two reader domains
+        run: node scripts/ensure-reader-routes.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Verify live applications and real source content
+        run: node scripts/verify-readers-live.mjs

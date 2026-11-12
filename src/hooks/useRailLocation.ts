@@ -1,0 +1,64 @@
+import { useEffect, useState } from "react";
+import { validLocation } from "../lib/rail-gps";
+import type { LocationFix } from "../lib/rail-gps";
+
+type LocationEvent = { fix?: LocationFix; error?: { code: number; message: string } };
+declare global { interface Window { railLocation?: {
+  start: () => Promise<void>; stop: () => Promise<void>;
+  onUpdate: (listener: (event: LocationEvent) => void) => () => void;
+} } }
+const locationError = (code: number) => code === 1 ? "定位权限未开启。请在浏览器或系统定位设置中允许后重试。" :
+  code === 3 ? "暂未收到新的 GPS 定位，请靠近车窗或等待信号恢复。" : "设备暂时无法获取定位，请检查定位服务与信号。";
+
+/** No automatic permission request, no IP fallback, no persisted location history. */
+export function useRailLocation() {
+  const [enabled, setEnabled] = useState(false);
+  const [fix, setFix] = useState<LocationFix | null>(null);
+  const [samples, setSamples] = useState<LocationFix[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!enabled) { setFix(null); setSamples([]); return; }
+    let active = true, watch: number | null = null, lastTimestamp = 0, generation = 0;
+    const desktop = window.railLocation;
+    const geolocation = navigator.geolocation;
+    const update = (event: LocationEvent) => {
+      if (!active || document.hidden) return;
+      if (event.fix && validLocation(event.fix) && event.fix.timestamp > lastTimestamp) {
+        const point = event.fix;
+        lastTimestamp = point.timestamp;
+        setFix(point); setError(null);
+        // Short, memory-only history also provides movement direction for train identification.
+        setSamples(previous => [...previous.filter(sample => point.timestamp - sample.timestamp <= 180000).slice(-179), point]);
+      } else if (event.error) {
+        setFix(null); setSamples([]); lastTimestamp = 0;
+        setError(locationError(event.error.code)); if (event.error.code === 1) setEnabled(false);
+      }
+    };
+    const unsubscribe = desktop?.onUpdate(update);
+    const stop = () => {
+      generation++;
+      if (desktop) void desktop.stop().catch(() => {});
+      if (watch !== null) { geolocation.clearWatch(watch); watch = null; }
+    };
+    const start = () => {
+      if (document.hidden) return;
+      setError(null);
+      if (desktop) { void desktop.start().catch(() => update({ error: { code: 2, message: "" } })); return; }
+      if (!window.isSecureContext || !geolocation) {
+        setError("当前环境不支持安全定位，请使用 HTTPS 页面或 Windows 版。"); setEnabled(false); return;
+      }
+      const current = ++generation;
+      watch = geolocation.watchPosition(position => { if (generation !== current) return; update({ fix: {
+        longitude: position.coords.longitude, latitude: position.coords.latitude, accuracy: position.coords.accuracy,
+        speed: Number.isFinite(position.coords.speed) && position.coords.speed! >= 0 ? position.coords.speed : null,
+        heading: Number.isFinite(position.coords.heading) ? position.coords.heading : null, timestamp: position.timestamp,
+      } }); }, cause => { if (generation === current) update({ error: { code: cause.code, message: cause.message } }); },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
+    };
+    start();
+    const onVisibility = () => { stop(); setFix(null); setSamples([]); lastTimestamp = 0; if (!document.hidden) start(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { active = false; stop(); unsubscribe?.(); document.removeEventListener("visibilitychange", onVisibility); };
+  }, [enabled]);
+  return { enabled, fix, samples, error, start: () => { setFix(null); setSamples([]); setError(null); setEnabled(true); }, stop: () => { setEnabled(false); setFix(null); setSamples([]); setError(null); } };
+}

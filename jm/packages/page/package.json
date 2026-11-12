@@ -1,0 +1,29 @@
+{
+  "name": "@yukino/jm-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit --project tsconfig.json && vite build",
+    "desktop:build": "tsc --noEmit --project tsconfig.json && vite build --config vite.desktop.config.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@paddleocr/paddleocr-js": "0.4.2",
+    "crypto-js": "4.2.0",
+    "lucide-react": "0.564.0",
+    "onnxruntime-web": "1.27.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "4.2.2",
+    "@types/node": "24.10.13",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.4",
+    "typescript": "5.9.3",
+    "vite": "8.0.1"
+  }
+}

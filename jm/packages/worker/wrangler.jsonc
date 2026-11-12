@@ -1,0 +1,6 @@
+{
+  "name": "jm-api-yukino",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-26",
+  "observability": { "enabled": true }
+}

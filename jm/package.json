@@ -1,0 +1,12 @@
+{
+  "name": "yukino-jm",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "web:dev": "pnpm --dir packages/page dev",
+    "web:build": "pnpm --dir packages/page build",
+    "desktop:build": "pnpm --dir packages/page desktop:build",
+    "worker:dev": "pnpm --dir packages/worker dev",
+    "worker:deploy": "pnpm --dir packages/worker deploy"
+  }
+}

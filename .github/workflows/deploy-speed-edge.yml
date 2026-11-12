@@ -1,0 +1,44 @@
+name: Deploy speed frontend
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'shared/shell/**'
+      - 'scripts/prepare-site-shell.mjs'
+      - 'src/styles/chrome-refresh.css'
+      - 'speed/**'
+      - 'scripts/build-edge-frontends.mjs'
+      - 'scripts/prepare-pwa.mjs'
+      - 'shared/pwa/**'
+      - 'vps-content/edge-frontend.mjs'
+      - '.github/workflows/deploy-speed-edge.yml'
+  workflow_dispatch:
+concurrency:
+  group: speed-edge-production
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Check the shared download engine and catalog
+        working-directory: speed
+        run: |
+          node ../node_modules/typescript/bin/tsc --noEmit
+          node ../node_modules/vitest/vitest.mjs run
+          node --test test/native.test.mjs test/system-fetch.test.mjs test/catalog.test.mjs test/api.test.mjs test/storage.test.mjs
+          node ../node_modules/vite/bin/vite.js build
+      - run: node scripts/prepare-pwa.mjs speed speed/dist
+      - run: node scripts/build-edge-frontends.mjs --site=speed
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/edge-frontend/speed/wrangler.json --keep-vars

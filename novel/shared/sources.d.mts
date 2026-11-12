@@ -1,0 +1,10 @@
+export type SourceId = 'bili' | 'linovel' | 'wenku' | 'kxg' | 'encyclopedia' | 'rezero';
+export type SourceInfo = { id: SourceId; name: string; kind: string; origin: string; search: boolean; indexSearch?: boolean; searchScope?: string; note: string };
+export const SOURCES: SourceInfo[];
+export function sourceInfo(id: string): SourceInfo | undefined;
+export function bookSource(id: string): SourceId;
+export function bookIdValid(id: string): boolean;
+export function nativeBookId(id: string): string;
+export function sourceBookUrl(id: string): string;
+export function partIdValid(id: string): boolean;
+export function imageSource(input: unknown): string;

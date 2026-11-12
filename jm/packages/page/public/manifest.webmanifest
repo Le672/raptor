@@ -1,0 +1,11 @@
+{
+  "name": "Yukino JM",
+  "short_name": "Yukino JM",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f9f5",
+  "theme_color": "#2d5c47",
+  "icons": [{ "src": "/book-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

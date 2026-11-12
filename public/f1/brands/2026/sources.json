@@ -1,0 +1,115 @@
+{
+  "sourcePage": "https://www.formula1.com/en/teams",
+  "verifiedOn": "2026-10-05",
+  "year": 2026,
+  "note": "Official team logo and car artwork; original ownership retained. First-name lettering uses the handwriting typeface on official driver profiles, not personal autographs.",
+  "teams": [
+    {
+      "constructorId": "mercedes",
+      "slug": "mercedes",
+      "name": "Mercedes",
+      "sourcePage": "https://www.formula1.com/en/teams/mercedes",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/mercedes/2026mercedeslogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/mercedes/2026mercedescarright.webp"
+    },
+    {
+      "constructorId": "ferrari",
+      "slug": "ferrari",
+      "name": "Ferrari",
+      "sourcePage": "https://www.formula1.com/en/teams/ferrari",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/ferrari/2026ferrarilogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/ferrari/2026ferraricarright.webp"
+    },
+    {
+      "constructorId": "mclaren",
+      "slug": "mclaren",
+      "name": "McLaren",
+      "sourcePage": "https://www.formula1.com/en/teams/mclaren",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/mclaren/2026mclarenlogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/mclaren/2026mclarencarright.webp"
+    },
+    {
+      "constructorId": "red_bull",
+      "slug": "red-bull-racing",
+      "name": "Red Bull Racing",
+      "sourcePage": "https://www.formula1.com/en/teams/red-bull-racing",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/redbullracing/2026redbullracinglogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/redbullracing/2026redbullracingcarright.webp"
+    },
+    {
+      "constructorId": "rb",
+      "slug": "racing-bulls",
+      "name": "Racing Bulls",
+      "sourcePage": "https://www.formula1.com/en/teams/racing-bulls",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/racingbulls/2026racingbullslogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/racingbulls/2026racingbullscarright.webp"
+    },
+    {
+      "constructorId": "alpine",
+      "slug": "alpine",
+      "name": "Alpine",
+      "sourcePage": "https://www.formula1.com/en/teams/alpine",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/alpine/2026alpinelogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/alpine/2026alpinecarright.webp"
+    },
+    {
+      "constructorId": "haas",
+      "slug": "haas",
+      "name": "Haas F1 Team",
+      "sourcePage": "https://www.formula1.com/en/teams/haas",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/haasf1team/2026haasf1teamlogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/haasf1team/2026haasf1teamcarright.webp"
+    },
+    {
+      "constructorId": "audi",
+      "slug": "audi",
+      "name": "Audi",
+      "sourcePage": "https://www.formula1.com/en/teams/audi",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/audi/2026audilogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/audi/2026audicarright.webp"
+    },
+    {
+      "constructorId": "williams",
+      "slug": "williams",
+      "name": "Williams",
+      "sourcePage": "https://www.formula1.com/en/teams/williams",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/williams/2026williamslogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/williams/2026williamscarright.webp"
+    },
+    {
+      "constructorId": "aston_martin",
+      "slug": "aston-martin",
+      "name": "Aston Martin",
+      "sourcePage": "https://www.formula1.com/en/teams/aston-martin",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/astonmartin/2026astonmartinlogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/astonmartin/2026astonmartincarright.webp"
+    },
+    {
+      "constructorId": "cadillac",
+      "slug": "cadillac",
+      "name": "Cadillac",
+      "sourcePage": "https://www.formula1.com/en/teams/cadillac",
+      "logo": "https://media.formula1.com/image/upload/c_lfill,w_48/q_auto/v1740000001/common/f1/2026/cadillac/2026cadillaclogowhite.webp",
+      "car": "https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/d_common:f1:2026:fallback:car:2026fallbackcarright.webp/v1740000001/common/f1/2026/cadillac/2026cadillaccarright.webp"
+    }
+  ],
+  "fonts": [
+    {
+      "family": "Northwell Clean Alt",
+      "source": "https://www.formula1.com/s/fonts/northwell/northwell-clean-alt.woff2",
+      "file": "northwell-clean-alt.woff2"
+    },
+    {
+      "family": "Formula1",
+      "weight": 900,
+      "source": "https://www.formula1.com/s/fonts/formula1/Formula1-Black.woff2",
+      "file": "formula1-black.woff2"
+    },
+    {
+      "family": "Formula1",
+      "weight": 500,
+      "source": "https://www.formula1.com/s/fonts/formula1/Formula1-Bold.woff2",
+      "file": "formula1-bold.woff2"
+    }
+  ]
+}

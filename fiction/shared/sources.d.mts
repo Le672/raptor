@@ -1,0 +1,10 @@
+export type SourceId='biqu' | 'zongheng';
+export type SourceInfo={id:SourceId;name:string;kind:string;origin:string;search:boolean;searchScope?:string;indexSearch?:boolean;note:string};
+export const SOURCES:SourceInfo[];
+export function sourceInfo(id:string):SourceInfo|undefined;
+export function bookIdValid(id:string):boolean;
+export function bookSource(id:string):SourceId;
+export function nativeBookId(id:string):string;
+export function sourceBookUrl(id:string):string;
+export function partIdValid(id:string):boolean;
+export function imageSource(input:unknown):string;

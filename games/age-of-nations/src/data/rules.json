@@ -1,0 +1,1199 @@
+{
+  "version": 1,
+  "settings": {
+    "growthBase": 15,
+    "growthLinear": 8,
+    "growthExponent": 1.5,
+    "researchBase": 15,
+    "researchScale": 3,
+    "researchExponent": 1.3,
+    "purchaseMultiplier": 3,
+    "switchLoss": 0.15,
+    "citySpacing": 3,
+    "occupationTurns": 5,
+    "outOfSupplyDamage": 10,
+    "attackBase": 30,
+    "attackExponent": 0.04,
+    "eventChance": 0.12,
+    "policyCost": 12,
+    "populationTax": 1.5,
+    "populationScience": 0.3
+  },
+  "terrains": [
+    {
+      "id": "plains",
+      "food": 1,
+      "production": 1,
+      "gold": 0,
+      "cost": 1,
+      "defense": 0,
+      "color": "#c3bc8f"
+    },
+    {
+      "id": "grass",
+      "food": 2,
+      "production": 0,
+      "gold": 0,
+      "cost": 1,
+      "defense": 0,
+      "color": "#a9b48b"
+    },
+    {
+      "id": "forest",
+      "food": 1,
+      "production": 1,
+      "gold": 0,
+      "cost": 2,
+      "defense": 0.25,
+      "color": "#75876c"
+    },
+    {
+      "id": "hills",
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "cost": 2,
+      "defense": 0.5,
+      "color": "#a49c7d"
+    },
+    {
+      "id": "mountain",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "cost": 99,
+      "defense": 0,
+      "color": "#797b70"
+    },
+    {
+      "id": "desert",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "cost": 1,
+      "defense": 0,
+      "color": "#d3bc86"
+    },
+    {
+      "id": "tundra",
+      "food": 1,
+      "production": 0,
+      "gold": 0,
+      "cost": 1,
+      "defense": 0,
+      "color": "#bbc0ac"
+    },
+    {
+      "id": "marsh",
+      "food": 1,
+      "production": 0,
+      "gold": 0,
+      "cost": 2,
+      "defense": -0.1,
+      "color": "#82988b"
+    },
+    {
+      "id": "coast",
+      "food": 1,
+      "production": 0,
+      "gold": 1,
+      "cost": 1,
+      "defense": 0,
+      "color": "#8eacb0"
+    },
+    {
+      "id": "ocean",
+      "food": 0,
+      "production": 0,
+      "gold": 1,
+      "cost": 1,
+      "defense": 0,
+      "color": "#688e97"
+    }
+  ],
+  "resources": [
+    {
+      "id": "wheat",
+      "kind": "bonus",
+      "food": 2,
+      "improvement": "farm",
+      "tech": "agriculture"
+    },
+    {
+      "id": "cattle",
+      "kind": "bonus",
+      "food": 1,
+      "production": 1,
+      "improvement": "farm",
+      "tech": "agriculture"
+    },
+    {
+      "id": "fish",
+      "kind": "bonus",
+      "food": 2,
+      "improvement": "port",
+      "tech": "navigation"
+    },
+    {
+      "id": "wood",
+      "kind": "bonus",
+      "production": 2,
+      "improvement": "mine",
+      "tech": "metallurgy"
+    },
+    {
+      "id": "coal",
+      "kind": "strategic",
+      "improvement": "mine",
+      "tech": "metallurgy"
+    },
+    {
+      "id": "iron",
+      "kind": "strategic",
+      "improvement": "mine",
+      "tech": "metallurgy"
+    },
+    {
+      "id": "oil",
+      "kind": "strategic",
+      "improvement": "well",
+      "tech": "combustion"
+    },
+    {
+      "id": "aluminium",
+      "kind": "strategic",
+      "improvement": "mine",
+      "tech": "chemistry"
+    },
+    {
+      "id": "rubber",
+      "kind": "strategic",
+      "improvement": "plantation",
+      "tech": "chemistry"
+    },
+    {
+      "id": "uranium",
+      "kind": "strategic",
+      "improvement": "mine",
+      "tech": "atomic"
+    },
+    {
+      "id": "tea",
+      "kind": "luxury",
+      "gold": 2,
+      "improvement": "plantation",
+      "tech": "agriculture"
+    },
+    {
+      "id": "coffee",
+      "kind": "luxury",
+      "gold": 2,
+      "improvement": "plantation",
+      "tech": "agriculture"
+    },
+    {
+      "id": "spice",
+      "kind": "luxury",
+      "gold": 2,
+      "improvement": "plantation",
+      "tech": "agriculture"
+    }
+  ],
+  "techs": [
+    {
+      "id": "agriculture",
+      "era": 0,
+      "requires": []
+    },
+    {
+      "id": "steam",
+      "era": 0,
+      "requires": []
+    },
+    {
+      "id": "metallurgy",
+      "era": 0,
+      "requires": []
+    },
+    {
+      "id": "education",
+      "era": 0,
+      "requires": []
+    },
+    {
+      "id": "navigation",
+      "era": 0,
+      "requires": []
+    },
+    {
+      "id": "civics",
+      "era": 0,
+      "requires": [
+        "education"
+      ]
+    },
+    {
+      "id": "railway",
+      "era": 1,
+      "requires": [
+        "steam",
+        "metallurgy"
+      ]
+    },
+    {
+      "id": "steam_power",
+      "era": 1,
+      "requires": [
+        "steam"
+      ]
+    },
+    {
+      "id": "banking",
+      "era": 1,
+      "requires": [
+        "civics"
+      ]
+    },
+    {
+      "id": "hygiene",
+      "era": 1,
+      "requires": [
+        "education",
+        "agriculture"
+      ]
+    },
+    {
+      "id": "scientific_method",
+      "era": 1,
+      "requires": [
+        "education"
+      ]
+    },
+    {
+      "id": "telegraph",
+      "era": 1,
+      "requires": [
+        "steam"
+      ]
+    },
+    {
+      "id": "electricity",
+      "era": 2,
+      "requires": [
+        "steam_power",
+        "scientific_method"
+      ]
+    },
+    {
+      "id": "combustion",
+      "era": 2,
+      "requires": [
+        "railway"
+      ]
+    },
+    {
+      "id": "mobilization",
+      "era": 2,
+      "requires": [
+        "metallurgy",
+        "civics"
+      ]
+    },
+    {
+      "id": "aviation",
+      "era": 2,
+      "requires": [
+        "combustion",
+        "scientific_method"
+      ]
+    },
+    {
+      "id": "chemistry",
+      "era": 2,
+      "requires": [
+        "scientific_method"
+      ]
+    },
+    {
+      "id": "oceanography",
+      "era": 2,
+      "requires": [
+        "navigation",
+        "steam_power"
+      ]
+    },
+    {
+      "id": "atomic",
+      "era": 3,
+      "requires": [
+        "electricity",
+        "chemistry"
+      ]
+    },
+    {
+      "id": "electronics",
+      "era": 3,
+      "requires": [
+        "electricity",
+        "telegraph"
+      ]
+    },
+    {
+      "id": "environment",
+      "era": 3,
+      "requires": [
+        "hygiene",
+        "chemistry"
+      ]
+    },
+    {
+      "id": "rocketry",
+      "era": 3,
+      "requires": [
+        "aviation",
+        "chemistry"
+      ]
+    },
+    {
+      "id": "logistics",
+      "era": 3,
+      "requires": [
+        "mobilization",
+        "combustion"
+      ]
+    },
+    {
+      "id": "democracy",
+      "era": 3,
+      "requires": [
+        "banking",
+        "hygiene"
+      ]
+    },
+    {
+      "id": "networks",
+      "era": 4,
+      "requires": [
+        "electronics"
+      ]
+    },
+    {
+      "id": "space",
+      "era": 4,
+      "requires": [
+        "rocketry",
+        "electronics"
+      ]
+    },
+    {
+      "id": "automation",
+      "era": 4,
+      "requires": [
+        "electronics",
+        "logistics"
+      ]
+    },
+    {
+      "id": "renewables",
+      "era": 4,
+      "requires": [
+        "environment",
+        "electricity"
+      ]
+    },
+    {
+      "id": "satellites",
+      "era": 4,
+      "requires": [
+        "space"
+      ]
+    },
+    {
+      "id": "biotech",
+      "era": 4,
+      "requires": [
+        "hygiene",
+        "networks"
+      ]
+    },
+    {
+      "id": "fusion",
+      "era": 5,
+      "requires": [
+        "atomic",
+        "renewables"
+      ]
+    },
+    {
+      "id": "ai",
+      "era": 5,
+      "requires": [
+        "networks",
+        "automation"
+      ]
+    },
+    {
+      "id": "climate",
+      "era": 5,
+      "requires": [
+        "renewables",
+        "biotech"
+      ]
+    },
+    {
+      "id": "quantum",
+      "era": 5,
+      "requires": [
+        "ai",
+        "atomic"
+      ]
+    },
+    {
+      "id": "deep_space",
+      "era": 5,
+      "requires": [
+        "satellites",
+        "fusion",
+        "ai"
+      ]
+    },
+    {
+      "id": "global_society",
+      "era": 5,
+      "requires": [
+        "democracy",
+        "networks"
+      ]
+    }
+  ],
+  "buildings": [
+    {
+      "id": "workshop",
+      "tech": "steam",
+      "cost": 60,
+      "production": 2,
+      "upkeep": 1
+    },
+    {
+      "id": "academy",
+      "tech": "education",
+      "cost": 70,
+      "science": 3,
+      "upkeep": 1
+    },
+    {
+      "id": "harbor",
+      "tech": "navigation",
+      "cost": 80,
+      "gold": 1,
+      "upkeep": 1,
+      "coastal": true
+    },
+    {
+      "id": "granary",
+      "tech": "agriculture",
+      "cost": 45,
+      "food": 2,
+      "upkeep": 1
+    },
+    {
+      "id": "rail_hub",
+      "tech": "railway",
+      "cost": 100,
+      "production": 2,
+      "upkeep": 1
+    },
+    {
+      "id": "factory",
+      "tech": "steam_power",
+      "cost": 140,
+      "productionBonus": 0.25,
+      "pollution": 3,
+      "upkeep": 2
+    },
+    {
+      "id": "bank",
+      "tech": "banking",
+      "cost": 120,
+      "goldBonus": 0.25,
+      "upkeep": 1
+    },
+    {
+      "id": "hospital",
+      "tech": "hygiene",
+      "cost": 110,
+      "foodBonus": 0.15,
+      "stability": 4,
+      "upkeep": 2
+    },
+    {
+      "id": "university",
+      "tech": "scientific_method",
+      "cost": 160,
+      "science": 4,
+      "specialists": 2,
+      "upkeep": 2
+    },
+    {
+      "id": "power",
+      "tech": "electricity",
+      "cost": 180,
+      "allBonus": 0.15,
+      "pollution": 4,
+      "upkeep": 2,
+      "fuel": "coal"
+    },
+    {
+      "id": "arsenal",
+      "tech": "mobilization",
+      "cost": 150,
+      "militaryBonus": 0.25,
+      "upkeep": 2
+    },
+    {
+      "id": "airport",
+      "tech": "aviation",
+      "cost": 160,
+      "upkeep": 2
+    },
+    {
+      "id": "lab",
+      "tech": "electronics",
+      "cost": 220,
+      "science": 6,
+      "specialists": 3,
+      "upkeep": 2
+    },
+    {
+      "id": "treatment",
+      "tech": "environment",
+      "cost": 130,
+      "pollution": -5,
+      "stability": 3,
+      "upkeep": 1
+    },
+    {
+      "id": "data_center",
+      "tech": "networks",
+      "cost": 200,
+      "science": 8,
+      "upkeep": 3
+    },
+    {
+      "id": "fusion_plant",
+      "tech": "fusion",
+      "cost": 320,
+      "allBonus": 0.2,
+      "pollution": -2,
+      "upkeep": 2
+    },
+    {
+      "id": "national_lab",
+      "tech": "scientific_method",
+      "cost": 130,
+      "science": 6,
+      "upkeep": 2,
+      "civ": "eastern"
+    },
+    {
+      "id": "mountain_fort",
+      "tech": "metallurgy",
+      "cost": 70,
+      "defense": 0.35,
+      "stability": 3,
+      "upkeep": 1,
+      "civ": "alpine"
+    }
+  ],
+  "units": [
+    {
+      "id": "settler",
+      "domain": "land",
+      "civilian": true,
+      "cost": 65,
+      "moves": 2,
+      "strength": 0,
+      "range": 0,
+      "upkeep": 1
+    },
+    {
+      "id": "engineer",
+      "domain": "land",
+      "civilian": true,
+      "cost": 40,
+      "moves": 2,
+      "strength": 0,
+      "range": 0,
+      "upkeep": 1
+    },
+    {
+      "id": "infantry",
+      "domain": "land",
+      "tech": "metallurgy",
+      "cost": 55,
+      "moves": 2,
+      "strength": 20,
+      "range": 0,
+      "upkeep": 1
+    },
+    {
+      "id": "cavalry",
+      "domain": "land",
+      "tech": "metallurgy",
+      "cost": 75,
+      "moves": 4,
+      "strength": 24,
+      "range": 0,
+      "upkeep": 2,
+      "resources": {
+        "iron": 1
+      }
+    },
+    {
+      "id": "artillery",
+      "domain": "land",
+      "tech": "mobilization",
+      "cost": 110,
+      "moves": 2,
+      "strength": 32,
+      "range": 2,
+      "upkeep": 2,
+      "resources": {
+        "iron": 2
+      }
+    },
+    {
+      "id": "tank",
+      "domain": "land",
+      "tech": "combustion",
+      "cost": 160,
+      "moves": 4,
+      "strength": 60,
+      "range": 0,
+      "upkeep": 3,
+      "fuel": "oil",
+      "resources": {
+        "iron": 2,
+        "oil": 2
+      }
+    },
+    {
+      "id": "mechanized",
+      "domain": "land",
+      "tech": "logistics",
+      "cost": 180,
+      "moves": 4,
+      "strength": 68,
+      "range": 0,
+      "upkeep": 3,
+      "fuel": "oil",
+      "resources": {
+        "iron": 2,
+        "oil": 1
+      }
+    },
+    {
+      "id": "rifle",
+      "domain": "land",
+      "tech": "chemistry",
+      "cost": 95,
+      "moves": 2,
+      "strength": 38,
+      "range": 0,
+      "upkeep": 2
+    },
+    {
+      "id": "steamship",
+      "domain": "sea",
+      "tech": "steam_power",
+      "cost": 100,
+      "moves": 4,
+      "strength": 32,
+      "range": 2,
+      "upkeep": 2,
+      "resources": {
+        "iron": 2
+      }
+    },
+    {
+      "id": "destroyer",
+      "domain": "sea",
+      "tech": "combustion",
+      "cost": 150,
+      "moves": 5,
+      "strength": 54,
+      "range": 2,
+      "upkeep": 3,
+      "fuel": "oil",
+      "resources": {
+        "iron": 2,
+        "oil": 1
+      }
+    },
+    {
+      "id": "submarine",
+      "domain": "sea",
+      "tech": "electronics",
+      "cost": 155,
+      "moves": 4,
+      "strength": 65,
+      "range": 2,
+      "upkeep": 3,
+      "fuel": "oil",
+      "resources": {
+        "iron": 1,
+        "oil": 1
+      }
+    },
+    {
+      "id": "carrier",
+      "domain": "sea",
+      "tech": "aviation",
+      "cost": 240,
+      "moves": 4,
+      "strength": 45,
+      "range": 1,
+      "upkeep": 4,
+      "fuel": "oil",
+      "capacity": 3,
+      "resources": {
+        "iron": 3,
+        "oil": 2
+      }
+    },
+    {
+      "id": "fighter",
+      "domain": "air",
+      "tech": "aviation",
+      "cost": 150,
+      "moves": 6,
+      "strength": 55,
+      "range": 4,
+      "upkeep": 3,
+      "fuel": "oil",
+      "resources": {
+        "aluminium": 1,
+        "oil": 1
+      }
+    },
+    {
+      "id": "bomber",
+      "domain": "air",
+      "tech": "rocketry",
+      "cost": 200,
+      "moves": 5,
+      "strength": 75,
+      "range": 5,
+      "upkeep": 4,
+      "fuel": "oil",
+      "resources": {
+        "aluminium": 2,
+        "oil": 2
+      }
+    },
+    {
+      "id": "guard",
+      "domain": "land",
+      "tech": "metallurgy",
+      "cost": 50,
+      "moves": 2,
+      "strength": 26,
+      "range": 0,
+      "upkeep": 1,
+      "civ": "continental"
+    },
+    {
+      "id": "cruiser",
+      "domain": "sea",
+      "tech": "steam_power",
+      "cost": 105,
+      "moves": 5,
+      "strength": 43,
+      "range": 2,
+      "upkeep": 2,
+      "civ": "northern",
+      "resources": {
+        "iron": 2
+      }
+    }
+  ],
+  "projects": [
+    {
+      "id": "moon",
+      "tech": "space",
+      "cost": 180,
+      "requires": []
+    },
+    {
+      "id": "station",
+      "tech": "space",
+      "cost": 280,
+      "requires": [
+        "moon"
+      ]
+    },
+    {
+      "id": "colony",
+      "tech": "deep_space",
+      "cost": 450,
+      "requires": [
+        "station"
+      ]
+    }
+  ],
+  "civs": [
+    {
+      "id": "northern",
+      "color": "#447a8a",
+      "symbol": "◆",
+      "traits": {
+        "goldBonus": 0.25,
+        "seaMoves": 1
+      },
+      "ai": {
+        "aggression": 0.35,
+        "science": 0.6,
+        "expansion": 0.6
+      }
+    },
+    {
+      "id": "continental",
+      "color": "#a34c43",
+      "symbol": "✦",
+      "traits": {
+        "growthBonus": 0.15,
+        "militaryDiscount": 0.1
+      },
+      "ai": {
+        "aggression": 0.85,
+        "science": 0.35,
+        "expansion": 0.9
+      }
+    },
+    {
+      "id": "eastern",
+      "color": "#6b7c4b",
+      "symbol": "●",
+      "traits": {
+        "scienceBonus": 0.1,
+        "pollutionReduction": 0.2
+      },
+      "ai": {
+        "aggression": 0.35,
+        "science": 0.95,
+        "expansion": 0.6
+      }
+    },
+    {
+      "id": "alpine",
+      "color": "#8a6e9f",
+      "symbol": "▲",
+      "traits": {
+        "hillDefense": 0.15,
+        "resourceBonus": 1
+      },
+      "ai": {
+        "aggression": 0.4,
+        "science": 0.65,
+        "expansion": 0.45
+      }
+    },
+    {
+      "id": "western",
+      "color": "#b08b40",
+      "symbol": "■",
+      "traits": {
+        "cultureBonus": 0.15,
+        "goldBonus": 0.1
+      },
+      "ai": {
+        "aggression": 0.5,
+        "science": 0.7,
+        "expansion": 0.7
+      }
+    },
+    {
+      "id": "southern",
+      "color": "#4f8c76",
+      "symbol": "✚",
+      "traits": {
+        "foodBonus": 0.15,
+        "growthBonus": 0.1
+      },
+      "ai": {
+        "aggression": 0.45,
+        "science": 0.5,
+        "expansion": 0.8
+      }
+    },
+    {
+      "id": "islander",
+      "color": "#b66c83",
+      "symbol": "◇",
+      "traits": {
+        "seaMoves": 1,
+        "scienceBonus": 0.1
+      },
+      "ai": {
+        "aggression": 0.6,
+        "science": 0.75,
+        "expansion": 0.65
+      }
+    }
+  ],
+  "governments": [
+    {
+      "id": "monarchy",
+      "tech": null,
+      "scienceBonus": -0.05,
+      "cultureBonus": -0.05,
+      "upkeepBonus": -0.2,
+      "slots": 2
+    },
+    {
+      "id": "republic",
+      "tech": "civics",
+      "goldBonus": 0.15,
+      "scienceBonus": 0.1,
+      "stability": 3,
+      "fatigueBonus": 1.5,
+      "slots": 3
+    },
+    {
+      "id": "mobilized",
+      "tech": "mobilization",
+      "productionBonus": 0.2,
+      "militaryBonus": 0.2,
+      "stability": -2,
+      "slots": 3
+    }
+  ],
+  "policies": [
+    {
+      "id": "education",
+      "slot": "social",
+      "scienceBonus": 0.2,
+      "tech": "education"
+    },
+    {
+      "id": "planned",
+      "slot": "economic",
+      "productionBonus": 0.2,
+      "goldBonus": -0.1,
+      "tech": "steam"
+    },
+    {
+      "id": "market",
+      "slot": "economic",
+      "goldBonus": 0.25,
+      "stability": -1,
+      "tech": "banking"
+    },
+    {
+      "id": "mobilize",
+      "slot": "military",
+      "militaryBonus": 0.35,
+      "stability": -2,
+      "tech": "mobilization"
+    },
+    {
+      "id": "diplomacy",
+      "slot": "diplomatic",
+      "cultureBonus": 0.15,
+      "tech": "civics"
+    },
+    {
+      "id": "welfare",
+      "slot": "social",
+      "stability": 3,
+      "goldBonus": -0.1,
+      "tech": "hygiene"
+    }
+  ],
+  "improvements": [
+    {
+      "id": "farm",
+      "tech": "agriculture",
+      "food": 1
+    },
+    {
+      "id": "mine",
+      "tech": "metallurgy",
+      "production": 1
+    },
+    {
+      "id": "plantation",
+      "tech": "agriculture",
+      "gold": 2
+    },
+    {
+      "id": "well",
+      "tech": "combustion",
+      "production": 1
+    },
+    {
+      "id": "port",
+      "tech": "navigation",
+      "gold": 1
+    },
+    {
+      "id": "fort",
+      "tech": "metallurgy",
+      "defense": 0.25
+    },
+    {
+      "id": "rail",
+      "tech": "railway"
+    }
+  ],
+  "events": [
+    {
+      "id": "strike",
+      "minEra": 1,
+      "maxStability": 45,
+      "cooldown": 15,
+      "options": [
+        {
+          "gold": -40,
+          "stability": 12
+        },
+        {
+          "stability": -8,
+          "productionBonus": -0.15,
+          "duration": 3
+        }
+      ]
+    },
+    {
+      "id": "breakthrough",
+      "minEra": 0,
+      "cooldown": 12,
+      "options": [
+        {
+          "gold": -30,
+          "science": 80
+        },
+        {
+          "culture": 30
+        }
+      ]
+    },
+    {
+      "id": "harvest",
+      "minEra": 0,
+      "cooldown": 10,
+      "options": [
+        {
+          "food": 15
+        },
+        {
+          "gold": 30
+        }
+      ]
+    },
+    {
+      "id": "flood",
+      "minEra": 0,
+      "cooldown": 15,
+      "options": [
+        {
+          "gold": -30,
+          "stability": 5
+        },
+        {
+          "food": -10,
+          "stability": -3
+        }
+      ]
+    },
+    {
+      "id": "migration",
+      "minEra": 0,
+      "cooldown": 16,
+      "options": [
+        {
+          "gold": -25,
+          "population": 1
+        },
+        {
+          "stability": 4
+        }
+      ]
+    },
+    {
+      "id": "recession",
+      "minEra": 1,
+      "cooldown": 20,
+      "options": [
+        {
+          "gold": -50,
+          "stability": 8
+        },
+        {
+          "gold": 30,
+          "stability": -8
+        }
+      ]
+    },
+    {
+      "id": "plague",
+      "minEra": 1,
+      "cooldown": 20,
+      "options": [
+        {
+          "gold": -40,
+          "food": 5
+        },
+        {
+          "food": -12,
+          "stability": -6
+        }
+      ]
+    },
+    {
+      "id": "energy",
+      "minEra": 2,
+      "cooldown": 18,
+      "options": [
+        {
+          "gold": -50,
+          "coal": 5
+        },
+        {
+          "productionBonus": -0.2,
+          "duration": 3,
+          "stability": 4
+        }
+      ]
+    },
+    {
+      "id": "exhibition",
+      "minEra": 1,
+      "cooldown": 15,
+      "options": [
+        {
+          "gold": -35,
+          "culture": 70
+        },
+        {
+          "science": 35
+        }
+      ]
+    },
+    {
+      "id": "border",
+      "minEra": 0,
+      "cooldown": 15,
+      "options": [
+        {
+          "gold": -15,
+          "relations": 10
+        },
+        {
+          "stability": 6,
+          "relations": -10
+        }
+      ]
+    }
+  ]
+}

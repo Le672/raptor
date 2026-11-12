@@ -1,0 +1,88 @@
+name: Build Rail Watch for Windows
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'electron/rail-*.cjs'
+      - 'src/pages/Rail.tsx'
+      - 'desktop.html'
+      - 'src/desktop.tsx'
+      - 'src/desktop.css'
+      - 'src/DesktopRail.tsx'
+      - 'src/hooks/useRailMonitor.ts'
+      - 'src/test/rail*.test.*'
+      - 'src/hooks/useJourneyStopBoard.ts'
+      - 'src/lib/rail-stop-info.ts'
+      - 'src/lib/rail-navigation.ts'
+      - 'src/hooks/useRailPageNavigation.ts'
+      - 'src/lib/rail-station-coordinates.ts'
+      - 'src/data/rail-station-coordinates.json'
+      - 'vite.config.ts'
+      - 'scripts/check-build-assets.mjs'
+      - 'src/lib/railgo.ts'
+      - 'src/lib/rail-equipment*.ts'
+      - 'src/lib/rail-enrichment.ts'
+      - 'scripts/*train-art*.mjs'
+      - 'scripts/draw-cr200-art.mjs'
+      - 'src/lib/train-art.ts'
+      - 'src/lib/train-position.ts'
+      - 'src/lib/rail-ticket-date.ts'
+      - 'src/lib/rail-api.ts'
+      - 'src/lib/rail-transfer.ts'
+      - 'src/lib/urban-rail*.ts'
+      - 'src/data/urban-rail-network.json'
+      - 'src/components/UrbanRailRoute.tsx'
+      - 'src/components/rail-transfer.css'
+      - 'src/test/urban-rail*.test.ts'
+      - 'src/lib/rail-station-groups.ts'
+      - 'src/lib/rail-official-stations.ts'
+      - 'src/lib/rail-tickets.ts'
+      - 'src/components/RailTransfer.tsx'
+      - 'src/lib/rail-position-data.ts'
+      - 'src/lib/rail-network.ts'
+      - 'public/rail-network/**'
+      - 'src/lib/rail-gps.ts'
+      - 'src/lib/rail-speed.ts'
+      - 'src/lib/rail-motion.ts'
+      - 'src/hooks/useRailLocation.ts'
+      - 'src/hooks/useRailTrainDetection.ts'
+      - 'src/lib/rail-train-detection.ts'
+      - 'src/types/coordtransform.d.ts'
+      - 'src/components/RailMap.tsx'
+      - 'src/components/RailSpeed.tsx'
+      - 'src/components/TrainIllustration.tsx'
+      - 'src/components/RailPosition.tsx'
+      - 'src/components/rail-position.css'
+      - 'src/components/StationBoard.tsx'
+      - 'src/components/station-board.css'
+      - 'src/lib/rail-board*.ts'
+      - 'src/data/train-art.json'
+      - 'src/assets/trains/**'
+      - 'public/rail-third-party-notices.txt'
+      - 'public/rail-icon.*'
+      - 'src/index.css'
+      - 'functions/api/rail.ts'
+      - 'rail-electron-builder.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/build-rail-desktop.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:desktop
+      - run: node node_modules/electron-builder/out/cli/cli.js --config rail-electron-builder.json --win portable
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Yukino-Rail-Watch-Windows
+          path: release-rail/*.exe
+          if-no-files-found: error

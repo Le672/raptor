@@ -1,0 +1,7 @@
+packages:
+  - '.'
+allowBuilds:
+  electron: true
+  esbuild: true
+  workerd: true
+  electron-winstaller: false

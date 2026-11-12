@@ -1,0 +1,38 @@
+# Yukino 余票提醒
+
+网页入口：[cr.yukino.bond](https://cr.yukino.bond)，也可通过 [主站 /cr](https://www.yukino.bond/cr) 使用。子域已完成 Cloudflare Pages 绑定和 DNS 配置，并在 Chrome 中验证 HTTPS 页面可访问。
+
+## 功能
+
+- 两种并列查询：按车次只填车次，自动从 12306 识别始发和终到站并查询全程余票；按区间只填出发站和到达站，查询区间全部车次。日期默认中国时间的今天，可自行修改。
+- 全程余票与中途乘车区间余票可能不同；结果会标明实际查询日期和区间。两种方式均可设置关注席别和 1–60 分钟的检查间隔。
+- Cloudflare Pages Function 从 12306 获取车站列表与余票，结果显示车次、时间及各席别状态。
+- 网页可发送浏览器系统通知。需要允许通知，并保持页面打开；后台标签页休眠时检查可能延迟。
+- Windows 便携版使用同一界面，最小化或关闭窗口后留在系统托盘继续轮询，发现关注席别余票时发送 Windows 通知。配置保存在本机用户数据目录。
+- 只在无票变有票时通知，避免每次轮询重复提示；重新开启监控后会重新提醒当前有票的车次。
+- 旧版查询条件会保留，首次升级到两种查询方式后需重新选择方式并开启监控。
+
+车型与配属资料由 [RailGo](https://railgo.dev/) 提供，按出行日期、车站区间、车次和发车时间核对。车型查询在网页或桌面客户端直接完成，余票接口不转发 RailGo 数据。车型缓存 30 分钟，服务失败后暂缓 5 分钟重试，并继续显示余票。页面底部统一显示 RailGo 数据服务署名卡片，点击可打开数据服务文档。使用须遵守 [RailGo 数据服务说明](https://api.railgo.dev/) 的非商业、署名和禁止公开接口中转要求。
+
+第三方数据不能保证当天的实际车型；匹配缺失或冲突时显示“暂无可核实资料”。车次字母前缀不能当作车型。软件只查询余票，不登录、抢票或购票。上游限流、网络故障、列车调图和浏览器休眠都可能影响提醒，出行与购票请以 12306 官网为准。
+
+## 本地运行
+
+```powershell
+npm ci
+npm run build
+npx wrangler pages dev dist
+```
+
+打开本地预览的 `/cr`。仅运行 Vite 开发服务时，Cloudflare Functions 不会启动，余票 API 无法查询。
+
+## 构建 Windows 便携版
+
+```powershell
+npm run build
+node node_modules/electron-builder/out/cli/cli.js --config rail-electron-builder.json --win portable
+```
+
+生成文件在 `release-rail/`。推送到 `master` 后，`build-rail-desktop.yml` 也会构建并上传 Windows 构建产物。桌面版通过 `www.yukino.bond/api/rail` 查询，不要求窗口保持打开，但需要网络且云端 API 已部署。
+
+主站的 Cloudflare Pages 部署工作流会绑定 `cr.yukino.bond`，并尝试在 DNS 中创建指向实际项目域名 `raptor-20g.pages.dev` 的 CNAME（项目名为 `raptor`，并非 `raptor.pages.dev`）。该记录已在 Cloudflare DNS 中添加，开启代理并使用自动 TTL。部署令牌若缺少 Zone Read 或 DNS Edit 权限，网站构建仍可成功，DNS 记录需通过 Cloudflare 控制台维护。

@@ -1,0 +1,27 @@
+name: Audit Cloudflare KV usage (read only)
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'scripts/audit-cloudflare-kv.mjs'
+      - '.github/workflows/audit-cloudflare-kv.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: audit-cloudflare-kv
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect deployed schedules, KV bindings and UTC daily analytics
+        run: node scripts/audit-cloudflare-kv.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

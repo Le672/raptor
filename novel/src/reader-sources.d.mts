@@ -1,0 +1,11 @@
+import type * as light from '../shared/sources.mjs';
+import type * as fiction from '../../fiction/shared/sources.mjs';
+export type SourceId=light.SourceId|fiction.SourceId;
+export type SourceInfo=Omit<light.SourceInfo,'id'>&{id:SourceId};
+export const SOURCES:SourceInfo[];
+export function sourceInfo(id:string):SourceInfo|undefined;
+export function bookIdValid(id:string):boolean;
+export function bookSource(id:string):SourceId;
+export function nativeBookId(id:string):string;
+export function sourceBookUrl(id:string):string;
+export function partIdValid(id:string):boolean;
