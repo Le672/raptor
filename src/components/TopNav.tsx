@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, BookMarked, BookOpen, ChevronRight, CircleHelp, Clock3, Code2, FileText, Film, Flag, FlaskConical, FolderDown, Gamepad2, Gauge, Globe2, Home, Laptop, LayoutGrid, Link2, Mail, Newspaper, Palette, Radio, Rss, Search, Settings2, ShieldCheck, TrainFront, Users, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BookMarked, BookOpen, ChevronRight, CircleHelp, Clock3, Code2, Upload, PenTool, FileText, Film, Flag, FlaskConical, FolderDown, Gamepad2, Gauge, Globe2, Home, Laptop, LayoutGrid, Link2, Mail, Newspaper, Palette, Radio, Rss, Search, Settings2, ShieldCheck, TrainFront, Users, type LucideIcon } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { SiteLink as Link } from "@/components/SiteLink";
 import { useSiteNavigate } from "@/hooks/useSiteNavigate";
@@ -13,7 +13,7 @@ import { SUBDOMAIN_ROUTES, isPortalHost } from "@/lib/site-routing";
 import "@/styles/chrome-refresh.css";
 
 const navigationIcons: Record<string, LucideIcon> = {
-  "/": Home, "/notes": FileText, "/dev": Code2, "/links": LayoutGrid,
+  "/": Home, "/notes": FileText, "/tools": Code2, "/draw": PenTool, "/drop": Upload, "/mail": Mail, "/links": LayoutGrid,
   "/games": Gamepad2, "/jm": BookOpen, "/novel": BookMarked, "/comic": Film,
   "/pixiv": Palette,
   "/cinema": Film, "/news": Newspaper, "/focus": Clock3, "/cr": TrainFront,
@@ -135,7 +135,7 @@ export function TopNav() {
               return item.href ? <a key={item.to} href={item.href} target="_blank" rel="noreferrer" tabIndex={navigationHidden ? -1 : undefined} title={`${item.description}，打开新标签页`}>{content}</a> :
                 <Link key={item.to} to={isRailHost() && item.to === "/cr" ? "/ticket" : item.to} tabIndex={navigationHidden ? -1 : undefined} title={item.description} className={isActive(item.to) ? "active" : undefined} aria-current={isActive(item.to) ? "page" : undefined}>{content}</Link>;
             })}
-            <a href="https://mail.yukino.bond/" target="_blank" rel="noreferrer" tabIndex={navigationHidden ? -1 : undefined} title="Yukino Mail，打开新标签页"><Mail className="nav-section-icon" size={17} strokeWidth={1.6} aria-hidden="true" /><span>邮箱</span><ArrowUpRight className="nav-external-icon" size={11} aria-hidden="true" /></a>
+
           </nav>
           <div className="collection-sidebar-note"><ShieldCheck size={15} strokeWidth={1.4} aria-hidden="true" /><span>保持好奇，慢慢记录。<small>CODE, NOTES & EVERYDAY LIFE</small></span></div>
         </div>

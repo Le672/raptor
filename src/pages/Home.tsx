@@ -40,7 +40,7 @@ const corners = [
     title: "开发工具",
     en: "TOOLBOX",
     text: "让重复的事情，简单一点。",
-    to: "/dev",
+    to: "/tools",
   },
   {
     icon: FolderOpen,

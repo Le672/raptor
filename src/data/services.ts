@@ -17,12 +17,12 @@ export const yukinoServices = {
     keywords: ["Excalidraw", "画布", "绘图", "流程图", "草稿"],
   },
   tools: {
-    title: "完整工具箱",
+    title: "工具箱",
     hostname: "tools.yukino.bond",
     href: "https://tools.yukino.bond/",
     description: "更多编码、格式化、转换与生成工具，把常常遇到的小问题顺手解决。",
     category: "core",
-    keywords: ["IT-Tools", "IT Tools", "开发工具", "编码转换", "格式化"],
+    keywords: ["Yukino Tools", "开发工具", "编码转换", "格式化"],
   },
   radar: {
     title: "网页变化雷达",

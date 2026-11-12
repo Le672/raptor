@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, readdir, copyFile } from 'node:fs/promises'
 import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
+import { prepareSiteShell } from './prepare-site-shell.mjs';
 import { APPS, appManifest } from '../shared/pwa/sites.mjs';
 import { themeAssets } from './prepare-theme.mjs';
 const source = new URL('../shared/pwa/', import.meta.url);
@@ -10,7 +11,7 @@ function scripts(html) { return [...html.matchAll(/(?:src|href)=["']([^"'#?]+\.(
 async function dependencies(root, paths) {
   const files = new Set(), pending = [...paths];
   while (pending.length && files.size < 100) {
-    const path = pending.shift(); if (files.has(path) || !/^\/(?:assets\/|yukino-app-assets\/)/.test(path)) continue;
+    const path = pending.shift(); if (files.has(path) || !/^\/(?:assets\/|yukino-app-assets\/|yukino-shell\/)/.test(path)) continue;
     let content; try { content = await readFile(resolve(root, '.' + path), 'utf8'); } catch { continue; }
     files.add(path);
     if (path.endsWith('.js') || path.endsWith('.mjs')) {
@@ -22,6 +23,7 @@ async function dependencies(root, paths) {
 }
 export async function preparePwa(directory, id = 'portal', options = {}) {
   const root = resolve(directory), entry = resolve(root, 'index.html');
+  const shell = id !== 'portal' ? await prepareSiteShell(root, { siteId: id }) : null;
   let html = await readFile(entry, 'utf8');
   // Re-running the packaging step must produce one control, not duplicate apps.
   html = html.replace(/<script[^>]*data-yukino-app[^>]*><\/script>/g, '');
@@ -40,7 +42,7 @@ export async function preparePwa(directory, id = 'portal', options = {}) {
   await writeFile(resolve(root, '.' + cssPath), css[1]);
   runtime = runtime.replace(css[0], `<link rel="stylesheet" href="${cssPath}">`);
   const configurations = {};
-  const assetEntries = scripts(html), directoryAssets = await readdir(resolve(root, 'assets')).catch(() => []);
+  const assetEntries = [...scripts(html), ...(shell?.files || [])], directoryAssets = await readdir(resolve(root, 'assets')).catch(() => []);
   for (const app of apps) {
     const icons = {};
     for (const size of [180, 192, 512]) {

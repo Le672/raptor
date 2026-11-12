@@ -1,7 +1,7 @@
 // Public website origins only. API/mail transport hosts are not applications.
 const sections = [
   ['www', 'Yukino', '日常与故事的入口', 'Home'],
-  ['dev', 'Yukino 开发工具', '开发工具', 'Dev'], ['blog', 'Yukino 博客', '博客', 'Blog'],
+  ['blog', 'Yukino 博客', '博客', 'Blog'],
   ['box', 'Yukino 资源箱', '资源箱', 'Box'], ['links', 'Yukino 导航', '导航', 'Links'],
   ['about', '关于 Yukino', '关于', 'AboutMe'], ['uses', 'Yukino 设备清单', '设备清单', 'Uses'],
   ['changelog', 'Yukino 更新日志', '更新日志', 'Changelog'], ['friends', 'Yukino 友链', '友链', 'Friends'],
@@ -22,9 +22,9 @@ export const APPS = [
   { id: 'comic', name: 'Yukino 番剧放映室', short: '番剧放映室', group: 'content', auth: 'content' },
   { id: 'cinema', name: 'Yukino 影视馆', short: '影视馆', group: 'content', auth: 'content' },
   { id: 'mail', name: 'Yukino Mail', short: 'Yukino 邮箱', group: 'mail', auth: 'mail', bridge: true },
-  { id: 'tools', name: 'Yukino 开发者抽屉', short: '开发者抽屉', group: 'gateway', auth: 'owner', bridge: true },
-  { id: 'draw', name: 'Yukino 随手画布', short: '随手画布', group: 'gateway', auth: 'none', bridge: true },
-  { id: 'drop', name: 'Yukino 临时传送门', short: '临时传送门', group: 'gateway', auth: 'upload', onlineOnly: true },
+  { id: 'tools', name: 'Yukino 工具箱', short: '工具箱', chunk: 'Tools', group: 'portal', auth: 'portal' },
+  { id: 'draw', name: 'Yukino 随手画布', short: '随手画布', chunk: 'Draw', group: 'portal', auth: 'none' },
+  { id: 'drop', name: 'Yukino 临时传送门', short: '临时传送门', group: 'portal', auth: 'upload', onlineOnly: true },
 ].map(app => ({ ...app, host: `${app.id}.yukino.bond`, color: '#edf5fc' }));
 export function appForHost(hostname) { return APPS.find(app => app.host === hostname || (hostname === 'yukino.bond' && app.id === 'www')); }
 export function appManifest(app, icons) {

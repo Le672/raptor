@@ -15,9 +15,11 @@ for (const site of [
       if(site.kind==='fiction')html=html.replaceAll('轻小说','小说');
       return html.replace(/<title>.*?<\/title>/,`<title>${site.title} · ${site.brand}</title>`).replace('</head>',`<meta name="reader-kind" content="${site.kind}"/></head>`);
     }}]});
+  const { prepareSiteShell } = await import('./prepare-site-shell.mjs');
+  await prepareSiteShell(fileURLToPath(root), { siteId: site.folder === 'ln' ? 'ln' : 'novel' });
   await prepareTheme(fileURLToPath(root));
   const html=await readFile(new URL('index.html',root),'utf8');
-  const assets=[...new Set(Array.from(html.matchAll(/(?:src|href)="(\/(?:assets|yukino-app-assets)\/[^"?#]+)"/g),match=>match[1]))];
+  const assets=['/yukino-shell/avatar.png',...new Set(Array.from(html.matchAll(/(?:src|href)="(\/(?:assets|yukino-shell|yukino-app-assets)\/[^"?#]+)"/g),match=>match[1]))];
   if(!assets.some(path=>path.endsWith('.js'))||!assets.some(path=>path.endsWith('.css')))throw new Error('Reader assets are missing');
   const manifest=JSON.parse(await readFile(new URL('manifest.webmanifest',root),'utf8'));
   manifest.name=`Yukino ${site.title}`;manifest.short_name=site.title;manifest.description=`随身的${site.title}：发现故事、收藏书架、接着上次读。`;

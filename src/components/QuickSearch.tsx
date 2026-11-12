@@ -4,7 +4,7 @@ import { useSiteNavigate } from "@/hooks/useSiteNavigate";
 import { domainLinks } from "@/data/site";
 import { siteNavigation } from "@/data/navigation";
 import { gameCatalog } from "@/data/games";
-import { DEV_TOOLS } from "@/lib/dev-tools";
+import { TOOLS as DEV_TOOLS } from "@/lib/toolbox";
 import { usePublicPosts } from "@/hooks/usePublicContent";
 import { contentDate, postHref } from "@/lib/content";
 import { MAIN_ORIGIN, siteHref } from "@/lib/site-routing";
@@ -29,7 +29,7 @@ export function QuickSearch({ open, onClose }: QuickSearchProps) {
     if (!normalized) return [];
     const all: Result[] = [
       ...published.data.filter(post => matches(post.title + " " + post.summary + " " + post.tag)).map(post => ({ title: post.title, description: post.tag + " · " + contentDate(post.created_at), href: postHref(post.slug) })),
-      ...DEV_TOOLS.filter(tool => matches(tool.label + " " + tool.description)).map(tool => ({ title: tool.label + " 工具", description: tool.description, href: "/dev?tool=" + tool.id })),
+      ...DEV_TOOLS.filter(tool => matches(tool.label + " " + tool.description)).map(tool => ({ title: tool.label + " 工具", description: tool.description, href: "/tools?tool=" + tool.id })),
       ...pages.filter(page => matches(page.title + " " + page.description)),
       ...gameCatalog.filter(game => matches(game.name + " " + game.nameEn + " " + game.description)).map(game => ({ title: game.name, description: "小游戏 · " + game.description, href: "/games?game=" + game.id })),
       ...domainLinks.filter(item => matches([item.title, item.hostname, item.description, ...(item.keywords ?? [])].join(" "))).map(item => ({ title: item.title, description: item.hostname, href: item.href, external: true })),

@@ -11,7 +11,7 @@ import { onRequest as routePage } from '../../functions/_middleware';
 afterEach(cleanup);
 const destinations = [
   ['首页','https://www.yukino.bond/'], ['笔记','https://www.yukino.bond/notes'],
-  ['工具','https://dev.yukino.bond/'], ['导航','https://links.yukino.bond/'],
+  ['工具','https://tools.yukino.bond/'], ['导航','https://links.yukino.bond/'],
   ['游戏','https://games.yukino.bond/'], ['新闻','https://news.yukino.bond/'],
   ['姬漫','https://jm.yukino.bond/'],
   ['Pixiv','https://pixiv.yukino.bond/'],
@@ -58,7 +58,7 @@ describe('canonical site navigation', () => {
     expect(canonicalPageUrl('https://www.yukino.bond/novel/book/8')).toBe('https://novel.yukino.bond/book/8');
     expect(canonicalPageUrl('https://novel.yukino.bond/book/8')).toBeNull();
   });
-  it.each(['www','ip','focus','dev','blog','cr','f1','games','rss'])('corrects legacy paths on %s without redirect loops', host => {
+  it.each(['www','ip','focus','tools','blog','cr','f1','games','rss'])('corrects legacy paths on %s without redirect loops', host => {
     const input = `https://${host}.yukino.bond/f1?tab=calendar&year=2024#round-3`;
     const target = 'https://f1.yukino.bond/?tab=calendar&year=2024#round-3';
     expect(canonicalPageUrl(input)).toBe(target); expect(canonicalPageUrl(target)).toBe(target);
@@ -80,8 +80,8 @@ describe('canonical site navigation', () => {
   });
   it('redirects wrong document hosts at the edge but permits legacy speed recovery and API posts', async () => {
     const next = async () => new Response('asset');
-    const response = await routePage({request:new Request('https://ip.yukino.bond/dev?tool=json'),next});
-    expect(response.status).toBe(308); expect(response.headers.get('Location')).toBe('https://dev.yukino.bond/?tool=json');
+    const response = await routePage({request:new Request('https://ip.yukino.bond/tools?tool=json'),next});
+    expect(response.status).toBe(308); expect(response.headers.get('Location')).toBe('https://tools.yukino.bond/?tool=json');
     for (const request of [new Request('https://ip.yukino.bond/speed'),new Request('https://ip.yukino.bond/api/ip/check',{method:'POST'}),new Request('https://focus.yukino.bond/assets/app.js')]) expect(await (await routePage({request,next})).text()).toBe('asset');
   });
 });

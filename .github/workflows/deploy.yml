@@ -27,7 +27,6 @@ jobs:
 
       - name: Check shared automatic appearance and application packaging
         run: node --test shared/test/theme.test.mjs shared/test/pwa.test.mjs
-
       - name: Check website behavior
         run: npm run test -- src/test
 
@@ -153,6 +152,35 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --config .wrangler/edge-frontend/status/wrangler.json --keep-vars
 
+      - name: Package tools with shared Yukino interface
+        run: node scripts/build-edge-frontends.mjs --site=tools
+
+      - name: Publish tools on its existing Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/edge-frontend/tools/wrangler.json --keep-vars
+
+      - name: Package draw with shared Yukino interface
+        run: node scripts/build-edge-frontends.mjs --site=draw
+
+      - name: Publish draw on its existing Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/edge-frontend/draw/wrangler.json --keep-vars
+
+      - name: Package drop with shared Yukino interface
+        run: node scripts/build-edge-frontends.mjs --site=drop
+
+      - name: Publish drop on its existing Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .wrangler/edge-frontend/drop/wrangler.json --keep-vars
       - name: Verify the legacy status URL and independent history API
         run: |
           node --input-type=module <<'JS'
@@ -190,3 +218,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+
+      - name: Retire dev subdomain without a redirect
+        run: node scripts/retire-dev-domain.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

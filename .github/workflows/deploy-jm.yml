@@ -4,6 +4,9 @@ on:
   push:
     branches: [master]
     paths:
+      - 'shared/shell/**'
+      - 'scripts/prepare-site-shell.mjs'
+      - 'src/styles/chrome-refresh.css'
       - 'jm/**'
       - 'shared/pwa/**'
       - 'shared/theme/**'
@@ -53,8 +56,8 @@ jobs:
           workingDirectory: jm/packages/worker
           command: deploy
       - name: Deploy Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy jm/packages/page/dist --project-name=jm-yukino --branch=master
+        working-directory: jm/packages/page
+        run: node ../worker/node_modules/wrangler/bin/wrangler.js pages deploy dist --project-name=jm-yukino --branch=master
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
