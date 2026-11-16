@@ -24,7 +24,7 @@ test('app packaging preserves its source, versions updates, caches landing depen
     for (const [name, source] of [['web-1.js', 'import{value}from"./common-1.js";import("./private-1.js")'], ['common-1.js', 'export const value=1'], ['Focus-1.js', 'import{value}from"./common-1.js";export default value;'], ['private-1.js', 'private data'], ['style-1.css', 'body{color:black}']]) await writeFile(join(directory, 'assets', name), source);
     const result = await preparePwa(directory, 'portal'), again = await preparePwa(directory, 'portal');
     assert.equal(result.version, again.version);
-    const html = await readFile(join(directory, 'index.html'), 'utf8'); assert.equal((html.match(/data-yukino-app/g) || []).length, 1);
+    const html = await readFile(join(directory, 'index.html'), 'utf8'); assert.equal((html.match(/data-yukino-app/g) || []).length, 1);assert.match(html, /name="apple-mobile-web-app-capable" content="yes"/);assert.match(html, /rel="manifest"/);
     const app = result.sites['focus.yukino.bond']; assert.ok(app.assets.includes('/assets/Focus-1.js')); assert.ok(app.assets.includes('/assets/common-1.js')); assert.ok(!app.assets.includes('/assets/private-1.js'));
     const client = await readFile(join(directory, result.client), 'utf8'); assert.ok(!client.includes('<style>')); assert.match(client, /control-[a-f0-9]+\.css/);
     const manifest = JSON.parse(await readFile(join(directory, app.manifest), 'utf8')); assert.equal(manifest.name, 'Yukino 专注'); assert.equal(manifest.scope, '/'); assert.equal(manifest.display, 'standalone');

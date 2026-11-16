@@ -1,8 +1,9 @@
+import {isAppWindow,observeAppWindow} from '../../shared/pwa/display-mode.mjs';
 import { useSyncExternalStore } from 'react';
 type InstallPrompt = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 let prompt: InstallPrompt | null = null, registration: ServiceWorkerRegistration | null = null, applying = false;
 const listeners = new Set<() => void>();
-const standalone = () => typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
+const standalone = () => typeof window !== 'undefined' && isAppWindow(window);
 let state = { installed: standalone(), installReady: false, installing: false, updateReady: false, offline: typeof navigator !== 'undefined' && navigator.onLine === false, error: '' };
 function update(value: Partial<typeof state>) { state = { ...state, ...value }; listeners.forEach(listener => listener()); }
 export function usePwa() { return useSyncExternalStore(listener => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => state, () => state); }
@@ -19,8 +20,8 @@ export function applyUpdate() { if (registration?.waiting) { applying = true; re
 export async function checkUpdate() { try { await registration?.update(); } catch { update({ error: '暂时无法检查更新，联网后可重试。' }); } }
 export function startPwa() {
   window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); prompt = event as InstallPrompt; update({ installReady: true }); });
-  window.addEventListener('appinstalled', () => { prompt = null; update({ installed: true, installReady: false }); void keepStorage(); });
-  const mode = window.matchMedia?.('(display-mode: standalone)'); mode?.addEventListener('change', () => update({ installed: standalone() }));
+  window.addEventListener('appinstalled', () => { prompt = null; update({ installed: standalone(), installReady: false }); void keepStorage(); });
+  observeAppWindow(installed=>update({installed}),window);
   window.addEventListener('online', () => update({ offline: false })); window.addEventListener('offline', () => update({ offline: true }));
   if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (applying) window.location.reload(); });

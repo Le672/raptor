@@ -1,3 +1,4 @@
+import {isAppWindow,observeAppWindow} from '../shared/pwa/display-mode.mjs';
 import { readFile, writeFile, mkdir, readdir, copyFile } from 'node:fs/promises';
 import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -25,11 +26,14 @@ export async function preparePwa(directory, id = 'portal', options = {}) {
   const shell = id !== 'portal' ? await prepareSiteShell(root, { siteId: id }) : null;
   let html = await readFile(entry, 'utf8');
   // Re-running the packaging step must produce one control, not duplicate apps.
+  html = html.replace(/<!-- yukino-install-meta -->[\s\S]*?<!-- \/yukino-install-meta -->/g,'');
+  html = html.replace(/<link\b[^>]*>/gi,tag=>/\brel=["'](?:manifest|apple-touch-icon)["']/i.test(tag)?'':tag).replace(/<meta\b[^>]*>/gi,tag=>/\bname=["'](?:apple-mobile-web-app-capable|mobile-web-app-capable|apple-mobile-web-app-title|apple-mobile-web-app-status-bar-style|application-name)["']/i.test(tag)?'':tag);
   html = html.replace(/<script[^>]*data-yukino-app[^>]*><\/script>/g, '');
   html = html.replace(/content=["']width=device-width,\s*initial-scale=1(?:\.0)?["']/g, 'content="width=device-width, initial-scale=1.0, viewport-fit=cover"');
   const apps = id === 'portal' ? APPS.filter(app => app.group === 'portal') : APPS.filter(app => app.id === id);
   if (!apps.length) throw new Error(`Unknown PWA ${id}`);
   let runtime = await readFile(new URL('client.js', source), 'utf8');
+  runtime=runtime.replace('__YUKINO_DISPLAY_MODE__',`const isAppWindow=${isAppWindow.toString()};const observeAppWindow=${observeAppWindow.toString()};`);
   const worker = await readFile(new URL('sw-template.js', source), 'utf8');
   const iconDir = resolve(root, 'yukino-app-assets'); await mkdir(iconDir, { recursive: true });
   const css = runtime.match(/<style>([\s\S]*?)<\/style>/);
@@ -57,12 +61,13 @@ export async function preparePwa(directory, id = 'portal', options = {}) {
   const payload = JSON.stringify({ sites: configurations, fallback: apps[0].host, version });
   const client = runtime.replace('__YUKINO_APPS__', payload), clientPath = `/yukino-app-assets/client-${hash(client)}.js`;
   await writeFile(resolve(root, '.' + clientPath), client);
+  const appHead=config=>`<!-- yukino-install-meta --><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="${config.short}"><meta name="application-name" content="${config.name}"><link rel="manifest" href="${config.manifest}"><link rel="apple-touch-icon" sizes="180x180" href="${config.apple}"><!-- /yukino-install-meta -->`;
   const tag = `<script src="${clientPath}" data-yukino-app></script>`;
   html = html.replace('</head>', `${tag}</head>`).replace(/content=["']width=device-width,\s*initial-scale=1(?:\.0)?["']/g, 'content="width=device-width, initial-scale=1.0, viewport-fit=cover"');
-  if (!options.keepEntry) await writeFile(entry, html);
+  if (!options.keepEntry) await writeFile(entry, html.replace('</head>',appHead(configurations[apps[0].host])+'</head>'));
   const offline = app => app.onlineOnly ? `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${app.name}</title>${tag}</head><body style="font:16px/1.8 system-ui;background:#f8fafc;color:#34465c;padding:10vh 7vw"><h1>${app.name}</h1><p>当前离线。上传、读取分享内容与验证口令需要网络连接。</p><p>此应用不会缓存文件、口令或私有分享页面。</p><a href="/">联网后重新打开</a></body></html>` : html;
   for (const config of new Set(Object.values(configurations))) {
-    const shell = `/yukino-app-shell-${config.id}-${version}.html`; await writeFile(resolve(root, '.' + shell), offline(config));
+    const shell = `/yukino-app-shell-${config.id}-${version}.html`; await writeFile(resolve(root, '.' + shell), offline(config).replace('</head>',appHead(config)+'</head>'));
     const prefix = `yukino-app-shell-${config.id}-`;
     const data = { prefix, cache: prefix + version, shell, onlineOnly: Boolean(config.onlineOnly), privateLab: config.id === 'tools', files: [shell, clientPath, cssPath, config.manifest, ...config.icons, ...config.assets] };
     await writeFile(resolve(root, '.' + config.sw), worker.replace('__YUKINO_APP_WORKER__', JSON.stringify(data)));

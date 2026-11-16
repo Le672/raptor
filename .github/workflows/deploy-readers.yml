@@ -10,6 +10,7 @@ on:
       - 'fiction/**'
       - 'ln/**'
       - 'shared/reader-worker.mjs'
+      - 'shared/pwa/**'
       - 'shared/reader-preview.mjs'
       - 'vps-content/reader-preview.test.mjs'
       - 'shared/content-*.mjs'

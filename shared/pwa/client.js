@@ -6,7 +6,8 @@
   if (!app || window.__YUKINO_APP__) return;
   window.__YUKINO_APP__ = { id: app.id, version: BUILD.version };
   let deferred = null, registration = null, applying = false, user = null, checking = false;
-  const installed = () => matchMedia('(display-mode: standalone)').matches || Boolean(navigator.standalone);
+  __YUKINO_DISPLAY_MODE__
+  const installed = () => isAppWindow(window);
   const platform = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'pc';
   let selected = platform(), host, root;
   const nodes = {};
@@ -72,6 +73,7 @@
   }
   function refresh() {
     if (!root) return;
+    nodes.launcher.querySelector('span').textContent = installed() ? '应用与更新' : '安装应用';
     nodes.launcher.title = `${app.name} · 安装与应用`;
     nodes.install.hidden = installed() || selected === 'ios' || !deferred;
     nodes.manual.textContent = installed() ? '正在独立应用窗口中使用' : selected === 'ios' ? 'Safari → 分享 → 添加到主屏幕' : deferred ? '浏览器已准备好安装此应用' : '也可使用浏览器菜单中的安装选项';
@@ -112,7 +114,7 @@
       const anchor = event.target.closest?.('a[href]'); if (!anchor) return; let url; try { url = new URL(anchor.href, location.href); } catch { return; }
       if (url.pathname === '/login' && [location.origin, 'https://www.yukino.bond'].includes(url.origin)) { event.preventDefault(); event.stopPropagation(); open(true); }
     }, true);
-    refresh();
+    observeAppWindow(()=>refresh(),window);
     if (new URL(location.href).searchParams.get('yukino-install') === '1') open();
     if ('serviceWorker' in navigator && window.isSecureContext) {
       navigator.serviceWorker.addEventListener('controllerchange', () => { if (applying) location.reload(); });
