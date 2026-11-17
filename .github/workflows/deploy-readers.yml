@@ -17,6 +17,8 @@ on:
       - 'scripts/build-novel.mjs'
       - 'scripts/ensure-reader-routes.mjs'
       - 'scripts/verify-readers-live.mjs'
+      - 'scripts/check-pwa-layout.mjs'
+      - 'scripts/check-pwa-live-layout.mjs'
       - '.github/workflows/deploy-readers.yml'
   workflow_dispatch:
 concurrency:
@@ -71,3 +73,12 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Verify live applications and real source content
         run: node scripts/verify-readers-live.mjs
+      - name: Check published reader layouts in Chrome
+        run: node scripts/check-pwa-live-layout.mjs
+      - name: Preserve live phone screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-live-layout
+          path: .wrangler/pwa-live-layout
+          retention-days: 7

@@ -18,12 +18,14 @@ const browser=await chromium.launch({channel:'chrome',headless:true});
 try{
  for(const mode of ['browser','standalone','ios-standalone']){
   const context=await browser.newContext({viewport:{width:393,height:852},deviceScaleFactor:1});const page=await context.newPage();
-  if(mode==='standalone'){const cdp=await context.newCDPSession(page);await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'display-mode',value:'standalone'}]});}
+  // Chrome does not emulate display-mode through CDP. Supply the platform signal explicitly.
+  if(mode==='standalone')await page.addInitScript(()=>{const native=window.matchMedia.bind(window);window.matchMedia=query=>query==='(display-mode: standalone)'?Object.defineProperty(native(query),'matches',{value:true}):native(query);});
   if(mode==='ios-standalone')await page.addInitScript(()=>Object.defineProperty(navigator,'standalone',{get:()=>true}));
   await page.goto('http://127.0.0.1:'+server.address().port);await page.locator('#yukino-global-header').waitFor({state:'attached'});
   const state=await page.evaluate(()=>{const h=document.querySelector('#yukino-global-header'),s=h.querySelector('.search-toggle'),book=document.querySelector('.book-title');return{header:getComputedStyle(h).display,sidebar:getComputedStyle(document.querySelector('.sidebar')).display,padding:getComputedStyle(document.body).paddingLeft,searchWidth:s.getBoundingClientRect().width,searchHeight:s.getBoundingClientRect().height,label:getComputedStyle(s.querySelector('.nav-search-label')).display,bodyWidth:document.documentElement.scrollWidth,bookColor:getComputedStyle(book).color,contentTop:book.getBoundingClientRect().top,independent:document.body.classList.contains('yukino-independent')}});
+  await page.screenshot({path:resolve(out,mode+'.png')});console.log(mode,JSON.stringify(state));
   if(mode==='browser'){assert.notEqual(state.header,'none');assert.equal(state.sidebar,'none');assert.ok(state.searchWidth>=32&&state.searchHeight<=40,JSON.stringify(state));assert.equal(state.label,'none');}
   else{assert.equal(state.header,'none');assert.equal(state.sidebar,'none');assert.equal(state.padding,'0px');assert.equal(state.independent,false);assert.ok(state.contentTop<150,JSON.stringify(state));const channels=state.bookColor.match(/\d+/g).map(Number);assert.ok(channels.slice(0,3).every(n=>n>120),'Dark book text must remain readable: '+state.bookColor);}
-  assert.ok(state.bodyWidth<=393,JSON.stringify(state));await page.screenshot({path:resolve(out,mode+'.png')});console.log(mode,JSON.stringify(state));await context.close();
+  assert.ok(state.bodyWidth<=393,JSON.stringify(state));await context.close();
  }
 }finally{await browser.close();await new Promise(r=>server.close(r));}
