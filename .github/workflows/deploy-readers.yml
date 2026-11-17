@@ -42,6 +42,10 @@ jobs:
           node --test novel/test/*.test.mjs fiction/test/*.test.mjs shared/test/*.test.mjs vps-content/reader-preview.test.mjs
           npx vitest run src/test/novel-library.test.ts src/test/reader-migration.test.tsx
           npx tsc -p novel/tsconfig.json
+      - name: Prepare Chinese fonts for phone screenshots
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk
       - name: Check phone layout in Chrome browser and standalone app modes
         run: |
           npm install --prefix .wrangler/pwa-check --no-save --package-lock=false playwright@1.56.1

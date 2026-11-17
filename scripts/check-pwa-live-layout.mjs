@@ -26,6 +26,15 @@ try {
         label:getComputedStyle(search.querySelector('.nav-search-label')).display};
     });
     await page.screenshot({path:resolve(out,`${site}-${mode}.png`)});
+    if(mode==='ios-standalone') {
+      await page.getByRole('button',{name:'切换深色主题',exact:true}).click();
+      await page.screenshot({path:resolve(out,`${site}-${mode}-dark.png`)});
+      const book=page.locator('.book-title').first();
+      if(await book.count()) {
+        const color=await book.evaluate(node=>getComputedStyle(node).color);
+        assert.ok(color.match(/\d+/g).slice(0,3).map(Number).every(n=>n>120),color);
+      }
+    }
     console.log(site,mode,JSON.stringify(state));
     assert.equal(state.sidebar,'none');assert.ok(state.width<=393,JSON.stringify(state));
     if(mode==='ios-standalone') {
