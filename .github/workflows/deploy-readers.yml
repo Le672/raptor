@@ -40,6 +40,17 @@ jobs:
           node --test novel/test/*.test.mjs fiction/test/*.test.mjs shared/test/*.test.mjs vps-content/reader-preview.test.mjs
           npx vitest run src/test/novel-library.test.ts src/test/reader-migration.test.tsx
           npx tsc -p novel/tsconfig.json
+      - name: Check phone layout in Chrome browser and standalone app modes
+        run: |
+          npm install --prefix .wrangler/pwa-check --no-save --package-lock=false playwright@1.56.1
+          node scripts/check-pwa-layout.mjs
+      - name: Preserve PWA layout screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-layout
+          path: .wrangler/pwa-layout
+          retention-days: 7
       - run: node scripts/build-novel.mjs
       - name: Deploy light novel reader
         uses: cloudflare/wrangler-action@v3

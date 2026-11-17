@@ -114,7 +114,7 @@
       const anchor = event.target.closest?.('a[href]'); if (!anchor) return; let url; try { url = new URL(anchor.href, location.href); } catch { return; }
       if (url.pathname === '/login' && [location.origin, 'https://www.yukino.bond'].includes(url.origin)) { event.preventDefault(); event.stopPropagation(); open(true); }
     }, true);
-    observeAppWindow(()=>refresh(),window);
+    observeAppWindow(active=>{applyAppWindowLayout(active,document);refresh();},window);
     if (new URL(location.href).searchParams.get('yukino-install') === '1') open();
     if ('serviceWorker' in navigator && window.isSecureContext) {
       navigator.serviceWorker.addEventListener('controllerchange', () => { if (applying) location.reload(); });

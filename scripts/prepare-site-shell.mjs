@@ -1,3 +1,4 @@
+import {isAppWindow,observeAppWindow,applyAppWindowLayout} from '../shared/pwa/display-mode.mjs';
 import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +14,7 @@ const svg=name=>renderToStaticMarkup(createElement(icons[name]||icons.Link2,{siz
 export async function prepareSiteShell(directory,{inject=true,siteId=null}={}){
   const dir=resolve(directory);await mkdir(resolve(dir,'yukino-shell'),{recursive:true});
   const navigation=siteNavigation.map((n,i)=>({...n,icon:svg(iconNames[i]),href:n.href||(n.to==='/notes'?'https://www.yukino.bond/notes':n.to==='/'?'https://www.yukino.bond/':'https://'+(n.to==='/about-me'?'about':n.to.slice(1))+'.yukino.bond/')}));
-  const runtime=(await readFile(resolve(root,'shared/shell/client.js'),'utf8')).replace('__YUKINO_NAVIGATION__',JSON.stringify(navigation)).replace('__YUKINO_SITE__',JSON.stringify(siteId));
+  const runtime=(await readFile(resolve(root,'shared/shell/client.js'),'utf8')).replace('__YUKINO_NAVIGATION__',JSON.stringify(navigation)).replace('__YUKINO_SITE__',JSON.stringify(siteId)).replace('__YUKINO_APP_WINDOW__',`const isAppWindow=${isAppWindow.toString()};const observeAppWindow=${observeAppWindow.toString()};const applyAppWindowLayout=${applyAppWindowLayout.toString()};`);
   const css=(await readFile(resolve(root,'src/styles/chrome-refresh.css'),'utf8'))+'\n'+await readFile(resolve(root,'shared/shell/independent.css'),'utf8');
   const hash=createHash('sha256').update(runtime+css).digest('hex').slice(0,12);
   const script=`/yukino-shell/shell-${hash}.js`,style=`/yukino-shell/shell-${hash}.css`;

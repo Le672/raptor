@@ -6,3 +6,11 @@ test('Safari Home Screen uses navigator.standalone even if display media is unav
 test('ordinary browser pages are not classified using URL flags or previous installs',()=>{const s=scope();s.location={search:'?pwa=1',pathname:'/install'};s.localStorage={getItem:()=> 'installed'};assert.equal(isAppWindow(s),false);});
 test('app display modes and Safari legacy media listeners update correctly',()=>{for(const legacy of[false,true]){const s=scope(legacy),values=[];const stop=observeAppWindow(v=>values.push(v),s),m=s.matchMedia('(display-mode: standalone)');m.matches=true;m.dispatchEvent(new Event('change'));assert.deepEqual(values,[false,true]);stop();m.matches=false;m.dispatchEvent(new Event('change'));assert.equal(values.length,2);}});
 test('restoring an iOS app from history or background refreshes previously stale browser state',()=>{const s=scope(),values=[];const stop=observeAppWindow(v=>values.push(v),s);s.navigator.standalone=true;s.dispatchEvent(new Event('pageshow'));assert.equal(values.at(-1),true);s.navigator.standalone=false;s.document.dispatchEvent(new Event('visibilitychange'));assert.equal(values.at(-1),false);s.navigator.standalone=true;s.dispatchEvent(new Event('focus'));assert.equal(values.at(-1),true);stop();});
+
+test('standalone layout hides shared chrome and restores the original independent app classes',async()=>{
+ const {applyAppWindowLayout}=await import('../pwa/display-mode.mjs');
+ const list=()=>{const values=new Set();return{contains:v=>values.has(v),toggle:(v,on)=>on?values.add(v):values.delete(v)}};
+ const doc={documentElement:{classList:list()},body:{dataset:{yukinoShell:'independent'},classList:list()}};
+ applyAppWindowLayout(true,doc);assert.equal(doc.documentElement.classList.contains('yukino-app-window'),true);assert.equal(doc.body.classList.contains('yukino-independent'),false);assert.equal(doc.body.classList.contains('site-shell'),false);
+ applyAppWindowLayout(false,doc);assert.equal(doc.documentElement.classList.contains('yukino-app-window'),false);assert.equal(doc.body.classList.contains('yukino-independent'),true);assert.equal(doc.body.classList.contains('site-shell'),true);
+});

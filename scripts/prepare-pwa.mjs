@@ -1,4 +1,4 @@
-import {isAppWindow,observeAppWindow} from '../shared/pwa/display-mode.mjs';
+import {isAppWindow,observeAppWindow,applyAppWindowLayout} from '../shared/pwa/display-mode.mjs';
 import { readFile, writeFile, mkdir, readdir, copyFile } from 'node:fs/promises';
 import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -33,7 +33,7 @@ export async function preparePwa(directory, id = 'portal', options = {}) {
   const apps = id === 'portal' ? APPS.filter(app => app.group === 'portal') : APPS.filter(app => app.id === id);
   if (!apps.length) throw new Error(`Unknown PWA ${id}`);
   let runtime = await readFile(new URL('client.js', source), 'utf8');
-  runtime=runtime.replace('__YUKINO_DISPLAY_MODE__',`const isAppWindow=${isAppWindow.toString()};const observeAppWindow=${observeAppWindow.toString()};`);
+  runtime=runtime.replace('__YUKINO_DISPLAY_MODE__',`const isAppWindow=${isAppWindow.toString()};const observeAppWindow=${observeAppWindow.toString()};const applyAppWindowLayout=${applyAppWindowLayout.toString()};`);
   const worker = await readFile(new URL('sw-template.js', source), 'utf8');
   const iconDir = resolve(root, 'yukino-app-assets'); await mkdir(iconDir, { recursive: true });
   const css = runtime.match(/<style>([\s\S]*?)<\/style>/);

@@ -14,3 +14,11 @@ export function observeAppWindow(change,scope=globalThis){
   listen(scope,'pageshow');listen(scope,'focus');listen(scope.document,'visibilitychange');refresh();
   return()=>cleanups.forEach(stop=>stop());
 }
+
+export function applyAppWindowLayout(active,doc=globalThis.document){
+  doc?.documentElement?.classList.toggle('yukino-app-window',active);
+  if(doc?.body?.dataset.yukinoShell==='independent'){
+    doc.body.classList.toggle('site-shell',!active);
+    doc.body.classList.toggle('yukino-independent',!active);
+  }
+}

@@ -1,4 +1,4 @@
-import {isAppWindow,observeAppWindow} from '../../shared/pwa/display-mode.mjs';
+import {isAppWindow,observeAppWindow,applyAppWindowLayout} from '../../shared/pwa/display-mode.mjs';
 import { useSyncExternalStore } from 'react';
 type InstallPrompt = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 let prompt: InstallPrompt | null = null, registration: ServiceWorkerRegistration | null = null, applying = false;
@@ -21,7 +21,7 @@ export async function checkUpdate() { try { await registration?.update(); } catc
 export function startPwa() {
   window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); prompt = event as InstallPrompt; update({ installReady: true }); });
   window.addEventListener('appinstalled', () => { prompt = null; update({ installed: standalone(), installReady: false }); void keepStorage(); });
-  observeAppWindow(installed=>update({installed}),window);
+  observeAppWindow(installed=>{applyAppWindowLayout(installed,document);update({installed});},window);
   window.addEventListener('online', () => update({ offline: false })); window.addEventListener('offline', () => update({ offline: true }));
   if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (applying) window.location.reload(); });

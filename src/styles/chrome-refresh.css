@@ -111,3 +111,18 @@
 @media (prefers-reduced-motion: reduce) {
   .site-shell .site-header.collection-header, .collection-header .site-navigation, .collection-header .site-navigation > a, .collection-header .collection-navigation-area { transition: none; }
 }
+
+/* The shared website chrome is not part of an installed app's own interface. */
+html.yukino-app-window :is(#yukino-global-header,.site-header.collection-header){display:none!important}
+html.yukino-app-window body.site-shell{padding-left:0!important;--yukino-shell-height:0px}
+@media(display-mode:standalone),(display-mode:fullscreen),(display-mode:minimal-ui){
+ :is(#yukino-global-header,.site-header.collection-header){display:none!important}
+ body.site-shell{padding-left:0!important;--yukino-shell-height:0px}
+}
+.collection-header .search-toggle{white-space:nowrap;flex-shrink:0}
+.collection-header .search-toggle svg{flex-shrink:0;width:16px;height:16px}
+@media(max-width:900px){
+ .collection-header .nav-tools{flex-shrink:0;min-width:max-content}
+ .collection-header .search-toggle{flex:0 0 33px;overflow:hidden}
+ .collection-header .nav-account>a{white-space:nowrap}
+}
