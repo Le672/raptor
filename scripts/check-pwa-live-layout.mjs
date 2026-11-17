@@ -21,7 +21,7 @@ try {
         app:document.documentElement.classList.contains('yukino-app-window'),
         independent:document.body.classList.contains('yukino-independent'),
         top:topbar.getBoundingClientRect().top,headerWidth:topbar.getBoundingClientRect().width,
-        width:document.documentElement.scrollWidth,searchWidth:search.getBoundingClientRect().width,
+        brandAlignment:Math.abs((header.querySelector('.brand').getBoundingClientRect().top+header.querySelector('.brand').getBoundingClientRect().bottom-search.getBoundingClientRect().top-search.getBoundingClientRect().bottom)/2),width:document.documentElement.scrollWidth,searchWidth:search.getBoundingClientRect().width,
         searchHeight:search.getBoundingClientRect().height,
         label:getComputedStyle(search.querySelector('.nav-search-label')).display};
     });
@@ -41,7 +41,7 @@ try {
       assert.equal(state.app,true);assert.equal(state.header,'none');
       assert.equal(state.independent,false);assert.ok(state.top<65,JSON.stringify(state));
     } else {
-      assert.notEqual(state.header,'none');assert.equal(state.label,'none');
+      assert.notEqual(state.header,'none');assert.equal(state.label,'none');assert.ok(state.brandAlignment<=2,JSON.stringify(state));
       assert.ok(state.searchWidth>=32&&state.searchHeight<=40,JSON.stringify(state));
     }
     await context.close();

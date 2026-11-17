@@ -6,7 +6,7 @@
 .site-shell .site-header.collection-header::after { display: none; }
 .collection-header .nav-inner { display: flex; align-items: center; gap: 24px; max-width: none; height: 73px; margin: 0; padding: 0 clamp(24px, 3.5vw, 56px); }
 .collection-header .brand-lockup { display: flex; align-items: center; min-width: 0; }
-.collection-header .brand { display: flex; align-items: center; flex: none; gap: 10px; color: #34465c; font: 600 24px/1.1 Georgia, "Noto Serif SC", serif; letter-spacing: -.8px; }
+.collection-header .brand { margin: 0; display: flex; align-items: center; flex: none; gap: 10px; color: #34465c; font: 600 24px/1.1 Georgia, "Noto Serif SC", serif; letter-spacing: -.8px; }
 .collection-header .brand-mark { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #f8fafc; box-shadow: none; object-fit: cover; }
 .collection-header .brand-dot { color: #5b82a9; }
 .collection-header .brand-wordmark small { display: block; margin-top: 7px; color: #697b90; font: 9px/1.4 "Segoe UI", sans-serif; letter-spacing: 1.7px; }
