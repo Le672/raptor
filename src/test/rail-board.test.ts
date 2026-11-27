@@ -69,6 +69,13 @@ describe("official station board gateway", () => {
     const detail = await (await request(String(params))).json();
     expect(detail).toMatchObject({ platform: "6站台", wicket: "A6,B6", status: "late", minutes: 3, checkIn: "unknown", predicted: true });
     expect((await request("mode=board-row&direction=D&id=OTHER%2F2026-10-05%2FG9999")).status).toBe(404);
+    expect(await (await request("mode=national-station")).json()).toMatchObject({ source: "12306", station: "IZQ", rows: [] });
+    vi.setSystemTime(at("10:02"));
+    expect(await (await request("mode=national-station")).json()).toMatchObject({ rows: [
+      { train: "G6003", originDate: date, platform: "6站台", arrivalAt: at("10:00"), departureAt: at("10:04") },
+    ] });
+    vi.setSystemTime(at("10:04"));
+    expect(await (await request("mode=national-station")).json()).toMatchObject({ rows: [] });
     expect(fetchMock.mock.calls.every(([url]) => new URL(String(url)).hostname.endsWith(".12306.cn"))).toBe(true);
   });
 });

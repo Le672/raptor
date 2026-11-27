@@ -8,6 +8,7 @@ export type TrainEquipment = {
   model: string | null; owner: string | null; operator: string | null; number: string | null;
   source: "12306" | "RailGo" | "rail.re" | null; scope: "dated" | "reference" | "inferred"; date: string; checkedAt: number;
   history?: EquipmentHistory;
+  lengthMeters?: number; coachCount?: number;
 };
 export type EquipmentFields = {
   trainsetModel: string | null; trainsetOwner?: string | null; trainOperator?: string | null;
@@ -29,8 +30,19 @@ export function parseOfficialEquipment(carPayload: unknown, dutyPayload: unknown
   const dutyCar = duty?.carInfo && typeof duty.carInfo === "object" && !Array.isArray(duty.carInfo) ? duty.carInfo as Record<string, unknown> : null;
   const datedModel = detail(car?.trainStyle), referenceModel = detail(dutyCar?.trainStyle);
   const operator = [...new Set([detail(duty?.bureauName), detail(duty?.deptName)].filter(Boolean))].join(" · ") || null;
+  const measures = new Map<string, unknown>();
+  if (datedModel && Array.isArray(car?.carInfo)) {
+    for (const item of car.carInfo) {
+      if (item && typeof item.pictureName === "string") measures.set(item.pictureName.trim(), item.pictureValue);
+    }
+  }
+  const length = detail(measures.get("列车长度"))?.match(/^(\d{2,3}(?:\.\d{1,3})?)\s*(?:m|米)$/i);
+  const coaches = detail(measures.get("列车编组"))?.match(/^(\d{1,2})\s*(?:辆|节)$/);
+  const lengthMeters = Number(length?.[1]), coachCount = Number(coaches?.[1]);
   return { model: datedModel || referenceModel, owner: null, operator,
-    number: datedModel ? detail(car?.carCode) : null, source: "12306", scope: datedModel ? "dated" : "reference", date, checkedAt };
+    number: datedModel ? detail(car?.carCode) : null, source: "12306", scope: datedModel ? "dated" : "reference", date, checkedAt,
+    ...(lengthMeters >= 35 && lengthMeters <= 800 ? { lengthMeters } : {}),
+    ...(coachCount >= 2 && coachCount <= 32 ? { coachCount } : {}) };
 }
 
 const cache = new Map<string, { until: number; value: TrainEquipment | null }>();
@@ -51,6 +63,8 @@ export async function getOfficialEquipment(train: string, date: string): Promise
       if (raw.scope === "inferred" ? !history || history.source !== raw.source || !history.recentModels.includes(raw.model) : raw.source !== "12306") throw new Error("Unverifiable equipment evidence");
       value = { model: detail(raw.model), owner: null, operator: detail(raw.operator), number: detail(raw.number),
         source: raw.source, scope: raw.scope, date, checkedAt: raw.checkedAt,
+        ...(raw.scope === "dated" && Number.isFinite(raw.lengthMeters) && raw.lengthMeters >= 35 && raw.lengthMeters <= 800 ? { lengthMeters: raw.lengthMeters } : {}),
+        ...(raw.scope === "dated" && Number.isInteger(raw.coachCount) && raw.coachCount >= 2 && raw.coachCount <= 32 ? { coachCount: raw.coachCount } : {}),
         ...(history ? { history, number: null } : {}) };
     } catch { /* Equipment does not block the official ticket/timetable result. */ }
     if (cache.size >= 500) cache.delete(cache.keys().next().value!);

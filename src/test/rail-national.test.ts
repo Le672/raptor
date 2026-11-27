@@ -3,6 +3,9 @@ import { nationalTrainsAt } from "../lib/rail-national";
 import type { NationalTimetable } from "../lib/rail-national";
 import { canonicalPageUrl } from "../../speed/src/site-routing.mjs";
 import { railFeatureFromLocation } from "../lib/rail-navigation";
+import { movingTrainBody, platformTrainBody } from "../lib/rail-national-detail";
+import { distanceKm } from "../lib/train-position";
+import { parseOfficialEquipment } from "../lib/rail-equipment";
 
 const data: NationalTimetable = {
   schema: 1, feedDate: "2026-11-26",
@@ -40,5 +43,27 @@ describe("nationwide timetable positions", () => {
 
   it("does not reuse an expired calendar on a later date", () => {
     expect(nationalTrainsAt(data, Date.parse("2026-11-28T00:00:00+08:00"))).toEqual([]);
+  });
+
+  it("keeps the physical size of an official consist on the map", () => {
+    const car = { httpCode: 200, status: 0, content: { status: 0, data: { trainStyle: "CR400BF-A",
+      carInfo: [{ pictureName: "列车长度", pictureValue: "414.26m" }, { pictureName: "列车编组", pictureValue: "16辆" }] } } };
+    expect(parseOfficialEquipment(car, null, "2026-11-27", at("01:00:00"))).toMatchObject({ lengthMeters: 414.26, coachCount: 16 });
+    const [train] = nationalTrainsAt(data, at("00:15:00"));
+    const body = movingTrainBody(train, 414.26)!;
+    expect(Math.abs(distanceKm(body[0], body[1]) * 1000 - 414.26)).toBeLessThan(1);
+  });
+
+  it("distinguishes a matching mapped track from a platform-only length glyph", () => {
+    const platforms: import("../lib/rail-national-detail").PlatformFeature[] = [
+      [1, "edge", "8", "", ["8"], [[110, 30], [110.006, 30]]],
+    ];
+    const shape = platformTrainBody({ platforms, tracks: [] }, "08站台", 209)!;
+    expect(shape).toMatchObject({ track: false, platformId: 1 });
+    expect(distanceKm(shape.line[0], shape.line[1]) * 1000).toBeCloseTo(209, 1);
+    const aligned = platformTrainBody({ platforms, tracks: [[2, ["8"], [[110, 30.0001], [110.006, 30.0001]]]] }, "8", 209)!;
+    expect(aligned.track).toBe(true);
+    expect(aligned.line[0][1]).toBeCloseTo(30.0001, 5);
+    expect(platformTrainBody({ platforms, tracks: [] }, "9", 209)).toBeNull();
   });
 });

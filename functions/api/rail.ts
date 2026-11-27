@@ -6,7 +6,7 @@ import { parseOfficialEquipment } from "../../src/lib/rail-equipment";
 import type { TrainEquipment } from "../../src/lib/rail-equipment";
 import type { TrainJourney } from "../../src/lib/train-position";
 import { ticketDateError, ticketDateRange } from "../../src/lib/rail-ticket-date";
-import { getJourneyBoardStops, getStationBoard, getStationBoardRow } from "../../src/lib/rail-board-service";
+import { getJourneyBoardStops, getStationBoard, getStationBoardRow, getStationDwell } from "../../src/lib/rail-board-service";
 import { officialStationCatalog, stationNames } from "../../src/lib/rail-official-stations";
 import type { PortalDatabase } from "../_utils/db";
 import { historicalEquipment, recordOfficialEquipment } from "../_utils/rail-equipment-history";
@@ -458,7 +458,7 @@ type RailContext = { request: Request; env?: { DB?: PortalDatabase }; waitUntil?
 export async function onRequestGet(context: RailContext) {
   const url = new URL(context.request.url);
   const mode = url.searchParams.get("mode") || "query";
-  if (!["stations", "query", "journey", "delays", "fare", "hubs", "equipment", "board", "board-row", "journey-board"].includes(mode)) return json({ error: "未知查询类型" }, 400);
+  if (!["stations", "query", "journey", "delays", "fare", "hubs", "equipment", "board", "board-row", "journey-board", "national-station"].includes(mode)) return json({ error: "未知查询类型" }, 400);
 
   try {
     const date = url.searchParams.get("date") || ticketDateRange().min;
@@ -475,6 +475,12 @@ export async function onRequestGet(context: RailContext) {
     }
     const stations = await getStations();
     if (mode === "stations") return json({ stations }, 200, 86400);
+    if (mode === "national-station") {
+      const code = url.searchParams.get("station") || "";
+      const station = stations.find(candidate => candidate.code === code);
+      if (!station) return json({ error: "请选择有效的 12306 车站" }, 400);
+      return json(await getStationDwell(station, Date.now()), 200, 15);
+    }
 
     let from = (url.searchParams.get("from") || "").trim();
     let to = (url.searchParams.get("to") || "").trim();

@@ -151,7 +151,7 @@ def compile_feed(archive, roster_directory, today, feed_url):
             continue
         for i in range(len(days)):
             coverage[i] += bool(mask & (1 << i))
-        train = [code, mask, stops, []]
+        train = [code, mask, stops, [], train_id]
         trains.append(train)
         if row["shape_id"] and all(stop[0] >= 0 for stop in stops):
             shape_users[row["shape_id"]].append(train)

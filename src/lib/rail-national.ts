@@ -1,8 +1,8 @@
 import type { Coordinate } from "./train-position";
 
-type StationRow = [code: string, name: string, longitude: number, latitude: number];
+export type NationalStation = [code: string, name: string, longitude: number, latitude: number];
 type Stop = [station: number, arrival: number, departure: number];
-type Trip = [code: string, days: number, stops: Stop[], paths: number[]];
+type Trip = [code: string, days: number, stops: Stop[], paths: number[], trainNo?: string];
 type ServiceDay = [date: string, tripCount: number, officialCatalogCount: number | null];
 
 export type NationalTimetable = {
@@ -10,7 +10,7 @@ export type NationalTimetable = {
   feedDate: string;
   feedUrl: string;
   days: ServiceDay[];
-  stations: StationRow[];
+  stations: NationalStation[];
   trains: Trip[];
   paths: Coordinate[][];
 };
@@ -33,6 +33,10 @@ export type NationalTrain = {
   stopped: boolean;
   point: Coordinate | null;
   path: Coordinate[] | null;
+  progress: number;
+  axis: [Coordinate, Coordinate] | null;
+  trainNo?: string;
+  stationCode?: string;
 };
 const pathsBySnapshot = new WeakMap<NationalTimetable, Map<number, { points: Coordinate[]; distances: number[] }>>();
 
@@ -48,8 +52,8 @@ export function parseNationalTimetable(data: unknown): NationalTimetable {
 }
 
 export const beijingDay = (now: number) => new Date(now + 8 * 3600_000).toISOString().slice(0, 10);
-const categoryOf = (code: string): NationalCategory => code.startsWith("G") ? "high" : /^[DC]/.test(code) ? "emu" : "classic";
-const pointOf = (station?: StationRow): Coordinate | null => station ? [station[2], station[3]] : null;
+export const categoryOf = (code: string): NationalCategory => code.startsWith("G") ? "high" : /^[DC]/.test(code) ? "emu" : "classic";
+const pointOf = (station?: NationalStation): Coordinate | null => station ? [station[2], station[3]] : null;
 
 function getPath(data: NationalTimetable, id: number) {
   const row = data.paths[id];
@@ -102,7 +106,7 @@ export function nationalTrainsAt(data: NationalTimetable, now: number): National
     return { midnight, seconds: (now - midnight) / 1000, mask: 1 << index, date };
   }).filter(day => day.seconds >= 0);
   const result: NationalTrain[] = [];
-  data.trains.forEach(([code, mask, stops, paths], index) => {
+  data.trains.forEach(([code, mask, stops, paths, trainNo], index) => {
     for (const day of days) {
       const time = day.seconds;
       if (!(mask & day.mask) || time < stops[0][2] || time >= stops.at(-1)![1]) continue;
@@ -118,6 +122,7 @@ export function nationalTrainsAt(data: NationalTimetable, now: number): National
         id: `${day.date}/${index}`, code, date: day.date, category: categoryOf(code), stopped, point, path: path?.points ?? null,
         from: data.stations[stops[0][0]]?.[1] || "—", to: data.stations[stops.at(-1)![0]]?.[1] || "—",
         previous: from?.[1] || "—", next: to?.[1] || "—", nextAt: day.midnight + stops[nextStop][1] * 1000,
+        progress: fraction, axis: a && b ? [a, b] : null, trainNo, stationCode: stopped ? from?.[0] : undefined,
       });
     }
   });

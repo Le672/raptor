@@ -14,9 +14,32 @@ const detailPending = new Map<string, Promise<BoardRowDetail>>();
 const screens = new Map<string, { at: number; value: unknown; available: boolean }>();
 const screenPending = new Map<string, Promise<unknown>>();
 const exits = new Map<string, { at: number; data: ReturnType<typeof parseBoardExit> }>();
+const exitPending = new Map<string, Promise<ReturnType<typeof parseBoardExit>>>();
 const operating = new Map<string, { at: number; value: boolean | null }>();
 const operatingPending = new Map<string, Promise<boolean | null>>();
 function prune<T>(cache: Map<string, T>, max: number) { if (cache.size >= max) cache.delete(cache.keys().next().value!); }
+
+export async function getBoardPlatform(board: StationBoardData, row: BoardRow, direction: BoardDirection) {
+  const key = `${board.stationCode}/${board.date}/${row.trainNo}/${row.train}/${direction}`, cached = exits.get(key);
+  if (cached && Date.now() - cached.at < 5 * 60000) return cached.data;
+  const existing = exitPending.get(key);
+  if (existing) return existing;
+  const work = (async () => {
+    try {
+      const response = await fetch(`${MOBILE}/wxxcx/wechat/bigScreen/getExit`, { method: "POST", headers: HEADERS,
+        body: new URLSearchParams({ stationCode: board.stationCode, trainDate: board.date.replace(/-/g, ""), type: direction, stationTrainCode: row.train }),
+        signal: AbortSignal.timeout(6000) });
+      if (response.ok) {
+        const data = parseBoardExit(await response.json());
+        prune(exits, 500); exits.set(key, { at: Date.now(), data });
+        return data;
+      }
+    } catch { /* Missing platform/gate data must not hide the train. */ }
+    return { platform: null, wicket: null };
+  })();
+  exitPending.set(key, work);
+  try { return await work; } finally { exitPending.delete(key); }
+}
 
 export async function getStationBoard(station: Station, date: string): Promise<StationBoardData> {
   const key = `${station.code}/${date}`, cached = boards.get(key);
@@ -31,6 +54,39 @@ export async function getStationBoard(station: Station, date: string): Promise<S
   })();
   boardPending.set(key, request);
   try { return await request; } finally { boardPending.delete(key); }
+}
+
+export async function getStationDwell(station: Station, now: number) {
+  const today = chinaDateTime(now).slice(0, 10);
+  const board = await getStationBoard(station, today);
+  const boards = [board];
+  if (now - Date.parse(today + "T00:00:00+08:00") < 2 * 3600000) {
+    const yesterday = chinaDateTime(now - 86400000).slice(0, 10);
+    try { boards.push(await getStationBoard(station, yesterday)); } catch { /* The current board remains usable. */ }
+  }
+  const seen = new Set<string>();
+  const active = boards.flatMap(item => item.rows.flatMap(row => {
+    if (seen.has(row.id) || row.arrivalAt === null || row.departureAt === null ||
+      now < row.arrivalAt || now >= row.departureAt) return [];
+    seen.add(row.id);
+    return [row];
+  })).sort((a, b) => a.departureAt! - b.departureAt!);
+
+  const rows: Array<Pick<BoardRow, "train" | "trainNo" | "originDate" | "from" | "to" | "arrivalAt" | "departureAt" | "model"> &
+    ReturnType<typeof parseBoardExit>> = [];
+  const queue = active.slice(0, 30);
+  const worker = async () => {
+    while (queue.length) {
+      const row = queue.shift()!;
+      const local = chinaDateTime(row.departureAt!).slice(0, 10);
+      const detail = await getBoardPlatform({ ...board, date: local }, row, "D");
+      const { train, trainNo, originDate, from, to, arrivalAt, departureAt, model } = row;
+      rows.push({ train, trainNo, originDate, from, to, arrivalAt, departureAt, model, ...detail });
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  rows.sort((a, b) => a.departureAt! - b.departureAt!);
+  return { source: "12306", station: station.code, checkedAt: now, truncated: active.length > rows.length, rows };
 }
 
 async function realtimeScreen(board: StationBoardData, direction: BoardDirection): Promise<unknown> {
@@ -87,16 +143,7 @@ export async function getStationBoardRow(board: StationBoardData, id: string, di
       detail.status = "not-running"; detail.warning = "官方逐日计划标记该始发日不开行；这不等于临时取消";
       detail.checkedAt = Date.now(); prune(details, 500); details.set(key, detail); return detail;
     }
-    const exitKey = `${board.stationCode}/${board.date}/${row.train}`;
-    const exit = exits.get(exitKey);
-    if (exit && Date.now() - exit.at < 5 * 60000) Object.assign(detail, exit.data);
-    else {
-      try {
-        const response = await fetch(`${MOBILE}/wxxcx/wechat/bigScreen/getExit`, { method: "POST", headers: HEADERS,
-          body: new URLSearchParams({ stationCode: board.stationCode, trainDate: board.date.replace(/-/g, ""), type: direction, stationTrainCode: row.train }), signal: AbortSignal.timeout(6000) });
-        if (response.ok) { const data = parseBoardExit(await response.json()); prune(exits, 500); exits.set(exitKey, { at: Date.now(), data }); Object.assign(detail, data); }
-      } catch { /* Missing platform/gate data must not hide the train. */ }
-    }
+    Object.assign(detail, await getBoardPlatform(board, row, direction));
     if (options.realtime !== false && board.date === today && (!options.nearbyOnly || plannedAt >= Date.now() - 5 * 60000 && plannedAt <= Date.now() + 3 * 3600000)) {
       const screen = parseBoardRealtime(await realtimeScreen(board, direction), board, row, direction);
       if (screen) Object.assign(detail, screen);
