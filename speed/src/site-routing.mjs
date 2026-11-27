@@ -9,7 +9,7 @@ export const SITE_SECTIONS = [
 ];
 export const PORTAL_HOSTS = ['yukino.bond', 'www.yukino.bond', ...SITE_SECTIONS.filter(([, name]) => !['jm', 'pixiv', 'ln', 'novel', 'comic', 'cinema', 'mail'].includes(name)).map(([, name]) => name + '.yukino.bond')];
 export const SUBDOMAIN_ROUTES = Object.fromEntries(SITE_SECTIONS.filter(([, name]) => !['speed', 'jm', 'pixiv', 'ln', 'novel', 'comic', 'cinema', 'mail'].includes(name)).map(([path, name]) => [name, path]));
-const RAIL_PATHS = ['/ticket', '/transfer', '/live', '/arrivalinfo'];
+const RAIL_PATHS = ['/ticket', '/transfer', '/live', '/arrivalinfo', '/national'];
 const independent = ['speed', 'jm', 'pixiv', 'ln', 'novel', 'comic', 'cinema', 'mail'];
 const MAIN_PAGES = /^\/(?:notes|login|register|admin)(?:\/|$)/;
 const reserved = path => /^\/(?:api|assets|rail-network|\.well-known)(?:\/|$)/.test(path) || /\.[a-z0-9]+$/i.test(path);

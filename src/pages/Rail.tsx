@@ -12,10 +12,15 @@ import { useRailMonitor, SEAT_OPTIONS, matchingSeats, formatCheckedAt } from "..
 import { useNavigate } from "react-router-dom";
 import { useRailPageNavigation } from "../hooks/useRailPageNavigation";
 import { railFeatureUrl } from "../lib/rail-navigation";
+import { lazy, Suspense } from "react";
+
+const NationalRail = lazy(() => import("../components/NationalRail"));
 
 export default function Rail() {
-  useDocumentMeta("余票提醒", "查询 12306 余票，按自定间隔监控意向车次并提醒。");
   const { desktop, settings, dateRange, dateNotice, stations, result, error, storageError, checking, feature, setFeature: setScreen, positionSelection, setPositionSelection, permission, knownStations, matched, update, runCheck, toggleMonitor } = useRailMonitor();
+  useDocumentMeta(feature === "national" ? "全国铁路运行图" : "余票提醒", feature === "national"
+    ? "按北京时间查看全国铁路客运列车的时刻表估算位置和下一站。"
+    : "查询 12306 余票，按自定间隔监控意向车次并提醒。");
   const navigate = useNavigate();
   const setFeature = useRailPageNavigation(setScreen, navigate, setPositionSelection);
   const { filters, setFilters, visibleTrains } = useTrainListing(result?.trains, settings.seat);
@@ -34,11 +39,12 @@ export default function Rail() {
           </div>
           <div className="rail-hero-icon" aria-hidden="true"><TrainFront size={54} strokeWidth={1.25} /></div>
         </header>
-        <div className="rail-feature-tabs" role="group" aria-label="功能选择">
+        <div className="rail-feature-tabs rail-web-tabs" role="group" aria-label="功能选择">
           <button type="button" aria-pressed={feature === "tickets"} onClick={() => setFeature("tickets")}>余票查询与监控</button>
           <button type="button" aria-pressed={feature === "transfer"} onClick={() => setFeature("transfer")}>中转行程</button>
           <button type="button" aria-pressed={feature === "position"} onClick={() => setFeature("position")}>列车位置与下一站</button>
           <button type="button" aria-pressed={feature === "board"} onClick={() => setFeature("board")}>车站大屏</button>
+          <button type="button" aria-pressed={feature === "national"} onClick={() => setFeature("national")}>全国运行图</button>
         </div>
         <div hidden={feature !== "tickets"}>
         {storageError && <p role="status" className="rail-note mb-4">浏览器无法保存查询条件，本次查询和监控仍可使用；刷新页面后需要重新填写。</p>}
@@ -98,6 +104,9 @@ export default function Rail() {
         {feature === "board" && <StationBoard stations={stations} onPosition={(train, date) => setFeature("position", { train, date, autoQuery: true })}/>}
         {feature === "transfer" && <RailTransfer stations={stations} onPosition={(train, date) => setFeature("position", { train, date, autoQuery: true })}/>}
         {feature === "position" && <RailPosition key={`${positionSelection.train}/${positionSelection.date}`} initialTrain={positionSelection.train} initialDate={positionSelection.date} autoQuery={positionSelection.autoQuery} onQuery={(train, date) => navigate(railFeatureUrl("position", window.location, { train, date }), { replace: true })} />}
+        {feature === "national" && <Suspense fallback={<p className="rail-empty" role="status">正在打开全国运行图…</p>}>
+          <NationalRail onPosition={(train, date) => setFeature("position", { train, date, autoQuery: true })} />
+        </Suspense>}
         <p className="rail-disclaimer">本工具仅展示公开查询结果，不提供购票或抢票。车票状态会随时变化，最终以 12306 官网为准。</p>
         <a className="rail-attribution" href="https://api.railgo.dev/" target="_blank" rel="noreferrer" aria-label="车型、配属与铁路坐标补充来源：RailGo 数据服务（打开数据服务文档）">
           <span className="rail-attribution-main">

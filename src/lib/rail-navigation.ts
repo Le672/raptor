@@ -1,9 +1,9 @@
 import { isJourneyDate, TRAIN_CODE } from "./train-position";
 
-export type RailFeature = "tickets" | "transfer" | "position" | "board";
+export type RailFeature = "tickets" | "transfer" | "position" | "board" | "national";
 export type RailPositionSelection = { train: string; date?: string; autoQuery?: boolean };
 export const RAIL_FEATURE_PATHS: Record<RailFeature, string> = {
-  tickets: "/ticket", transfer: "/transfer", position: "/live", board: "/arrivalinfo",
+  tickets: "/ticket", transfer: "/transfer", position: "/live", board: "/arrivalinfo", national: "/national",
 };
 export function isRailHost(hostname = window.location.hostname) { return hostname.toLowerCase() === "cr.yukino.bond"; }
 export function isRailPath(pathname: string) {
@@ -15,6 +15,7 @@ export function railFeatureFromLocation(location: Pick<Location, "pathname" | "s
   const matched = (Object.entries(RAIL_FEATURE_PATHS) as [RailFeature, string][]).find(([, value]) => value === path);
   if (matched) return matched[0];
   const view = new URLSearchParams(location.search).get("view");
+  if (view === "national") return "national";
   return view === "board" ? "board" : view === "transfer" ? "transfer" : view === "position" || view === "live" ? "position" : "tickets";
 }
 export function railPositionFromLocation(location: Pick<Location, "pathname" | "search"> = window.location): RailPositionSelection {

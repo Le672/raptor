@@ -1,0 +1,63 @@
+name: Refresh nationwide rail timetable
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/update-rail-national.yml'
+      - 'scripts/build-rail-national.py'
+  schedule:
+    - cron: '23 18 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: rail-national-data
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the open national timetable and dated 12306 roster
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TZ: Asia/Shanghai
+        run: |
+          mkdir -p .rail-national/rosters
+          release=$(gh api repos/wensimehrp/chinese-railway-gtfs/releases/latest)
+          asset=$(jq -er '.assets[] | select(.name == "output_gtfs.zip") | .browser_download_url' <<< "$release")
+          feed_url=$(jq -er '.html_url' <<< "$release")
+          curl --fail --silent --show-error --location --retry 2 --max-time 160 "$asset" -o .rail-national/feed.zip
+          for offset in -4 -3 -2 -1 0 1 2; do
+            day=$(date -d "$offset days" +%F)
+            if curl --fail --silent --show-error --max-time 18 "https://kyfw.12306.cn/otn/queryTrainInfo/getTrainName?date=$day" -o .rail-national/roster.tmp &&
+                jq -e '.status == true and ([.data[].train_no] | unique | length >= 4000)' .rail-national/roster.tmp >/dev/null; then
+              mv .rail-national/roster.tmp ".rail-national/rosters/$day.json"
+            else
+              echo "::warning::Official roster unavailable for $day. The calendar alone will be used for this date."
+            fi
+            sleep 2
+          done
+          python scripts/build-rail-national.py --feed .rail-national/feed.zip --feed-url "$feed_url" --rosters .rail-national/rosters --out .rail-national/schedule.json
+      - name: Publish the validated snapshot
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          export GIT_INDEX_FILE="$RUNNER_TEMP/rail-national.index"
+          blob=$(git hash-object -w .rail-national/schedule.json)
+          git update-index --add --cacheinfo "100644,$blob,schedule.json"
+          tree=$(git write-tree)
+          parent=$(git ls-remote origin refs/heads/rail-national-data | cut -f1)
+          parents=()
+          if [[ -n "$parent" ]]; then
+            git fetch --depth=1 origin "$parent"
+            if [[ "$(git rev-parse "$parent^{tree}")" == "$tree" ]]; then exit 0; fi
+            parents=(-p "$parent")
+          fi
+          commit=$(git commit-tree "$tree" "${parents[@]}" -m "Refresh nationwide rail timetable")
+          git push origin "$commit:refs/heads/rail-national-data"

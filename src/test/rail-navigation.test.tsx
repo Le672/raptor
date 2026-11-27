@@ -21,7 +21,7 @@ describe("rail subdomain feature URLs", () => {
     expect(railPositionFromLocation({ pathname: "/live", search: "?train=K123&date=2026-02-30" })).toEqual({ train: "" });
     expect(railFeatureUrl("board", { ...location, pathname: "/live", search: "?station=IZQ&date=2026-10-04&train=K123" } as Location)).toBe("/arrivalinfo?station=IZQ");
   });
-  it("maps the four stable paths and canonicalizes legacy query links", () => {
+  it("maps the railway feature paths and canonicalizes legacy query links", () => {
     for (const [feature, pathname] of Object.entries(RAIL_FEATURE_PATHS)) {
       expect(railFeatureFromLocation({ pathname, search: "?view=tickets" })).toBe(feature);
       expect(railFeatureUrl(feature as RailFeature, { hostname: "cr.yukino.bond", pathname: "/cr", search: "?view=board&station=IZQ", hash: "" } as Location)).toBe(`${pathname}?station=IZQ`);
